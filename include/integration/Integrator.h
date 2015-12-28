@@ -1,0 +1,198 @@
+/*
+ * Integrator.h
+ *
+ *  Created on: 18.06.2015
+ *      Author: neunertm
+ */
+
+#ifndef INTEGRATOR_H_
+#define INTEGRATOR_H_
+
+#include <functional>
+
+#include <boost/numeric/odeint.hpp>
+#include "eigenIntegration.h"
+
+#include "IntegratorBase.h"
+
+
+template <size_t STATE_DIM, class Stepper>
+class Integrator : public IntegratorBase<STATE_DIM>
+{
+public:
+	typedef IntegratorBase<STATE_DIM> Base;
+
+	// Constructor
+	Integrator(
+			const std::shared_ptr<systems::SystemBase<STATE_DIM> >& system,
+			const std::shared_ptr<integration::EventHandler<STATE_DIM> >& eventHandler = nullptr
+			)
+		: IntegratorBase<STATE_DIM>(system, eventHandler)
+	{ setupSystem(); }
+
+	// Equidistant integration based on number of time steps and step length
+	bool integrate(
+		const Base::State_T& initialState,
+		const double& startTime,
+		size_t numSteps,
+		double dt,
+		Base::StateTrajectory_T& stateTrajectory,
+		Base::TimeTrajectory_T& timeTrajectory
+	 	) override
+	 {
+		 Base::State_T initialStateInternal = initialState;
+		 initialize(initialStateInternal, startTime, dt);
+		 integrate_n_steps(stepper_, systemFunction_, initialStateInternal, startTime, dt, numSteps, Base::observer_.observeWrap);
+		 Base::retrieveTrajectoriesFromObserver(stateTrajectory, timeTrajectory);
+		 return true;
+	 }
+
+	// Equidistant integration based on initial and final time as well as step length
+	bool integrate(
+		const Base::State_T& initialState,
+		const double& startTime,
+		const double& finalTime,
+		double dt,
+		Base::StateTrajectory_T& stateTrajectory,
+		Base::TimeTrajectory_T& timeTrajectory
+		) override
+	 {
+		 Base::State_T initialStateInternal = initialState;
+		 initialize(initialStateInternal, startTime, dt);
+		 integrate_const(stepper_, systemFunction_, initialStateInternal, startTime, finalTime, dt, Base::observer_.observeWrap);
+		 Base::retrieveTrajectoriesFromObserver(stateTrajectory, timeTrajectory);
+		 return true;
+	 }
+
+	// Adaptive time integration based on start time and final time
+	bool integrate(
+		const Base::State_T& initialState,
+		const double& startTime,
+		const double& finalTime,
+		Base::StateTrajectory_T& stateTrajectory,
+		Base::TimeTrajectory_T& timeTrajectory,
+		double dtInitial = 0.01
+		) override
+	 {
+		 Base::State_T initialStateInternal = initialState;
+		 initialize(initialStateInternal, startTime, dtInitial);
+		 integrate_adaptive(stepper_, systemFunction_, initialStateInternal, startTime, finalTime, dtInitial, Base::observer_.observeWrap);
+		 Base::retrieveTrajectoriesFromObserver(stateTrajectory, timeTrajectory);
+		 return true;
+	 }
+
+	// Output integration based on a given time trajectory
+	bool integrate(
+		const Base::State_T& initialState,
+		const Base::TimeTrajectory_T& timeTrajectory,
+		Base::StateTrajectory_T& stateTrajectory,
+		double dtInitial = 0.01
+		) override
+	 {
+		 Base::State_T initialStateInternal = initialState;
+		 initialize(initialStateInternal, timeTrajectory.front(), dtInitial);
+		 integrate_times(stepper_, systemFunction_, initialStateInternal, &timeTrajectory.front(), &timeTrajectory.back(), dtInitial, Base::observer_.observeWrap);
+		 Base::retrieveStateTrajectoryFromObserver(stateTrajectory);
+		 return true;
+	 }
+
+private:
+	 void initialize(const Base::State_T& initialState, const double& t, double dt)
+	 {
+		initializeStepper(initialState, t, dt);
+		Base::observer_.reset();
+	 }
+
+	 void setupSystem()
+	 {
+		 systemFunction_ = [this]( const Eigen::Matrix<double, STATE_DIM, 1>& x, Eigen::Matrix<double, STATE_DIM, 1>& dxdt, double t )
+	 	{
+			 const Base::State_T& xState(static_cast<const Base::State_T& >(x));
+			 Base::State_T& dxdtState(static_cast<Base::State_T& >(dxdt));
+			 this->system_->computeDerivative(xState, t, dxdtState);
+	 	};
+	 }
+
+	// functionality to reset stepper.
+	// in the general case, do not reset
+	 typedef boost::numeric::odeint::dense_output_runge_kutta <
+	 			boost::numeric::odeint::controlled_runge_kutta <
+	 				boost::numeric::odeint::runge_kutta_dopri5 <
+	 					Eigen::Matrix<double, STATE_DIM, 1>,
+	 					double,
+	 					Eigen::Matrix<double, STATE_DIM, 1>,
+	 					double,
+	 					boost::numeric::odeint::vector_space_algebra > > > rk5;
+
+	template <typename S = Stepper>
+	typename std::enable_if<std::is_same<S, rk5>::value, void>::type
+	initializeStepper(const Base::State_T& initialState, const double& t, double dt) {
+		stepper_.initialize(initialState, t, dt);
+	}
+
+	template <typename S = Stepper>
+	typename std::enable_if<!std::is_same<S, rk5>::value, void>::type
+	initializeStepper(const Base::State_T& initialState, const double& t, double dt) {}
+
+
+	// Member Variables
+	std::function<void (const Eigen::Matrix<double, STATE_DIM, 1>&, Eigen::Matrix<double, STATE_DIM, 1>&, double)> systemFunction_;
+	Stepper stepper_;
+
+};
+
+
+template <size_t STATE_DIM>
+using IntegratorEuler = Integrator<
+			STATE_DIM,
+			boost::numeric::odeint::euler<
+				Eigen::Matrix<double, STATE_DIM, 1>,
+				double,
+				Eigen::Matrix<double, STATE_DIM, 1>,
+				double,
+				boost::numeric::odeint::vector_space_algebra >
+			>;
+
+
+template <size_t STATE_DIM>
+using IntegratorRK4 = Integrator<
+			STATE_DIM,
+			boost::numeric::odeint::runge_kutta4<
+				Eigen::Matrix<double, STATE_DIM, 1>,
+				double,
+				Eigen::Matrix<double, STATE_DIM, 1>,
+				double,
+				boost::numeric::odeint::vector_space_algebra >
+			>;
+
+template <size_t STATE_DIM>
+using dense_runge_kutta5_t = boost::numeric::odeint::dense_output_runge_kutta <
+			boost::numeric::odeint::controlled_runge_kutta <
+				boost::numeric::odeint::runge_kutta_dopri5 <
+					Eigen::Matrix<double, STATE_DIM, 1>,
+					double,
+					Eigen::Matrix<double, STATE_DIM, 1>,
+					double,
+					boost::numeric::odeint::vector_space_algebra > > >;
+
+template <size_t STATE_DIM>
+using IntegratorRK5Variable = Integrator<
+		STATE_DIM,
+		dense_runge_kutta5_t<STATE_DIM>
+			>;
+
+
+// for RK5 we have to do a reset of the stepper
+//template <size_t STATE_DIM>
+//class Integrator<STATE_DIM, dense_runge_kutta5_t<STATE_DIM> >
+//{
+//	private:
+//		void resetStepper() {
+//			std::cout << "Reset called on RK5 stepper" <<std::endl;
+//			Base::stepper_.reset();
+//	}
+//};
+
+
+
+#endif /* INTEGRATOR_H_ */

@@ -28,17 +28,24 @@ int main(int argc, char* argv[])
 	data[3] << 3.0, 0.0;
 	data[4] << 4.0, 0.0;
 
+	for(size_t i=0; i<5; i++) {
+		std::cout << "At time " <<timeStamp[i] << "\t data is " <<  data[i].transpose() << std::endl;
+	}
+	std::cout << std::endl;
+
 	LinearInterpolation<Eigen::Vector2d> linInterpolation(&timeStamp, &data);
 
 //	linInterpolation.setData(&data);
 //	linInterpolation.setTimeStamp(&timeStamp);
 
-	double enquiryTime;
-	enquiryTime = std::atof(argv[1]);
+	for(size_t i=1; i<argc; i++) {
+		double enquiryTime;
+		enquiryTime = std::atof(argv[i]);
 
-	Eigen::Vector2d enquiryData;
-	linInterpolation.interpolate(enquiryTime, enquiryData);
-	std::cout << "At time " << enquiryTime << " data is " <<  enquiryData.transpose() << std::endl;
+		Eigen::Vector2d enquiryData;
+		linInterpolation.interpolate(enquiryTime, enquiryData);
+		std::cout << "At time " << enquiryTime << "\t data is " <<  enquiryData.transpose() << std::endl << std::endl;
+	}
 
 }
 

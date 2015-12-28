@@ -31,25 +31,26 @@ public:
 
 	size_t find(const double& enquiryTime) {
 
+		size_t index;
+
 		if (timeStampPtr_->at(index_) > enquiryTime) {
-			for (size_t i=index_-1; i>=0; i--)
-				if (timeStampPtr_->at(i) <= enquiryTime) {
-					index_ = i;
+			for (int i=index_; i>=0; i--)  {
+				index = i;
+				if (timeStampPtr_->at(i) <= enquiryTime)
 					break;
-				}
+			}
 		} else {
-			for (size_t i=index_; i<timeStampPtr_->size(); i++) {
+			for (int i=index_; i<timeStampPtr_->size(); i++) {
+				index = i;
 				if (timeStampPtr_->at(i) > enquiryTime) {
-					index_ = i-1;
-					break;
-				} else if (timeStampPtr_->at(i) == enquiryTime) {
-					index_ = i;
+					index = i-1;
 					break;
 				}
 			}
 		}
 
-		return index_;
+		index_ = index;
+		return index;
 	}
 
 	void interpolate(const double& enquiryTime, Data_T& enquiryData) {
@@ -57,6 +58,11 @@ public:
 //		std::cout << "INDEX: " << index_;
 		size_t ind = find(enquiryTime);
 //		std::cout << " --> " << ind << std::endl;
+
+		if (enquiryTime<timeStampPtr_->front()) {
+			enquiryData = dataPtr_->front();
+			return;
+		}
 
 		if (ind==timeStampPtr_->size()-1) {
 			enquiryData = dataPtr_->back();

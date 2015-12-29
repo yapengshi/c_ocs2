@@ -39,6 +39,10 @@ public:
 
 	}
 
+	void setUff()
+
+	void setGain()
+
 private:
 	std::vector<double> controllerTime_;
 

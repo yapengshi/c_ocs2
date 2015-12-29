@@ -15,6 +15,9 @@ template <typename Data_T>
 class LinearInterpolation
 {
 public:
+	LinearInterpolation()
+		: index_(0) {}
+
 	LinearInterpolation(std::vector<double>* const timeStampPtr,
 			std::vector<Data_T>* const dataPtr)
 		: index_(0),

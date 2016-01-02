@@ -17,11 +17,11 @@ class IntegratorBase
 {
 public:
 	typedef std::vector<double> TimeTrajectory_T;
-		typedef Eigen::Matrix<double,STATE_DIM,1> State_T;
-		typedef std::vector<State_T, Eigen::aligned_allocator<State_T> > StateTrajectory_T;
+	typedef Eigen::Matrix<double,STATE_DIM,1> State_T;
+	typedef std::vector<State_T, Eigen::aligned_allocator<State_T> > StateTrajectory_T;
 
 	IntegratorBase(
-		const std::shared_ptr<systems::SystemBase<STATE_DIM> >& system,
+		const std::shared_ptr<SystemBase<STATE_DIM> >& system,
 		const std::shared_ptr<EventHandler<STATE_DIM> >& eventHandler = nullptr) :
 			observer_(eventHandler),
 			system_(system),
@@ -86,7 +86,7 @@ protected:
 
 	Observer<STATE_DIM> observer_;
 
-	std::shared_ptr<systems::SystemBase<STATE_DIM> > system_;
+	std::shared_ptr<SystemBase<STATE_DIM> > system_;
 	std::shared_ptr<EventHandler<STATE_DIM> > eventHandler_;
 };
 

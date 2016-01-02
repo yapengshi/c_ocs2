@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
 	timeStamp[3] = 1.5;
 	timeStamp[4] = 2.0;
 
-	std::vector<Eigen::Vector2d> data(5);
+	std::vector<Eigen::Vector2d,Eigen::aligned_allocator<Eigen::Vector2d> > data(5);
 	data[0] << 0.0, 0.0;
 	data[1] << 1.0, 0.0;
 	data[2] << 2.0, 0.0;
@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 	}
 	std::cout << std::endl;
 
-	LinearInterpolation<Eigen::Vector2d> linInterpolation(&timeStamp, &data);
+	LinearInterpolation<Eigen::Vector2d,Eigen::aligned_allocator<Eigen::Vector2d> > linInterpolation(&timeStamp, &data);
 
 //	linInterpolation.setData(&data);
 //	linInterpolation.setTimeStamp(&timeStamp);

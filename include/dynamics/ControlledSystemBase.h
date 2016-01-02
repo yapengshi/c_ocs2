@@ -10,20 +10,26 @@
 
 #include <vector>
 #include <Eigen/Dense>
+#include <Eigen/StdVector>
 
 #include "SystemBase.h"
 #include "misc/LinearInterpolation.h"
 
 template <size_t STATE_DIM, size_t INPUT_DIM>
-class ControlledSystemBase : public SystemBase
+class ControlledSystemBase : public SystemBase<STATE_DIM>
 {
+private:
+	typedef Eigen::Matrix<double,STATE_DIM,1> STATE_T;
+	typedef Eigen::Matrix<double,INPUT_DIM,1> INPUT_T;
+	typedef Eigen::Matrix<double,INPUT_DIM,STATE_DIM> GAIN_T;
+
 public:
 	ControlledSystemBase() {}
 	virtual ~ControlledSystemBase() {}
 
 	void setController(const std::vector<double>& controllerTime,
-			const std::vector<Eigen::Matrix<double,INPUT_DIM,1> >& uff,
-			const std::vector<Eigen::Matrix<double,INPUT_DIM,STATE_DIM> >& k) {
+			const std::vector<INPUT_T, Eigen::aligned_allocator<INPUT_T> >& uff,
+			const std::vector<GAIN_T, Eigen::aligned_allocator<GAIN_T> >& k) {
 
 		controllerTime_ = controllerTime;
 		uff_ = uff;
@@ -37,9 +43,7 @@ public:
 	}
 
 
-	void computeInput(const double& t,
-			const Eigen::Matrix<double,STATE_DIM,1>& x,
-			Eigen::Matrix<double,INPUT_DIM,1>& u)
+	void computeInput(const double& t, const STATE_T& x, INPUT_T& u)
 	{
 		Eigen::Matrix<double,INPUT_DIM,1> uff;
 		Eigen::Matrix<double,INPUT_DIM,STATE_DIM> k;
@@ -51,29 +55,26 @@ public:
 	}
 
 
-	void computeDerivative(
-			const Eigen::Matrix<double,STATE_DIM,1>& x,
-			const double& t,
-			Eigen::Matrix<double,INPUT_DIM,1>& dxdt)  {
+	void computeDerivative(const STATE_T& x, const double& t, STATE_T& dxdt)  {
 
-		Eigen::Matrix<double,INPUT_DIM,1> u;
+		INPUT_T u;
 		computeInput(t, x, u);
 		computeDerivative(t, x, u, dxdt);
 	}
 
 	virtual void computeDerivative(
 			const double& t,
-			const Eigen::Matrix<double,STATE_DIM,1>& x,
-			const Eigen::Matrix<double,INPUT_DIM,1>& u,
-			Eigen::Matrix<double,INPUT_DIM,1>& dxdt) = 0;
+			const STATE_T& x,
+			const INPUT_T& u,
+			STATE_T& dxdt) = 0;
 
 private:
 	std::vector<double> controllerTime_;
-	std::vector<Eigen::Matrix<double,INPUT_DIM,1> > uff_;
-	std::vector<Eigen::Matrix<double,INPUT_DIM,STATE_DIM> > k_;
+	std::vector<INPUT_T, Eigen::aligned_allocator<INPUT_T> > uff_;
+	std::vector<GAIN_T, Eigen::aligned_allocator<GAIN_T> > k_;
 
-	LinearInterpolation<Eigen::Matrix<double,INPUT_DIM,1> > linInterpolateUff_;
-	LinearInterpolation<Eigen::Matrix<double,INPUT_DIM,STATE_DIM> > linInterpolateK_;
+	LinearInterpolation<INPUT_T, Eigen::aligned_allocator<INPUT_T> > linInterpolateUff_;
+	LinearInterpolation<GAIN_T, Eigen::aligned_allocator<GAIN_T> > linInterpolateK_;
 
 };
 

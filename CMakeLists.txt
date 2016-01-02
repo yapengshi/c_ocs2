@@ -100,10 +100,13 @@ include_directories(
 ## Declare a cpp library
 # add_library(c_ocs2
 #   src/${PROJECT_NAME}/c_ocs2.cpp
-# )
+# ) 
 
 ## Declare a cpp executable
 add_executable(interpolation_test src/test/InterpolationTest.cpp)
+
+## Declare a cpp executable
+add_executable(integration_test src/test/IntegrationTest.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -111,6 +114,11 @@ add_executable(interpolation_test src/test/InterpolationTest.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(interpolation_test
+  ${catkin_LIBRARIES}
+) 
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(integration_test
   ${catkin_LIBRARIES}
 )
 

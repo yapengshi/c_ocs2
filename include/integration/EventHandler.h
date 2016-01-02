@@ -8,28 +8,22 @@
 #ifndef EVENTHANDLER_H_
 #define EVENTHANDLER_H_
 
-#include <core/state/StateBase.h>
-
-namespace ct {
-namespace core {
-namespace integration {
 
 template <size_t STATE_DIM>
 class EventHandler
 {
 public:
+	typedef Eigen::Matrix<double,STATE_DIM,1> State_T;
+
 	EventHandler() {}
 	virtual ~EventHandler() {}
 
-	virtual bool checkEvent(const state::StateBase<STATE_DIM>& state, const Time& t) = 0;
+	virtual bool checkEvent(const State_T& state, const double& t) = 0;
 
-	virtual void handleEvent(const state::StateBase<STATE_DIM>& state, const Time& t) = 0;
+	virtual void handleEvent(const State_T& state, const double& t) = 0;
 
 private:
 };
 
-}
-}
-}
 
 #endif /* EVENTHANDLER_H_ */

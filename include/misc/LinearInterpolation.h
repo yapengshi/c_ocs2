@@ -9,9 +9,12 @@
 #define LINEARINTERPOLATION_H_
 
 #include <Eigen/Dense>
+#include <Eigen/StdVector>
+
+#include <memory>
 #include <vector>
 
-template <typename Data_T>
+template <typename Data_T, class Alloc=std::allocator<Data_T> >
 class LinearInterpolation
 {
 public:
@@ -19,13 +22,14 @@ public:
 		: index_(0) {}
 
 	LinearInterpolation(std::vector<double>* const timeStampPtr,
-			std::vector<Data_T>* const dataPtr)
+			std::vector<Data_T,Alloc>* const dataPtr)
 		: index_(0),
 		  timeStampPtr_(timeStampPtr),
 		  dataPtr_(dataPtr)
 	{}
 
-	void setData(std::vector<Data_T>* const dataPtr)	{dataPtr_ = dataPtr;}
+
+	void setData(std::vector<Data_T,Alloc>* const dataPtr)	{dataPtr_ = dataPtr;}
 
 	void setTimeStamp(std::vector<double>* const timeStampPtr)	{timeStampPtr_ = timeStampPtr;}
 
@@ -80,7 +84,7 @@ public:
 private:
 	size_t index_;
 
-	std::vector<Data_T>* dataPtr_;
+	std::vector<Data_T,Alloc>* dataPtr_;
 	std::vector<double>* timeStampPtr_;
 };
 

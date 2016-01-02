@@ -25,7 +25,7 @@ public:
 	friend class IntegratorBase<STATE_DIM>;
 
 	Observer(const std::shared_ptr<EventHandler<STATE_DIM> >& eventHandler = nullptr) :
-		observeWrap([this](const typename State_T& x, const double& t){ this->observe(x,t); }),
+		observeWrap([this](const State_T& x, const double& t){ this->observe(x,t); }),
 		eventHandler_(eventHandler)
 	{}
 
@@ -34,7 +34,7 @@ public:
 		timeTrajectory_.clear();
 	}
 
-	void observe(const typename State_T& x, const double& t)
+	void observe(const State_T& x, const double& t)
 	{
 		stateTrajectory_.push_back(x);
 		timeTrajectory_.push_back(t);
@@ -46,13 +46,13 @@ public:
 	}
 
 	// Lambda to pass to odeint (odeint takes copies of the observer so we can't pass the class
-	std::function<void (const typename State_T& x, const double& t)> observeWrap;
+	std::function<void (const State_T& x, const double& t)> observeWrap;
 
 private:
 	std::shared_ptr<EventHandler<STATE_DIM> > eventHandler_;
 
-	state::StateTrajectory<STATE_DIM> stateTrajectory_;
-	state::TimeTrajectory timeTrajectory_;
+	StateTrajectory_T stateTrajectory_;
+	TimeTrajectory_T timeTrajectory_;
 
 };
 

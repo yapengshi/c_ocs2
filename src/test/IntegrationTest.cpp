@@ -8,7 +8,35 @@
 #include <memory>
 
 #include "integration/Integrator.h"
-#include "test/SecondOrderSystem.h"
+#include "dynamics/ControlledSystemBase.h"
+
+
+class SecondOrderSystem : public ControlledSystemBase<2,1>
+{
+public:
+
+	SecondOrderSystem() {}
+	~SecondOrderSystem() {}
+
+	void computeDerivative(
+			const double& t,
+			const Eigen::Matrix<double,2,1>& x,
+			const Eigen::Matrix<double,1,1>& u,
+			Eigen::Matrix<double,2,1>& dxdt) {
+
+		Eigen::Matrix2d A;
+		A << -2, -1, 1, 0;
+
+		Eigen::Vector2d B;
+		B << 1, 0;
+
+		dxdt = A*x + B*u;
+	}
+
+private:
+
+};
+
 
 
 int main (int argc, char* argv[])
@@ -29,7 +57,7 @@ int main (int argc, char* argv[])
 	Eigen::Matrix<double,2,1> x0;
 	x0.setZero();
 
-	bool flag = ode45.integrate(x0, 0.0, 10.0, stateTrajectory, timeTrajectory, 0.001);
+	bool flag = ode45.integrate(x0, 0.0, 10.0, stateTrajectory, timeTrajectory);
 
 	for (size_t i=0; i<timeTrajectory.size(); i++) {
 		std::cout << "At time " <<  timeTrajectory[i] << "\t state is: " << stateTrajectory[i].transpose() << std::endl;

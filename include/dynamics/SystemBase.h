@@ -17,8 +17,8 @@ public:
 	virtual ~SystemBase() {}
 
 	virtual void computeDerivative(
-			const Eigen::Matrix<double,STATE_DIM,1>& state,
 			const double& t,
+			const Eigen::Matrix<double,STATE_DIM,1>& state,
 			Eigen::Matrix<double,STATE_DIM,1>& derivative) = 0;
 
 private:

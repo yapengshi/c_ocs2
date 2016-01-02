@@ -109,7 +109,7 @@ private:
 	 	{
 			 const typename Base::State_T& xState(static_cast<const typename Base::State_T& >(x));
 			 typename Base::State_T& dxdtState(static_cast<typename Base::State_T& >(dxdt));
-			 this->system_->computeDerivative(xState, t, dxdtState);
+			 this->system_->computeDerivative(t, xState, dxdtState);
 	 	};
 	 }
 

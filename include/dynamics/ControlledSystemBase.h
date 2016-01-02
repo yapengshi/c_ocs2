@@ -55,7 +55,7 @@ public:
 	}
 
 
-	void computeDerivative(const STATE_T& x, const double& t, STATE_T& dxdt)  {
+	void computeDerivative(const double& t, const STATE_T& x, STATE_T& dxdt)  {
 
 		INPUT_T u;
 		computeInput(t, x, u);

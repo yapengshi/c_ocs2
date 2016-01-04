@@ -21,6 +21,7 @@ public:
 			const Eigen::Matrix<double,STATE_DIM,1>& state,
 			Eigen::Matrix<double,STATE_DIM,1>& derivative) = 0;
 
+
 private:
 };
 

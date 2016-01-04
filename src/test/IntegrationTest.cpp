@@ -38,6 +38,10 @@ public:
 		dxdt = A*x + B*u;
 	}
 
+	std::shared_ptr<ControlledSystemBase<2, 1> > clone() const {
+		return std::make_shared<SecondOrderSystem>(*this);
+	}
+
 private:
 
 };
@@ -48,11 +52,20 @@ int main (int argc, char* argv[])
 {
 	std::shared_ptr<SecondOrderSystem> sys = std::make_shared<SecondOrderSystem>();
 
-	std::vector<double> cntTimeStamp {0, 10};
-	std::vector<Eigen::Matrix<double,1,1>, Eigen::aligned_allocator<Eigen::Matrix<double,1,1> > > uff(2, Eigen::Matrix<double,1,1>::Ones());
-	std::vector<Eigen::Matrix<double,1,2>, Eigen::aligned_allocator<Eigen::Matrix<double,1,2> > > k(2, Eigen::Matrix<double,1,2>::Zero());
+	SecondOrderSystem::scalar_array_t cntTimeStamp {0, 10};
+	SecondOrderSystem::control_vector_array_t uff(2, Eigen::Matrix<double,1,1>::Ones());
+	SecondOrderSystem::control_feedback_array_t k(2, Eigen::Matrix<double,1,2>::Zero());
 
-	sys->setController(cntTimeStamp, uff, k);
+	SecondOrderSystem::controller_t controller;
+	controller.time_ = cntTimeStamp;
+	controller.uff_ = uff;
+	controller.k_ = k;
+
+	sys->setController(controller);
+
+	//
+	std::shared_ptr<ControlledSystemBase<2, 1> > sysClone1 = sys->clone();
+	std::cout << "The cloned pointer is unique: " << std::boolalpha << sysClone1.unique() << std::noboolalpha << std::endl << std::endl;
 
 	ODE45<2> ode45(sys);
 

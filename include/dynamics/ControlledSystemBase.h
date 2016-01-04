@@ -12,41 +12,54 @@
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
 
+#include "Dimensions.h"
 #include "SystemBase.h"
 #include "misc/LinearInterpolation.h"
 
 template <size_t STATE_DIM, size_t INPUT_DIM>
 class ControlledSystemBase : public SystemBase<STATE_DIM>
 {
-private:
-	typedef Eigen::Matrix<double,STATE_DIM,1> STATE_T;
-	typedef Eigen::Matrix<double,INPUT_DIM,1> INPUT_T;
-	typedef Eigen::Matrix<double,INPUT_DIM,STATE_DIM> GAIN_T;
-
 public:
+	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
+	typedef typename DIMENSIONS::scalar_t scalar_t;
+	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
+	typedef typename DIMENSIONS::state_vector_t state_vector_t;
+	typedef typename DIMENSIONS::control_vector_t control_vector_t;
+	typedef typename DIMENSIONS::control_vector_array_t control_vector_array_t;
+	typedef typename DIMENSIONS::control_feedback_t control_feedback_t;
+	typedef typename DIMENSIONS::control_feedback_array_t control_feedback_array_t;
+	typedef typename DIMENSIONS::controller_t controller_t;
+
 	ControlledSystemBase() {}
 	virtual ~ControlledSystemBase() {}
 
-	void setController(const std::vector<double>& controllerTime,
-			const std::vector<INPUT_T, Eigen::aligned_allocator<INPUT_T> >& uff,
-			const std::vector<GAIN_T, Eigen::aligned_allocator<GAIN_T> >& k) {
+	void setController(const controller_t& controller) {
 
-		controllerTime_ = controllerTime;
-		uff_ = uff;
-		k_ = k;
+		controller_ = controller;
 
-		linInterpolateUff_.setTimeStamp(&controllerTime_);
-		linInterpolateUff_.setData(&uff_);
+		linInterpolateUff_.setTimeStamp(&controller_.time_);
+		linInterpolateUff_.setData(&controller_.uff_);
 
-		linInterpolateK_.setTimeStamp(&controllerTime_);
-		linInterpolateK_.setData(&k_);
+		linInterpolateK_.setTimeStamp(&controller_.time_);
+		linInterpolateK_.setData(&controller_.k_);
+	}
+
+	void setController(const scalar_array_t& controllerTime,
+			const control_vector_array_t& uff,
+			const control_feedback_array_t& k) {
+
+		controller_.time_ = controllerTime;
+		controller_.uff_ = uff;
+		controller_.k_ = k;
+
+		setController(controller_);
 	}
 
 
-	void computeInput(const double& t, const STATE_T& x, INPUT_T& u)
+	void computeInput(const scalar_t& t, const state_vector_t& x, control_vector_t& u)
 	{
-		Eigen::Matrix<double,INPUT_DIM,1> uff;
-		Eigen::Matrix<double,INPUT_DIM,STATE_DIM> k;
+		control_vector_t uff;
+		control_feedback_t k;
 
 		linInterpolateUff_.interpolate(t, uff);
 		linInterpolateK_.interpolate(t, k);
@@ -55,26 +68,26 @@ public:
 	}
 
 
-	void computeDerivative(const double& t, const STATE_T& x, STATE_T& dxdt)  {
+	void computeDerivative(const scalar_t& t, const state_vector_t& x, state_vector_t& dxdt)  {
 
-		INPUT_T u;
+		control_vector_t u;
 		computeInput(t, x, u);
 		computeDerivative(t, x, u, dxdt);
 	}
 
+	virtual std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > clone() const = 0;
+
 	virtual void computeDerivative(
-			const double& t,
-			const STATE_T& x,
-			const INPUT_T& u,
-			STATE_T& dxdt) = 0;
+			const scalar_t& t,
+			const state_vector_t& x,
+			const control_vector_t& u,
+			state_vector_t& dxdt) = 0;
 
 private:
-	std::vector<double> controllerTime_;
-	std::vector<INPUT_T, Eigen::aligned_allocator<INPUT_T> > uff_;
-	std::vector<GAIN_T, Eigen::aligned_allocator<GAIN_T> > k_;
+	controller_t controller_;
 
-	LinearInterpolation<INPUT_T, Eigen::aligned_allocator<INPUT_T> > linInterpolateUff_;
-	LinearInterpolation<GAIN_T, Eigen::aligned_allocator<GAIN_T> > linInterpolateK_;
+	LinearInterpolation<control_vector_t, Eigen::aligned_allocator<control_vector_t> > linInterpolateUff_;
+	LinearInterpolation<control_feedback_t, Eigen::aligned_allocator<control_feedback_t> > linInterpolateK_;
 
 };
 

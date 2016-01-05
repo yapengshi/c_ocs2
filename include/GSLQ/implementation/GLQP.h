@@ -1,12 +1,12 @@
 /*
- * GSLQ.h
+ * GLQP.h
  *
  *  Created on: Jan 5, 2016
  *      Author: farbod
  */
 
 template <size_t STATE_DIM, size_t INPUT_DIM>
-void GSLQ<STATE_DIM, INPUT_DIM>::rollout(const state_vector_t& initState,
+void GLQP<STATE_DIM, INPUT_DIM>::rollout(const state_vector_t& initState,
 		const std::vector<scalar_t>& switchingTimes,
 		const std::vector<controller_t>& controllersStock,
 		std::vector<scalar_array_t>& timeTrajectoriesStock,
@@ -41,7 +41,7 @@ void GSLQ<STATE_DIM, INPUT_DIM>::rollout(const state_vector_t& initState,
 
 
 template <size_t STATE_DIM, size_t INPUT_DIM>
-void GSLQ<STATE_DIM, INPUT_DIM>::rolloutCost(const std::vector<scalar_array_t>& timeTrajectoriesStock,
+void GLQP<STATE_DIM, INPUT_DIM>::rolloutCost(const std::vector<scalar_array_t>& timeTrajectoriesStock,
 		const std::vector<state_vector_array_t>& stateTrajectoriesStock,
 		const std::vector<control_vector_array_t>& controlTrajectoriesStock,
 		scalar_t& totalCost)  {
@@ -82,29 +82,22 @@ void GSLQ<STATE_DIM, INPUT_DIM>::rolloutCost(const std::vector<scalar_array_t>& 
 
 
 template <size_t STATE_DIM, size_t INPUT_DIM>
-void GSLQ<STATE_DIM, INPUT_DIM>::approximateOptimalControlProblem()  {
+void GLQP<STATE_DIM, INPUT_DIM>::approximateOptimalControlProblem()  {
 
 	for (int i=0; i<numSubsystems_; i++) {
 
-		for (int k=0; k<nominalTimeTrajectoriesStock_[i].size(); k++) {
+		subsystemDerivativesPtrStock_[i]->setCurrentStateAndControl(0, stateOperatingPointsStock_[i], inputOperatingPointsStock_[i]);
+		subsystemDerivativesPtrStock_[i]->getDerivativeState(AmStock_[i]);
+		subsystemDerivativesPtrStock_[i]->getDerivativesControl(BmStock_[i]);
 
-			subsystemDerivativesPtrStock_[i]->setCurrentStateAndControl(nominalTimeTrajectoriesStock_[i][k],
-					nominalStateTrajectoriesStock_[i][k],
-					nominalControlTrajectoriesStock_[i][k]);
-			subsystemDerivativesPtrStock_[i]->getDerivativeState(AmTrajectoryStock_[i][k]);
-			subsystemDerivativesPtrStock_[i]->getDerivativesControl(BmTrajectoryStock_[i][k]);
+		subsystemCostFunctionsPtrStock_[i]->setCurrentStateAndControl(0, stateOperatingPointsStock_[i], inputOperatingPointsStock_[i]);
+		subsystemCostFunctionsPtrStock_[i]->evaluate(qStock_[i]);
+		subsystemCostFunctionsPtrStock_[i]->stateDerivative(QvStock_[i]);
+		subsystemCostFunctionsPtrStock_[i]->stateSecondDerivative(QmStock_[i]);
+		subsystemCostFunctionsPtrStock_[i]->controlDerivative(RvStock_[i]);
+		subsystemCostFunctionsPtrStock_[i]->controlSecondDerivative(RmStock_[i]);
+		subsystemCostFunctionsPtrStock_[i]->stateControlDerivative(PmStock_[i]);
 
-			subsystemCostFunctionsPtrStock_[i]->setCurrentStateAndControl(nominalTimeTrajectoriesStock_[i][k],
-					nominalStateTrajectoriesStock_[i][k],
-					nominalControlTrajectoriesStock_[i][k]);
-			subsystemCostFunctionsPtrStock_[i]->evaluate(qTrajectoryStock_[i][k]);
-			subsystemCostFunctionsPtrStock_[i]->stateDerivative(QvTrajectoryStock_[i][k]);
-			subsystemCostFunctionsPtrStock_[i]->stateSecondDerivative(QmTrajectoryStock_[i][k]);
-			subsystemCostFunctionsPtrStock_[i]->controlDerivative(RvTrajectoryStock_[i][k]);
-			subsystemCostFunctionsPtrStock_[i]->controlSecondDerivative(RmTrajectoryStock_[i][k]);
-			subsystemCostFunctionsPtrStock_[i]->stateControlDerivative(PmTrajectoryStock_[i][k]);
-
-		}
 
 		if (i==numSubsystems_-1)  {
 			subsystemCostFunctionsPtrStock_[i]->terminalCost(qFinal_);

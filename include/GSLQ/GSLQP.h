@@ -1,12 +1,12 @@
 /*
- * GSLQ.h
+ * GSLQP.h
  *
  *  Created on: Dec 18, 2015
  *      Author: farbod
  */
 
-#ifndef GSLQ_H_
-#define GSLQ_H_
+#ifndef GSLQP_H_
+#define GSLQP_H_
 
 #include <vector>
 #include <algorithm>
@@ -23,7 +23,7 @@
 
 
 template <size_t STATE_DIM, size_t INPUT_DIM>
-class GSLQ
+class GSLQP
 {
 public:
 	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
@@ -44,9 +44,11 @@ public:
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
 
 
-	GSLQ( std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > > subsystemDynamicsPtr,
+	GSLQP( std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > > subsystemDynamicsPtr,
 			std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > > subsystemDerivativesPtr,
 			std::vector<std::shared_ptr<CostFunctionBase<STATE_DIM, INPUT_DIM> > > subsystemCostFunctionsPtr,
+			state_vector_array_t   stateOperatingPoints,
+			control_vector_array_t inputOperatingPoints,
 			std::vector<size_t> systemStockIndex)
 		: numSubsystems_(systemStockIndex.size()),
 		  subsystemDynamicsPtrStock(numSubsystems_),
@@ -54,6 +56,8 @@ public:
 		  subsystemCostFunctionsPtrStock_(numSubsystems_),
 		  subsystemSimulatorsStock_(numSubsystems_),
 		  nominalControllersStock_(numSubsystems_),
+		  stateOperatingPointsStock_(numSubsystems_),
+		  inputOperatingPointsStock_(numSubsystems_),
 		  nominalTimeTrajectoriesStock_(numSubsystems_),
 		  nominalStateTrajectoriesStock_(numSubsystems_),
 		  nominalControlTrajectoriesStock_(numSubsystems_),
@@ -72,8 +76,13 @@ public:
 			throw std::runtime_error("Number of subsystem derivaties is not equal to the number of subsystems.");
 		if (subsystemDynamicsPtr.size() != subsystemCostFunctionsPtr.size())
 			throw std::runtime_error("Number of cost functions is not equal to the number of subsystems.");
+		if (subsystemDynamicsPtr.size() != stateOperatingPoints.size())
+			throw std::runtime_error("Number of state operating points is not equal to the number of subsystems.");
+		if (subsystemDynamicsPtr.size() != inputOperatingPoints.size())
+			throw std::runtime_error("Number of input operating points is not equal to the number of subsystems.");
 		if (subsystemDynamicsPtr.size() != *std::max_element(systemStockIndex.begin(), systemStockIndex.end()))
 			throw std::runtime_error("systemStockIndex points to non-existing subsystem");
+
 
 		for (int i=0; i<numSubsystems_; i++) {
 
@@ -81,11 +90,14 @@ public:
 			subsystemDerivativesPtrStock_[i] = subsystemDerivativesPtr[systemStockIndex[i]]->clone();
 			subsystemCostFunctionsPtrStock_[i] = subsystemCostFunctionsPtr[systemStockIndex[i]]->clone();
 
+			stateOperatingPointsStock_[i] = stateOperatingPoints[systemStockIndex[i]];
+			inputOperatingPointsStock_[i] = inputOperatingPoints[systemStockIndex[i]];
+
 			subsystemSimulatorsStock_[i] = ODE45<STATE_DIM>(subsystemDynamicsPtrStock[i]);
 		}
 	}
 
-	~GSLQ() {}
+	~GSLQP() {}
 
 
 	void rollout(const state_vector_t& initState,
@@ -111,6 +123,9 @@ private:
 	std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > > subsystemDerivativesPtrStock_;
 	std::vector<std::shared_ptr<CostFunctionBase<STATE_DIM, INPUT_DIM> > > subsystemCostFunctionsPtrStock_;
 
+	state_vector_array_t   stateOperatingPointsStock_;
+	control_vector_array_t inputOperatingPointsStock_;
+
 	std::vector<ODE45<STATE_DIM> > subsystemSimulatorsStock_;
 
 	std::vector<controller_t> nominalControllersStock_;
@@ -121,8 +136,7 @@ private:
 	size_t numSubsystems_;
 	size_t maxIteration_;
 
-
-	std::vector<state_matrix_array_t> AmTrajectoryStock_;
+	std::vector<state_matrix_array_t>        AmTrajectoryStock_;
 	std::vector<control_gain_matrix_array_t> BmTrajectoryStock_;
 
 	scalar_t       qFinal_;
@@ -137,6 +151,6 @@ private:
 
 };
 
-#include "implementation/GSLQ.h"
+#include "implementation/GSLQP.h"
 
-#endif /* GSLQ_H_ */
+#endif /* GSLQP_H_ */

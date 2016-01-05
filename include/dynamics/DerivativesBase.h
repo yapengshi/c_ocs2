@@ -30,8 +30,8 @@ public:
 		u_ = u;
 	}
 
-	virtual void getDerivativeState(const state_matrix_t& A) = 0;
-	virtual void getDerivativesControl(const control_gain_matrix_t& B) = 0;
+	virtual void getDerivativeState(state_matrix_t& A) = 0;
+	virtual void getDerivativesControl(control_gain_matrix_t& B) = 0;
 
 	virtual std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > clone() const = 0;
 

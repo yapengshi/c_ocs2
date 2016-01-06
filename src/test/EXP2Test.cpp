@@ -30,4 +30,8 @@ int main (int argc, char* argv[])
 	std::vector<double> switchingTimes {0, 0.8, 2};
 	glqp.SolveRiccatiEquation(switchingTimes);
 
+	// rollout
+	std::vector<GLQP<2,1>::controller_t> controllersStock(2);
+	glqp.getcontroller(controllersStock);
+
 }

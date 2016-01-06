@@ -22,13 +22,14 @@
 #include "integration/Integrator.h"
 #include "misc/LinearInterpolation.h"
 
-#include "GSLQ/RiccatiEquations.h"
+#include "GSLQ/PartialRiccatiEquations.h"
 
 
 template <size_t STATE_DIM, size_t INPUT_DIM>
 class GLQP
 {
 public:
+	typedef PartialRiccatiEquations<STATE_DIM, INPUT_DIM> RiccatiEquations;
 	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;

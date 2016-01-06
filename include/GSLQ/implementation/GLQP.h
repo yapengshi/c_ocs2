@@ -206,12 +206,12 @@ void GLQP<STATE_DIM, INPUT_DIM>::SolveRiccatiEquation(const std::vector<scalar_t
 	approximateOptimalControlProblem();
 
 	Eigen::Matrix<double,STATE_DIM*STATE_DIM+STATE_DIM+1,1> allSsFinal;
-	RiccatiEquations<STATE_DIM, INPUT_DIM>::convert2Vector(QmFinal_, QvFinal_, qFinal_, allSsFinal);
+	RiccatiEquations::convert2Vector(QmFinal_, QvFinal_, qFinal_, allSsFinal);
 //	std::cout << "allSsFinal: " << allSsFinal.transpose() << std::endl;
 
 	for (int i=numSubsystems_-1; i>=0; i--) {
 
-		auto riccatiEquationsPtr = std::make_shared<RiccatiEquations<STATE_DIM, INPUT_DIM> >();
+		auto riccatiEquationsPtr = std::make_shared<RiccatiEquations>();
 		riccatiEquationsPtr->setData(switchingTimes[i], switchingTimes[i+1],
 				AmStock_[i], BmStock_[i],
 				qStock_[i], QvStock_[i], QmStock_[i], RvStock_[i], RmStock_[i], PmStock_[i]);
@@ -230,7 +230,7 @@ void GLQP<STATE_DIM, INPUT_DIM>::SolveRiccatiEquation(const std::vector<scalar_t
 		sTrajectoryStock_[i].resize(N);
 		for (int k=0; k<normalizedTimeTrajectory.size(); k++) {
 
-			RiccatiEquations<STATE_DIM, INPUT_DIM>::convert2Matrix(allSsTrajectory[N-1-k], SmTrajectoryStock_[i][k], SvTrajectoryStock_[i][k], sTrajectoryStock_[i][k]);
+			RiccatiEquations::convert2Matrix(allSsTrajectory[N-1-k], SmTrajectoryStock_[i][k], SvTrajectoryStock_[i][k], sTrajectoryStock_[i][k]);
 			timeTrajectoryStock_[i][k] = (switchingTimes[i]-switchingTimes[i+1])*(normalizedTimeTrajectory[N-1-k]-i) + switchingTimes[i+1];
 //			std::cout << "Time " << timeTrajectoryStock_[i][k] << ",\t AllSs[" << i << "][" << k<< "]: " << allSsTrajectory[N-1-k].transpose() << std::endl;
 		}

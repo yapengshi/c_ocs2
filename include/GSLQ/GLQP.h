@@ -48,20 +48,20 @@ public:
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
 
 
-	GLQP( std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > > subsystemDynamicsPtr,
-			std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > > subsystemDerivativesPtr,
-			std::vector<std::shared_ptr<CostFunctionBase<STATE_DIM, INPUT_DIM> > > subsystemCostFunctionsPtr,
-			state_vector_array_t   stateOperatingPoints,
-			control_vector_array_t inputOperatingPoints,
-			std::vector<size_t> systemStockIndex)
+	GLQP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > >& subsystemDynamicsPtr,
+			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > >& subsystemDerivativesPtr,
+			const std::vector<std::shared_ptr<CostFunctionBase<STATE_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
+			const state_vector_array_t&   stateOperatingPoints,
+			const control_vector_array_t& inputOperatingPoints,
+			const std::vector<size_t>& systemStockIndex)
 		: numSubsystems_(systemStockIndex.size()),
 		  subsystemDynamicsPtrStock(numSubsystems_),
 		  subsystemDerivativesPtrStock_(numSubsystems_),
 		  subsystemCostFunctionsPtrStock_(numSubsystems_),
-		  subsystemSimulatorsStockPtr_(numSubsystems_),
-		  controllersStock_(numSubsystems_),
 		  stateOperatingPointsStock_(numSubsystems_),
 		  inputOperatingPointsStock_(numSubsystems_),
+		  subsystemSimulatorsStockPtr_(numSubsystems_),
+		  controllersStock_(numSubsystems_),
 		  AmStock_(numSubsystems_),
 		  BmStock_(numSubsystems_),
 		  qStock_(numSubsystems_),
@@ -73,7 +73,8 @@ public:
 		  timeTrajectoryStock_(numSubsystems_),
 		  sTrajectoryStock_(numSubsystems_),
 		  SvTrajectoryStock_(numSubsystems_),
-		  SmTrajectoryStock_(numSubsystems_)
+		  SmTrajectoryStock_(numSubsystems_),
+		  switchingTimes_(numSubsystems_+1)
 	{
 
 		if (subsystemDynamicsPtr.size() != subsystemDerivativesPtr.size())
@@ -84,9 +85,8 @@ public:
 			throw std::runtime_error("Number of state operating points is not equal to the number of subsystems.");
 		if (subsystemDynamicsPtr.size() != inputOperatingPoints.size())
 			throw std::runtime_error("Number of input operating points is not equal to the number of subsystems.");
-		if (subsystemDynamicsPtr.size() != *std::max_element(systemStockIndex.begin(), systemStockIndex.end()))
+		if (subsystemDynamicsPtr.size()-1 != *std::max_element(systemStockIndex.begin(), systemStockIndex.end()))
 			throw std::runtime_error("systemStockIndex points to non-existing subsystem");
-
 
 		for (int i=0; i<numSubsystems_; i++) {
 
@@ -128,6 +128,8 @@ protected:
 
 
 private:
+	size_t numSubsystems_;
+
 	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > > subsystemDynamicsPtrStock;
 	std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > > subsystemDerivativesPtrStock_;
 	std::vector<std::shared_ptr<CostFunctionBase<STATE_DIM, INPUT_DIM> > > subsystemCostFunctionsPtrStock_;
@@ -138,8 +140,6 @@ private:
 	std::vector<std::shared_ptr<ODE45<STATE_DIM> > > subsystemSimulatorsStockPtr_;
 
 	std::vector<controller_t> controllersStock_;
-
-	size_t numSubsystems_;
 
 	state_matrix_array_t        AmStock_;
 	control_gain_matrix_array_t BmStock_;
@@ -159,13 +159,12 @@ private:
 	std::vector<state_vector_array_t> SvTrajectoryStock_;
 	std::vector<state_matrix_array_t> SmTrajectoryStock_;
 
-	std::vector<scalar_t> switchingTimes_;
+	scalar_array_t switchingTimes_;
 
 
 };
 
 #include "implementation/GLQP.h"
-
 
 
 #endif /* GLQP_H_ */

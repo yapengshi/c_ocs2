@@ -84,8 +84,9 @@ public:
 private:
 	size_t index_;
 
-	std::vector<Data_T,Alloc>* dataPtr_;
 	std::vector<double>* timeStampPtr_;
+	std::vector<Data_T,Alloc>* dataPtr_;
+
 };
 
 

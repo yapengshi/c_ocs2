@@ -15,6 +15,10 @@ void GLQP<STATE_DIM, INPUT_DIM>::rollout(const state_vector_t& initState,
 		std::vector<state_vector_array_t>& stateTrajectoriesStock,
 		std::vector<control_vector_array_t>& controlTrajectoriesStock)  {
 
+	timeTrajectoriesStock.resize(numSubsystems_);
+	stateTrajectoriesStock.resize(numSubsystems_);
+	controlTrajectoriesStock.resize(numSubsystems_);
+
 	state_vector_t x0 = initState;
 	for (int i=0; i<numSubsystems_; i++) {
 
@@ -178,7 +182,7 @@ void GLQP<STATE_DIM, INPUT_DIM>::SolveRiccatiEquation(const std::vector<scalar_t
 		std::vector<double> normalizedTimeTrajectory;
 		std::vector<Eigen::Matrix<double,STATE_DIM*STATE_DIM+STATE_DIM+1,1>, Eigen::aligned_allocator<Eigen::Matrix<double,STATE_DIM*STATE_DIM+STATE_DIM+1,1>> > allSsTrajectory;
 
-		bool flag = ode45.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory);
+		ode45.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory);
 
 		int N = normalizedTimeTrajectory.size();
 		timeTrajectoryStock_[i].resize(N);

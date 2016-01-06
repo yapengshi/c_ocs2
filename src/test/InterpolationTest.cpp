@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
 //	linInterpolation.setData(&data);
 //	linInterpolation.setTimeStamp(&timeStamp);
 
-	for(size_t i=1; i<argc; i++) {
+	for(int i=1; i<argc; i++) {
 		double enquiryTime;
 		enquiryTime = std::atof(argv[i]);
 

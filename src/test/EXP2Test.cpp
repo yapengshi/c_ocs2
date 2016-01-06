@@ -28,26 +28,26 @@ int main (int argc, char* argv[])
 	// subsystem cost functions
 	std::vector<std::shared_ptr<CostFunctionBase<2,1> > > subsystemCostFunctionsPtr {std::make_shared<EXP2_CostFunction1>(), std::make_shared<EXP2_CostFunction2>()};
 
-	GLQP<2,1>::state_vector_array_t   stateOperatingPoints(2, GLQP<2,1>::state_vector_t::Zero());
-	GLQP<2,1>::control_vector_array_t inputOperatingPoints(2, GLQP<2,1>::control_vector_t::Zero());
+	GLQP<2,1,2>::state_vector_array_t   stateOperatingPoints(2, GLQP<2,1,2>::state_vector_t::Zero());
+	GLQP<2,1,2>::control_vector_array_t inputOperatingPoints(2, GLQP<2,1,2>::control_vector_t::Zero());
 	std::vector<size_t> systemStockIndex {0, 1};
 
 	// GLQP
-	GLQP<2,1> glqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, stateOperatingPoints, inputOperatingPoints, systemStockIndex);
+	GLQP<2,1,2> glqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, stateOperatingPoints, inputOperatingPoints, systemStockIndex);
 
 	std::vector<double> switchingTimes {0, 0.184, 2};
 	if (argc>1)  switchingTimes[1] = std::atof(argv[1]);
 	glqp.SolveRiccatiEquation(switchingTimes);
 
 	// get controller
-	std::vector<GLQP<2,1>::controller_t> controllersStock(2);
+	std::vector<GLQP<2,1,2>::controller_t> controllersStock(2);
 	glqp.getController(controllersStock);
 
 	// rollout
 	Eigen::Vector2d initState(0.0, 2.0);
-	std::vector<GLQP<2,1>::scalar_array_t> timeTrajectoriesStock;
-	std::vector<GLQP<2,1>::state_vector_array_t> stateTrajectoriesStock;
-	std::vector<GLQP<2,1>::control_vector_array_t> controlTrajectoriesStock;
+	std::vector<GLQP<2,1,2>::scalar_array_t> timeTrajectoriesStock;
+	std::vector<GLQP<2,1,2>::state_vector_array_t> stateTrajectoriesStock;
+	std::vector<GLQP<2,1,2>::control_vector_array_t> controlTrajectoriesStock;
 	glqp.rollout(initState, controllersStock,
 				timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
 
@@ -65,9 +65,9 @@ int main (int argc, char* argv[])
 	std::cout << "The total cost in the test rollout: " << rolloutCost << std::endl;
 
 
-	GLQP<2,1>::eigen_scalar_array_t timeEigenTrajectory;
-	GLQP<2,1>::state_vector_array_t stateTrajectory;
-	GLQP<2,1>::control_vector_array_t inputTrajectory;
+	GLQP<2,1,2>::eigen_scalar_array_t timeEigenTrajectory;
+	GLQP<2,1,2>::state_vector_array_t stateTrajectory;
+	GLQP<2,1,2>::control_vector_array_t inputTrajectory;
 
 	for (size_t i=0; i<2; i++)  {
 

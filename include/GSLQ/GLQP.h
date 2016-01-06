@@ -25,11 +25,11 @@
 #include "GSLQ/PartialRiccatiEquations.h"
 
 
-template <size_t STATE_DIM, size_t INPUT_DIM>
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 class GLQP
 {
 public:
-	typedef PartialRiccatiEquations<STATE_DIM, INPUT_DIM> RiccatiEquations;
+	typedef PartialRiccatiEquations<STATE_DIM, INPUT_DIM, NUM_Subsystems> RiccatiEquations;
 	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
@@ -56,27 +56,26 @@ public:
 			const state_vector_array_t&   stateOperatingPoints,
 			const control_vector_array_t& inputOperatingPoints,
 			const std::vector<size_t>& systemStockIndex)
-		: numSubsystems_(systemStockIndex.size()),
-		  subsystemDynamicsPtrStock(numSubsystems_),
-		  subsystemDerivativesPtrStock_(numSubsystems_),
-		  subsystemCostFunctionsPtrStock_(numSubsystems_),
-		  stateOperatingPointsStock_(numSubsystems_),
-		  inputOperatingPointsStock_(numSubsystems_),
-		  subsystemSimulatorsStockPtr_(numSubsystems_),
-		  controllersStock_(numSubsystems_),
-		  AmStock_(numSubsystems_),
-		  BmStock_(numSubsystems_),
-		  qStock_(numSubsystems_),
-		  QvStock_(numSubsystems_),
-		  QmStock_(numSubsystems_),
-		  RvStock_(numSubsystems_),
-		  RmStock_(numSubsystems_),
-		  PmStock_(numSubsystems_),
-		  timeTrajectoryStock_(numSubsystems_),
-		  sTrajectoryStock_(numSubsystems_),
-		  SvTrajectoryStock_(numSubsystems_),
-		  SmTrajectoryStock_(numSubsystems_),
-		  switchingTimes_(numSubsystems_+1)
+		: subsystemDynamicsPtrStock(NUM_Subsystems),
+		  subsystemDerivativesPtrStock_(NUM_Subsystems),
+		  subsystemCostFunctionsPtrStock_(NUM_Subsystems),
+		  stateOperatingPointsStock_(NUM_Subsystems),
+		  inputOperatingPointsStock_(NUM_Subsystems),
+		  subsystemSimulatorsStockPtr_(NUM_Subsystems),
+		  controllersStock_(NUM_Subsystems),
+		  AmStock_(NUM_Subsystems),
+		  BmStock_(NUM_Subsystems),
+		  qStock_(NUM_Subsystems),
+		  QvStock_(NUM_Subsystems),
+		  QmStock_(NUM_Subsystems),
+		  RvStock_(NUM_Subsystems),
+		  RmStock_(NUM_Subsystems),
+		  PmStock_(NUM_Subsystems),
+		  timeTrajectoryStock_(NUM_Subsystems),
+		  sTrajectoryStock_(NUM_Subsystems),
+		  SvTrajectoryStock_(NUM_Subsystems),
+		  SmTrajectoryStock_(NUM_Subsystems),
+		  switchingTimes_(NUM_Subsystems+1)
 	{
 
 		if (subsystemDynamicsPtr.size() != subsystemDerivativesPtr.size())
@@ -90,7 +89,7 @@ public:
 		if (subsystemDynamicsPtr.size()-1 != *std::max_element(systemStockIndex.begin(), systemStockIndex.end()))
 			throw std::runtime_error("systemStockIndex points to non-existing subsystem");
 
-		for (int i=0; i<numSubsystems_; i++) {
+		for (int i=0; i<NUM_Subsystems; i++) {
 
 			subsystemDynamicsPtrStock[i] = subsystemDynamicsPtr[systemStockIndex[i]]->clone();
 			subsystemDerivativesPtrStock_[i] = subsystemDerivativesPtr[systemStockIndex[i]]->clone();
@@ -132,8 +131,6 @@ protected:
 
 
 private:
-	size_t numSubsystems_;
-
 	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > > subsystemDynamicsPtrStock;
 	std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > > subsystemDerivativesPtrStock_;
 	std::vector<std::shared_ptr<CostFunctionBase<STATE_DIM, INPUT_DIM> > > subsystemCostFunctionsPtrStock_;

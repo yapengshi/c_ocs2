@@ -8,19 +8,19 @@
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-template <size_t STATE_DIM, size_t INPUT_DIM>
-void GLQP<STATE_DIM, INPUT_DIM>::rollout(const state_vector_t& initState,
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::rollout(const state_vector_t& initState,
 		const std::vector<controller_t>& controllersStock,
 		std::vector<scalar_array_t>& timeTrajectoriesStock,
 		std::vector<state_vector_array_t>& stateTrajectoriesStock,
 		std::vector<control_vector_array_t>& controlTrajectoriesStock)  {
 
-	timeTrajectoriesStock.resize(numSubsystems_);
-	stateTrajectoriesStock.resize(numSubsystems_);
-	controlTrajectoriesStock.resize(numSubsystems_);
+	timeTrajectoriesStock.resize(NUM_Subsystems);
+	stateTrajectoriesStock.resize(NUM_Subsystems);
+	controlTrajectoriesStock.resize(NUM_Subsystems);
 
 	state_vector_t x0 = initState;
-	for (int i=0; i<numSubsystems_; i++) {
+	for (int i=0; i<NUM_Subsystems; i++) {
 
 		timeTrajectoriesStock[i].clear();
 		stateTrajectoriesStock[i].clear();
@@ -46,14 +46,14 @@ void GLQP<STATE_DIM, INPUT_DIM>::rollout(const state_vector_t& initState,
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-template <size_t STATE_DIM, size_t INPUT_DIM>
-void GLQP<STATE_DIM, INPUT_DIM>::rolloutCost(const std::vector<scalar_array_t>& timeTrajectoriesStock,
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::rolloutCost(const std::vector<scalar_array_t>& timeTrajectoriesStock,
 		const std::vector<state_vector_array_t>& stateTrajectoriesStock,
 		const std::vector<control_vector_array_t>& controlTrajectoriesStock,
 		scalar_t& totalCost)  {
 
 	totalCost = 0.0;
-	for (int i=0; i<numSubsystems_; i++) {
+	for (int i=0; i<NUM_Subsystems; i++) {
 
 		scalar_t currentIntermediateCost;
 		scalar_t nextIntermediateCost;
@@ -75,7 +75,7 @@ void GLQP<STATE_DIM, INPUT_DIM>::rolloutCost(const std::vector<scalar_array_t>& 
 		}
 
 		// terminal cost
-		if (i==numSubsystems_-1)  {
+		if (i==NUM_Subsystems-1)  {
 			scalar_t finalCost;
 			subsystemCostFunctionsPtrStock_[i]->setCurrentStateAndControl(timeTrajectoriesStock[i].back(), stateTrajectoriesStock[i].back(), controlTrajectoriesStock[i].back());
 			subsystemCostFunctionsPtrStock_[i]->terminalCost(finalCost);
@@ -86,15 +86,13 @@ void GLQP<STATE_DIM, INPUT_DIM>::rolloutCost(const std::vector<scalar_array_t>& 
 }
 
 
-
-
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-template <size_t STATE_DIM, size_t INPUT_DIM>
-void GLQP<STATE_DIM, INPUT_DIM>::approximateOptimalControlProblem()  {
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::approximateOptimalControlProblem()  {
 
-	for (int i=0; i<numSubsystems_; i++) {
+	for (int i=0; i<NUM_Subsystems; i++) {
 
 		subsystemDerivativesPtrStock_[i]->setCurrentStateAndControl(0, stateOperatingPointsStock_[i], inputOperatingPointsStock_[i]);
 		subsystemDerivativesPtrStock_[i]->getDerivativeState(AmStock_[i]);
@@ -115,7 +113,7 @@ void GLQP<STATE_DIM, INPUT_DIM>::approximateOptimalControlProblem()  {
 //		std::cout << QmStock_[i] << std::endl << QvStock_[i] << std::endl << qStock_[i] <<
 //				std::endl << RmStock_[i] << std::endl << RvStock_[i] << std::endl << PmStock_[i] << std::endl;
 
-		if (i==numSubsystems_-1)  {
+		if (i==NUM_Subsystems-1)  {
 			subsystemCostFunctionsPtrStock_[i]->terminalCost(qFinal_(0));
 			subsystemCostFunctionsPtrStock_[i]->terminalCostStateDerivative(QvFinal_);
 			subsystemCostFunctionsPtrStock_[i]->terminalCostStateSecondDerivative(QmFinal_);
@@ -130,10 +128,10 @@ void GLQP<STATE_DIM, INPUT_DIM>::approximateOptimalControlProblem()  {
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-template <size_t STATE_DIM, size_t INPUT_DIM>
-void GLQP<STATE_DIM, INPUT_DIM>::calculatecontroller(const scalar_t& learningRate, std::vector<controller_t>& controllersStock) {
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::calculatecontroller(const scalar_t& learningRate, std::vector<controller_t>& controllersStock) {
 
-	for (int i=0; i<numSubsystems_; i++) {
+	for (int i=0; i<NUM_Subsystems; i++) {
 
 		controllersStock[i].time_ = timeTrajectoryStock_[i];
 
@@ -152,10 +150,10 @@ void GLQP<STATE_DIM, INPUT_DIM>::calculatecontroller(const scalar_t& learningRat
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-template <size_t STATE_DIM, size_t INPUT_DIM>
-void GLQP<STATE_DIM, INPUT_DIM>::transformeLocalValueFuntion2Global() {
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::transformeLocalValueFuntion2Global() {
 
-	for (int i=0; i<numSubsystems_; i++)
+	for (int i=0; i<NUM_Subsystems; i++)
 		for (int k=0; k<timeTrajectoryStock_[i].size(); k++) {
 
 			sTrajectoryStock_[i][k] = sTrajectoryStock_[i][k] - stateOperatingPointsStock_[i].transpose()*SvTrajectoryStock_[i][k] +
@@ -168,11 +166,11 @@ void GLQP<STATE_DIM, INPUT_DIM>::transformeLocalValueFuntion2Global() {
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-template <size_t STATE_DIM, size_t INPUT_DIM>
-void GLQP<STATE_DIM, INPUT_DIM>::getValueFuntion(const scalar_t& time, const state_vector_t& state, scalar_t& valueFuntion)  {
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getValueFuntion(const scalar_t& time, const state_vector_t& state, scalar_t& valueFuntion)  {
 
 	int activeSubsystem = -1;
-	for (int i=0; i<numSubsystems_; i++)  {
+	for (int i=0; i<NUM_Subsystems; i++)  {
 		activeSubsystem = i;
 		if (switchingTimes_[i]<=time && time<switchingTimes_[i+1])
 			break;
@@ -194,10 +192,10 @@ void GLQP<STATE_DIM, INPUT_DIM>::getValueFuntion(const scalar_t& time, const sta
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-template <size_t STATE_DIM, size_t INPUT_DIM>
-void GLQP<STATE_DIM, INPUT_DIM>::SolveRiccatiEquation(const std::vector<scalar_t>& switchingTimes)  {
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveRiccatiEquation(const std::vector<scalar_t>& switchingTimes)  {
 
-	if (switchingTimes.size() != numSubsystems_+1)
+	if (switchingTimes.size() != NUM_Subsystems+1)
 		throw std::runtime_error("Number of switching times should be one plus the number of subsystems.");
 
 	switchingTimes_ = switchingTimes;
@@ -209,7 +207,7 @@ void GLQP<STATE_DIM, INPUT_DIM>::SolveRiccatiEquation(const std::vector<scalar_t
 	RiccatiEquations::convert2Vector(QmFinal_, QvFinal_, qFinal_, allSsFinal);
 //	std::cout << "allSsFinal: " << allSsFinal.transpose() << std::endl;
 
-	for (int i=numSubsystems_-1; i>=0; i--) {
+	for (int i=NUM_Subsystems-1; i>=0; i--) {
 
 		auto riccatiEquationsPtr = std::make_shared<RiccatiEquations>();
 		riccatiEquationsPtr->setData(switchingTimes[i], switchingTimes[i+1],

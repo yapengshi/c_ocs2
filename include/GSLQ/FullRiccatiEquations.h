@@ -10,8 +10,8 @@
 
 #include "dynamics/SystemBase.h"
 
-template <size_t STATE_DIM, size_t INPUT_DIM>
-class FullRiccatiEquations : public SystemBase<STATE_DIM*STATE_DIM+STATE_DIM+1>
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+class FullRiccatiEquations : public SystemBase<(STATE_DIM*STATE_DIM+STATE_DIM+1)*NUM_Subsystems>
 {
 public:
 	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
@@ -98,6 +98,8 @@ public:
 
 
 private:
+	enum { S_DIM_ = (STATE_DIM*STATE_DIM+STATE_DIM+1)*NUM_Subsystems };
+
 	scalar_t timeStart_;
 	scalar_t timeFinal_;
 

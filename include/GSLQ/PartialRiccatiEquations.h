@@ -10,7 +10,7 @@
 
 #include "dynamics/SystemBase.h"
 
-template <size_t STATE_DIM, size_t INPUT_DIM>
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 class PartialRiccatiEquations : public SystemBase<STATE_DIM*STATE_DIM+STATE_DIM+1>
 {
 public:

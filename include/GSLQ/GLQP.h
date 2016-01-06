@@ -31,6 +31,8 @@ public:
 	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
+	typedef typename DIMENSIONS::eigen_scalar_t       eigen_scalar_t;
+	typedef typename DIMENSIONS::eigen_scalar_array_t eigen_scalar_array_t;
 	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
 	typedef typename DIMENSIONS::state_vector_t 	  state_vector_t;
 	typedef typename DIMENSIONS::state_vector_array_t state_vector_array_t;
@@ -142,10 +144,10 @@ private:
 	state_matrix_array_t        AmStock_;
 	control_gain_matrix_array_t BmStock_;
 
-	scalar_t       qFinal_;
+	eigen_scalar_t qFinal_;
 	state_vector_t QvFinal_;
 	state_matrix_t QmFinal_;
-	scalar_array_t 	  	 qStock_;
+	eigen_scalar_array_t qStock_;
 	state_vector_array_t QvStock_;
 	state_matrix_array_t QmStock_;
 	control_vector_array_t RvStock_;
@@ -153,7 +155,7 @@ private:
 	control_feedback_array_t PmStock_;
 
 	std::vector<scalar_array_t> 	  timeTrajectoryStock_;
-	std::vector<scalar_array_t> 	  sTrajectoryStock_;
+	std::vector<eigen_scalar_array_t> sTrajectoryStock_;
 	std::vector<state_vector_array_t> SvTrajectoryStock_;
 	std::vector<state_matrix_array_t> SmTrajectoryStock_;
 

@@ -96,7 +96,7 @@ void GLQP<STATE_DIM, INPUT_DIM>::approximateOptimalControlProblem()  {
 		subsystemDerivativesPtrStock_[i]->getDerivativesControl(BmStock_[i]);
 
 		subsystemCostFunctionsPtrStock_[i]->setCurrentStateAndControl(0, stateOperatingPointsStock_[i], inputOperatingPointsStock_[i]);
-		subsystemCostFunctionsPtrStock_[i]->evaluate(qStock_[i]);
+		subsystemCostFunctionsPtrStock_[i]->evaluate(qStock_[i](0));
 		subsystemCostFunctionsPtrStock_[i]->stateDerivative(QvStock_[i]);
 		subsystemCostFunctionsPtrStock_[i]->stateSecondDerivative(QmStock_[i]);
 		subsystemCostFunctionsPtrStock_[i]->controlDerivative(RvStock_[i]);
@@ -105,7 +105,7 @@ void GLQP<STATE_DIM, INPUT_DIM>::approximateOptimalControlProblem()  {
 
 
 		if (i==numSubsystems_-1)  {
-			subsystemCostFunctionsPtrStock_[i]->terminalCost(qFinal_);
+			subsystemCostFunctionsPtrStock_[i]->terminalCost(qFinal_(0));
 			subsystemCostFunctionsPtrStock_[i]->terminalCostStateDerivative(QvFinal_);
 			subsystemCostFunctionsPtrStock_[i]->terminalCostStateSecondDerivative(QmFinal_);
 		}
@@ -127,7 +127,7 @@ void GLQP<STATE_DIM, INPUT_DIM>::calculatecontroller(const scalar_t& learningRat
 		controllersStock[i].uff_.resize(timeTrajectoryStock_[i].size());
 		for (int k=0; k<timeTrajectoryStock_[i].size(); k++) {
 
-			controllersStock[i].k_[k]    = -RmStock_[i].inverse() * (PmStock_[i].transpose() + BmStock_[i].transpose()*SmTrajectoryStock_[i][k]);
+			controllersStock[i].k_[k]    = -RmStock_[i].inverse() * (PmStock_[i] + BmStock_[i].transpose()*SmTrajectoryStock_[i][k]);
 			controllersStock[i].uff_[k]  = -learningRate * RmStock_[i].inverse() * (RvStock_[i]  + BmStock_[i].transpose()*SvTrajectoryStock_[i][k])
 								+ inputOperatingPointsStock_[i] - controllersStock[i].k_[k]*stateOperatingPointsStock_[i];
 		}
@@ -144,7 +144,7 @@ void GLQP<STATE_DIM, INPUT_DIM>::transformeLocalValueFuntion2Global() {
 	for (int i=0; i<numSubsystems_; i++)
 		for (int k=0; k<timeTrajectoryStock_[i].size(); k++) {
 
-			sTrajectoryStock_[i][k] = SmTrajectoryStock_[i][k] - stateOperatingPointsStock_[i].transpose()*SvTrajectoryStock_[i][k] +
+			sTrajectoryStock_[i][k] = sTrajectoryStock_[i][k] - stateOperatingPointsStock_[i].transpose()*SvTrajectoryStock_[i][k] +
 					0.5*stateOperatingPointsStock_[i].transpose()*SmTrajectoryStock_[i][k]*stateOperatingPointsStock_[i];
 			SvTrajectoryStock_[i][k] = SvTrajectoryStock_[i][k] - SmTrajectoryStock_[i][k]*stateOperatingPointsStock_[i];
 		}

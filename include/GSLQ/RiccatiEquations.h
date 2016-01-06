@@ -18,6 +18,8 @@ public:
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
 	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
+	typedef typename DIMENSIONS::eigen_scalar_t       eigen_scalar_t;
+	typedef typename DIMENSIONS::eigen_scalar_array_t eigen_scalar_array_t;
 	typedef typename DIMENSIONS::state_vector_t 	  state_vector_t;
 	typedef typename DIMENSIONS::state_vector_array_t state_vector_array_t;
 	typedef typename DIMENSIONS::control_vector_t 		control_vector_t;
@@ -34,30 +36,25 @@ public:
 	RiccatiEquations() {}
 	~RiccatiEquations() {}
 
-	static void convert2Vector(const state_matrix_t& Sm, const state_vector_t& Sv, const scalar_t& s,
+	static void convert2Vector(const state_matrix_t& Sm, const state_vector_t& Sv, const eigen_scalar_t& s,
 			Eigen::Matrix<double,STATE_DIM*STATE_DIM+STATE_DIM+1,1>& allSs)  {
-
-//		allSs.template head<STATE_DIM*STATE_DIM>() = Eigen::Map<Eigen::VectorXd>(Sm.data(),STATE_DIM*STATE_DIM);
-//		allSs.template segment<STATE_DIM>(STATE_DIM*STATE_DIM) = Eigen::Map<Eigen::VectorXd>(Sv.data(),STATE_DIM);
-//		allSs.template tail<1>() = s;
 
 		allSs << Eigen::Map<const Eigen::VectorXd>(Sm.data(),STATE_DIM*STATE_DIM),
 				Eigen::Map<const Eigen::VectorXd>(Sv.data(),STATE_DIM),
 				s;
-
 	}
 
 	static void convert2Matrix(const Eigen::Matrix<double,STATE_DIM*STATE_DIM+STATE_DIM+1,1>& allSs,
-			state_matrix_t& Sm, state_vector_t& Sv, scalar_t& s)  {
+			state_matrix_t& Sm, state_vector_t& Sv, eigen_scalar_t& s)  {
 
 		Sm = Eigen::Map<const Eigen::MatrixXd>(allSs.data(),STATE_DIM,STATE_DIM);
 		Sv = Eigen::Map<const Eigen::VectorXd>(allSs.data()+STATE_DIM*STATE_DIM, STATE_DIM);
-		s  = allSs(STATE_DIM*STATE_DIM+STATE_DIM);
+		s  = allSs.template tail<1>();
 	}
 
 	void setData(const scalar_t& timeStart, const scalar_t& timeFinal,
 			const state_matrix_t& Am, const control_gain_matrix_t& Bm,
-			const scalar_t& q, const state_vector_t& Qv, const state_matrix_t& Qm,
+			const eigen_scalar_t& q, const state_vector_t& Qv, const state_matrix_t& Qm,
 			const control_vector_t& Rv, const control_matrix_t& Rm,
 			const control_feedback_t& Pm)  {
 
@@ -79,17 +76,17 @@ public:
 
 		state_matrix_t Sm;
 		state_vector_t Sv;
-		scalar_t s;
+		eigen_scalar_t s;
 		convert2Matrix(state, Sm, Sv, s);
 
 		state_matrix_t dSmdt, dSmdz;
 		state_vector_t dSvdt, dSvdz;
-		scalar_t dsdt, dsdz;
+		eigen_scalar_t dsdt, dsdz;
 
 		// Riccati equations for the original system
-		dSmdt = Qm_ + Am_.transpose()*Sm + Sm.transpose()*Am_ - (Pm_.transpose()+Bm_.transpose()*Sm).transpose()*Rm_.inverse()*(Pm_.transpose()+Bm_.transpose()*Sm);
-		dSmdt = (dSmdt+dSmdt.transpose())*0.5;
-		dSvdt = Qv_ + Am_.transpose()*Sv - (Pm_.transpose()+Bm_.transpose()*Sm).transpose()*Rm_.inverse()*(Rv_+Bm_.transpose()*Sv);
+		dSmdt = Qm_ + Am_.transpose()*Sm + Sm.transpose()*Am_ - (Pm_+Bm_.transpose()*Sm).transpose()*Rm_.inverse()*(Pm_+Bm_.transpose()*Sm);
+		dSmdt = (dSmdt+dSmdt.transpose()).eval()*0.5;
+		dSvdt = Qv_ + Am_.transpose()*Sv - (Pm_+Bm_.transpose()*Sm).transpose()*Rm_.inverse()*(Rv_+Bm_.transpose()*Sv);
 		dsdt  = q_ - 0.5*(Rv_+Bm_.transpose()*Sv).transpose()*Rm_.inverse()*(Rv_+Bm_.transpose()*Sv);
 		// Riccati equations for the equivalent system
 		dSmdz = (timeFinal_-timeStart_)*dSmdt;
@@ -107,7 +104,7 @@ private:
 	state_matrix_t Am_;
 	control_gain_matrix_t Bm_;
 
-	scalar_t q_;
+	eigen_scalar_t q_;
 	state_vector_t Qv_;
 	state_matrix_t Qm_;
 	control_vector_t Rv_;

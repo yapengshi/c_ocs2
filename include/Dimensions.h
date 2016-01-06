@@ -41,6 +41,9 @@ public:
 	typedef double scalar_t;
 	typedef std::vector<scalar_t> scalar_array_t;
 
+	typedef Eigen::Matrix<double, 1, 1> eigen_scalar_t;
+	typedef std::vector<eigen_scalar_t, Eigen::aligned_allocator<eigen_scalar_t> > eigen_scalar_array_t;
+
 	struct controller_t {
 		scalar_array_t time_;
 		control_vector_array_t uff_;

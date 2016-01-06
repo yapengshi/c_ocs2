@@ -93,9 +93,9 @@ public:
 	EXP2_CostFunction1() {};
 	~EXP2_CostFunction1() {};
 
-	void evaluate(scalar_t& L) { L = 0.5*(x_(2)-2.0)*(x_(2)-2.0) + 0.5*u_(1)*u_(1); }
+	void evaluate(scalar_t& L) { L = 0.5*(x_(1)-2.0)*(x_(1)-2.0) + 0.5*u_(0)*u_(0); }
 
-	void stateDerivative(state_vector_t& dLdx) { dLdx << 0.0, (x_(2)-2.0); }
+	void stateDerivative(state_vector_t& dLdx) { dLdx << 0.0, (x_(1)-2.0); }
 	void stateSecondDerivative(state_matrix_t& dLdxx)  { dLdxx << 0.0, 0.0, 0.0, 1.0; }
 	void controlDerivative(control_vector_t& dLdu)  { dLdu << u_; }
 	void controlSecondDerivative(control_matrix_t& dLduu)  { dLduu << 1.0; }
@@ -119,17 +119,17 @@ public:
 	EXP2_CostFunction2() {};
 	~EXP2_CostFunction2() {};
 
-	void evaluate(scalar_t& L) { L = 0.5*(x_(2)-2.0)*(x_(2)-2.0) + 0.5*u_(1)*u_(1); }
+	void evaluate(scalar_t& L) { L = 0.5*(x_(1)-2.0)*(x_(1)-2.0) + 0.5*u_(0)*u_(0); }
 
-	void stateDerivative(state_vector_t& dLdx) { dLdx << 0.0, (x_(2)-2.0); }
+	void stateDerivative(state_vector_t& dLdx) { dLdx << 0.0, (x_(1)-2.0); }
 	void stateSecondDerivative(state_matrix_t& dLdxx)  { dLdxx << 0.0, 0.0, 0.0, 1.0; }
 	void controlDerivative(control_vector_t& dLdu)  { dLdu << u_; }
 	void controlSecondDerivative(control_matrix_t& dLduu)  { dLduu << 1.0; }
 
 	void stateControlDerivative(control_feedback_t& dLdxu) { dLdxu.setZero(); }
 
-	void terminalCost(scalar_t& Phi) { Phi = 0.5*(x_(1)-4.0)*(x_(1)-4.0) + 0.5*(x_(2)-2.0)*(x_(2)-2.0); }
-	void terminalCostStateDerivative(state_vector_t& dPhidx)  { dPhidx << (x_(1)-4.0), (x_(2)-2.0); }
+	void terminalCost(scalar_t& Phi) { Phi = 0.5*(x_(0)-4.0)*(x_(0)-4.0) + 0.5*(x_(1)-2.0)*(x_(1)-2.0); }
+	void terminalCostStateDerivative(state_vector_t& dPhidx)  { dPhidx << (x_(0)-4.0), (x_(1)-2.0); }
 	void terminalCostStateSecondDerivative(state_matrix_t& dPhidxx)  { dPhidxx.setIdentity(); }
 
 	std::shared_ptr<CostFunctionBase<2,1> > clone() const { return std::make_shared<EXP2_CostFunction2>(*this); };

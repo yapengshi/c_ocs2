@@ -114,7 +114,7 @@ public:
 			const std::vector<control_vector_array_t>& controlTrajectoriesStock,
 			scalar_t& totalCost);
 
-	void getcontroller(std::vector<controller_t>& controllersStock) { controllersStock = controllersStock_;}
+	void getController(std::vector<controller_t>& controllersStock) { controllersStock = controllersStock_;}
 
 	void SolveRiccatiEquation(const std::vector<scalar_t>& switchingTimes);
 

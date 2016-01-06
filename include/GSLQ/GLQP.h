@@ -20,6 +20,7 @@
 #include "costs/CostFunctionBase.h"
 
 #include "integration/Integrator.h"
+#include "misc/LinearInterpolation.h"
 
 #include "GSLQ/RiccatiEquations.h"
 
@@ -115,6 +116,8 @@ public:
 			scalar_t& totalCost);
 
 	void getController(std::vector<controller_t>& controllersStock) { controllersStock = controllersStock_;}
+
+	void getValueFuntion(const scalar_t& time, const state_vector_t& state, scalar_t& valueFuntion);
 
 	void SolveRiccatiEquation(const std::vector<scalar_t>& switchingTimes);
 

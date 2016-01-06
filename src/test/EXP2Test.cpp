@@ -5,6 +5,9 @@
  *      Author: farbod
  */
 
+#include <iostream>
+#include <cstdlib>
+
 #include <fstream>
 #include <cereal/archives/xml.hpp>
 #include <cereal/types/vector.hpp>
@@ -33,6 +36,7 @@ int main (int argc, char* argv[])
 	GLQP<2,1> glqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, stateOperatingPoints, inputOperatingPoints, systemStockIndex);
 
 	std::vector<double> switchingTimes {0, 0.184, 2};
+	if (argc>1)  switchingTimes[1] = std::atof(argv[1]);
 	glqp.SolveRiccatiEquation(switchingTimes);
 
 	// get controller
@@ -48,10 +52,17 @@ int main (int argc, char* argv[])
 				timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
 
 	// compute cost
-	double totalCost;
-	glqp.rolloutCost(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, totalCost);
+	double rolloutCost;
+	glqp.rolloutCost(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
 
-	std::cout << "The total cost is: " << totalCost << std::endl;
+	// value funtion
+	double totalCost;
+	glqp.getValueFuntion(0.0, initState, totalCost);
+
+
+	std::cout << "Switching times are: [" << switchingTimes[0] << ", " << switchingTimes[1] << ", " << switchingTimes[2] << "]\n";
+	std::cout << "The total cost: " << totalCost << std::endl;
+	std::cout << "The total cost in the test rollout: " << rolloutCost << std::endl;
 
 
 	GLQP<2,1>::eigen_scalar_array_t timeEigenTrajectory;
@@ -59,8 +70,6 @@ int main (int argc, char* argv[])
 	GLQP<2,1>::control_vector_array_t inputTrajectory;
 
 	for (size_t i=0; i<2; i++)  {
-
-		std::cout << "Time interval " << i << ": [" << timeTrajectoriesStock[i].front() << ", " << timeTrajectoriesStock[i].back() << "]\n";
 
 		for (size_t k=0; k<timeTrajectoriesStock[i].size(); k++)  {
 

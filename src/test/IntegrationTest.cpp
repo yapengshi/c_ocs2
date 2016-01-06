@@ -76,7 +76,7 @@ int main (int argc, char* argv[])
 	Eigen::Matrix<double,2,1> x0;
 	x0.setZero();
 
-	bool flag = ode45.integrate(x0, 0.0, 10.0, stateTrajectory, timeTrajectory);
+	ode45.integrate(x0, 0.0, 10.0, stateTrajectory, timeTrajectory);
 
 	timeEigenTrajectory.resize(timeTrajectory.size());
 	for (size_t i=0; i<timeTrajectory.size(); i++) {

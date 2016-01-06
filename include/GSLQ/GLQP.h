@@ -66,6 +66,10 @@ public:
 		  RvStock_(numSubsystems_),
 		  RmStock_(numSubsystems_),
 		  PmStock_(numSubsystems_),
+		  timeTrajectoryStock_(numSubsystems_),
+		  sTrajectoryStock_(numSubsystems_),
+		  SvTrajectoryStock_(numSubsystems_),
+		  SmTrajectoryStock_(numSubsystems_),
 		  maxIteration_(10)
 	{
 
@@ -111,13 +115,13 @@ public:
 
 	void approximateOptimalControlProblem();
 
-	void SolveRiccatiEquation()  {
+	void calculatecontroller(const scalar_t& learningRate, std::vector<controller_t>& controllersStock);
 
-		approximateOptimalControlProblem();
-	}
+	void transformeLocalValueFuntion2Global();
 
+	void getcontroller(std::vector<controller_t>& controllersStock) { controllersStock = controllersStock_;}
 
-
+	void SolveRiccatiEquation(const std::vector<scalar_t>& switchingTimes);
 
 
 private:
@@ -147,6 +151,12 @@ private:
 	control_vector_array_t RvStock_;
 	control_matrix_array_t RmStock_;
 	control_feedback_array_t PmStock_;
+
+	std::vector<scalar_array_t> 	  timeTrajectoryStock_;
+	std::vector<scalar_array_t> 	  sTrajectoryStock_;
+	std::vector<state_vector_array_t> SvTrajectoryStock_;
+	std::vector<state_matrix_array_t> SmTrajectoryStock_;
+
 
 };
 

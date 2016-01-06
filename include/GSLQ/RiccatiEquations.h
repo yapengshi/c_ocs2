@@ -37,17 +37,22 @@ public:
 	static void convert2Vector(const state_matrix_t& Sm, const state_vector_t& Sv, const scalar_t& s,
 			Eigen::Matrix<double,STATE_DIM*STATE_DIM+STATE_DIM+1,1>& allSs)  {
 
-		allSs.head<STATE_DIM*STATE_DIM>() = Eigen::Map<Eigen::VectorXd>(Sm.data(),STATE_DIM*STATE_DIM);
-		allSs.segment<STATE_DIM>(STATE_DIM*STATE_DIM) = Eigen::Map<Eigen::VectorXd>(Sv.data(),STATE_DIM);
-		allSs.tail<1>() = s;
+//		allSs.template head<STATE_DIM*STATE_DIM>() = Eigen::Map<Eigen::VectorXd>(Sm.data(),STATE_DIM*STATE_DIM);
+//		allSs.template segment<STATE_DIM>(STATE_DIM*STATE_DIM) = Eigen::Map<Eigen::VectorXd>(Sv.data(),STATE_DIM);
+//		allSs.template tail<1>() = s;
+
+		allSs << Eigen::Map<const Eigen::VectorXd>(Sm.data(),STATE_DIM*STATE_DIM),
+				Eigen::Map<const Eigen::VectorXd>(Sv.data(),STATE_DIM),
+				s;
+
 	}
 
-	static void convert2matrix(const Eigen::Matrix<double,STATE_DIM*STATE_DIM+STATE_DIM+1,1>& allSs,
+	static void convert2Matrix(const Eigen::Matrix<double,STATE_DIM*STATE_DIM+STATE_DIM+1,1>& allSs,
 			state_matrix_t& Sm, state_vector_t& Sv, scalar_t& s)  {
 
-		Sm = Eigen::Map<Eigen::MatrixXd>(allSs.data(),STATE_DIM,STATE_DIM);
-		Sv = Eigen::Map<Eigen::VectorXd>(allSs.data()+STATE_DIM*STATE_DIM, STATE_DIM);
-		s  = allSs.tail<1>();
+		Sm = Eigen::Map<const Eigen::MatrixXd>(allSs.data(),STATE_DIM,STATE_DIM);
+		Sv = Eigen::Map<const Eigen::VectorXd>(allSs.data()+STATE_DIM*STATE_DIM, STATE_DIM);
+		s  = allSs(STATE_DIM*STATE_DIM+STATE_DIM);
 	}
 
 	void setData(const scalar_t& timeStart, const scalar_t& timeFinal,
@@ -75,9 +80,9 @@ public:
 		state_matrix_t Sm;
 		state_vector_t Sv;
 		scalar_t s;
-		convert2matrix(state, Sm, Sv, s);
+		convert2Matrix(state, Sm, Sv, s);
 
-		tate_matrix_t dSmdt, dSmdz;
+		state_matrix_t dSmdt, dSmdz;
 		state_vector_t dSvdt, dSvdz;
 		scalar_t dsdt, dsdz;
 

@@ -16,10 +16,12 @@
 #include "Dimensions.h"
 
 #include "dynamics/ControlledSystemBase.h"
-#include "dynamics/DerivativesBase.hpp"
-#include "costs/CostFunctionBase.hpp"
+#include "dynamics/DerivativesBase.h"
+#include "costs/CostFunctionBase.h"
 
 #include "integration/Integrator.h"
+
+#include "GSLQ/RiccatiEquations.h"
 
 
 template <size_t STATE_DIM, size_t INPUT_DIM>
@@ -54,7 +56,7 @@ public:
 		  subsystemDynamicsPtrStock(numSubsystems_),
 		  subsystemDerivativesPtrStock_(numSubsystems_),
 		  subsystemCostFunctionsPtrStock_(numSubsystems_),
-		  subsystemSimulatorsStock_(numSubsystems_),
+		  subsystemSimulatorsStockPtr_(numSubsystems_),
 		  controllersStock_(numSubsystems_),
 		  stateOperatingPointsStock_(numSubsystems_),
 		  inputOperatingPointsStock_(numSubsystems_),
@@ -69,8 +71,7 @@ public:
 		  timeTrajectoryStock_(numSubsystems_),
 		  sTrajectoryStock_(numSubsystems_),
 		  SvTrajectoryStock_(numSubsystems_),
-		  SmTrajectoryStock_(numSubsystems_),
-		  maxIteration_(10)
+		  SmTrajectoryStock_(numSubsystems_)
 	{
 
 		if (subsystemDynamicsPtr.size() != subsystemDerivativesPtr.size())
@@ -94,15 +95,13 @@ public:
 			stateOperatingPointsStock_[i] = stateOperatingPoints[systemStockIndex[i]];
 			inputOperatingPointsStock_[i] = inputOperatingPoints[systemStockIndex[i]];
 
-			subsystemSimulatorsStock_[i] = ODE45<STATE_DIM>(subsystemDynamicsPtrStock[i]);
+			subsystemSimulatorsStockPtr_[i] = std::make_shared<ODE45<STATE_DIM> >(subsystemDynamicsPtrStock[i]);
 		}
 	}
 
 	~GLQP() {}
 
-
 	void rollout(const state_vector_t& initState,
-			const std::vector<scalar_t>& switchingTimes,
 			const std::vector<controller_t>& controllersStock,
 			std::vector<scalar_array_t>& timeTrajectoriesStock,
 			std::vector<state_vector_array_t>& stateTrajectoriesStock,
@@ -113,15 +112,17 @@ public:
 			const std::vector<control_vector_array_t>& controlTrajectoriesStock,
 			scalar_t& totalCost);
 
+	void getcontroller(std::vector<controller_t>& controllersStock) { controllersStock = controllersStock_;}
+
+	void SolveRiccatiEquation(const std::vector<scalar_t>& switchingTimes);
+
+
+protected:
 	void approximateOptimalControlProblem();
 
 	void calculatecontroller(const scalar_t& learningRate, std::vector<controller_t>& controllersStock);
 
 	void transformeLocalValueFuntion2Global();
-
-	void getcontroller(std::vector<controller_t>& controllersStock) { controllersStock = controllersStock_;}
-
-	void SolveRiccatiEquation(const std::vector<scalar_t>& switchingTimes);
 
 
 private:
@@ -132,12 +133,11 @@ private:
 	state_vector_array_t   stateOperatingPointsStock_;
 	control_vector_array_t inputOperatingPointsStock_;
 
-	std::vector<ODE45<STATE_DIM> > subsystemSimulatorsStock_;
+	std::vector<std::shared_ptr<ODE45<STATE_DIM> > > subsystemSimulatorsStockPtr_;
 
 	std::vector<controller_t> controllersStock_;
 
 	size_t numSubsystems_;
-	size_t maxIteration_;
 
 	state_matrix_array_t        AmStock_;
 	control_gain_matrix_array_t BmStock_;
@@ -156,6 +156,8 @@ private:
 	std::vector<scalar_array_t> 	  sTrajectoryStock_;
 	std::vector<state_vector_array_t> SvTrajectoryStock_;
 	std::vector<state_matrix_array_t> SmTrajectoryStock_;
+
+	std::vector<scalar_t> switchingTimes_;
 
 
 };

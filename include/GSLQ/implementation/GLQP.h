@@ -10,14 +10,10 @@
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM>
 void GLQP<STATE_DIM, INPUT_DIM>::rollout(const state_vector_t& initState,
-		const std::vector<scalar_t>& switchingTimes,
 		const std::vector<controller_t>& controllersStock,
 		std::vector<scalar_array_t>& timeTrajectoriesStock,
 		std::vector<state_vector_array_t>& stateTrajectoriesStock,
 		std::vector<control_vector_array_t>& controlTrajectoriesStock)  {
-
-	if (switchingTimes.size() != numSubsystems_+1)
-		throw std::runtime_error("Number of switching times should be one plus the number of subsystems.");
 
 	state_vector_t x0 = initState;
 	for (int i=0; i<numSubsystems_; i++) {
@@ -29,7 +25,7 @@ void GLQP<STATE_DIM, INPUT_DIM>::rollout(const state_vector_t& initState,
 		// set controller for subsystem i
 		subsystemDynamicsPtrStock[i]->setController(controllersStock[i]);
 		// simulate subsystem i
-		subsystemSimulatorsStock_[i].integrate(x0, switchingTimes[i], switchingTimes[i+1], stateTrajectoriesStock[i], timeTrajectoriesStock[i]);
+		subsystemSimulatorsStockPtr_[i]->integrate(x0, switchingTimes_[i], switchingTimes_[i+1], stateTrajectoriesStock[i], timeTrajectoriesStock[i]);
 
 		// compute control trajectory for subsystem i
 		controlTrajectoriesStock[i].resize(timeTrajectoriesStock[i].size());
@@ -163,6 +159,8 @@ void GLQP<STATE_DIM, INPUT_DIM>::SolveRiccatiEquation(const std::vector<scalar_t
 
 	if (switchingTimes.size() != numSubsystems_+1)
 		throw std::runtime_error("Number of switching times should be one plus the number of subsystems.");
+
+	switchingTimes_ = switchingTimes;
 
 	approximateOptimalControlProblem();
 

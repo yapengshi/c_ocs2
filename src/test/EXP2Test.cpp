@@ -37,7 +37,7 @@ int main (int argc, char* argv[])
 
 	std::vector<double> switchingTimes {0, 0.184, 2};
 	if (argc>1)  switchingTimes[1] = std::atof(argv[1]);
-	glqp.SolveRiccatiEquation(switchingTimes);
+	glqp.SolveRiccatiEquations(switchingTimes);
 
 	// get controller
 	std::vector<GLQP<2,1,2>::controller_t> controllersStock(2);
@@ -48,8 +48,7 @@ int main (int argc, char* argv[])
 	std::vector<GLQP<2,1,2>::scalar_array_t> timeTrajectoriesStock;
 	std::vector<GLQP<2,1,2>::state_vector_array_t> stateTrajectoriesStock;
 	std::vector<GLQP<2,1,2>::control_vector_array_t> controlTrajectoriesStock;
-	glqp.rollout(initState, controllersStock,
-				timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
+	glqp.rollout(initState, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
 
 	// compute cost
 	double rolloutCost;

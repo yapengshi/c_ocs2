@@ -15,6 +15,9 @@ void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::rollout(const state_vector_t& i
 		std::vector<state_vector_array_t>& stateTrajectoriesStock,
 		std::vector<control_vector_array_t>& controlTrajectoriesStock)  {
 
+	if (controllersStock.size() != NUM_Subsystems)
+		throw std::runtime_error("controllersStock has less controllers then the number of subsystems");
+
 	timeTrajectoriesStock.resize(NUM_Subsystems);
 	stateTrajectoriesStock.resize(NUM_Subsystems);
 	controlTrajectoriesStock.resize(NUM_Subsystems);
@@ -193,34 +196,34 @@ void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getValueFuntion(const scalar_t&
 /******************************************************************************************************/
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveRiccatiEquation(const std::vector<scalar_t>& switchingTimes)  {
+void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveRiccatiEquations(const std::vector<scalar_t>& switchingTimes)  {
 
 	if (switchingTimes.size() != NUM_Subsystems+1)
 		throw std::runtime_error("Number of switching times should be one plus the number of subsystems.");
-
 	switchingTimes_ = switchingTimes;
-//	std::cout << "switchingTimes: " << switchingTimes_[0] << ", " << switchingTimes_[1] << ", " << switchingTimes_[2] << std::endl;
 
+	// linearizing the dynamics and quadratizing the cost funtion along nominal trajectories
 	approximateOptimalControlProblem();
 
-	Eigen::Matrix<double,STATE_DIM*STATE_DIM+STATE_DIM+1,1> allSsFinal;
+	// final value for the last Riccati equations
+	Eigen::Matrix<double,RiccatiEquations::S_DIM_,1> allSsFinal;
 	RiccatiEquations::convert2Vector(QmFinal_, QvFinal_, qFinal_, allSsFinal);
-//	std::cout << "allSsFinal: " << allSsFinal.transpose() << std::endl;
 
 	for (int i=NUM_Subsystems-1; i>=0; i--) {
 
+		// set data for Riccati equations
 		auto riccatiEquationsPtr = std::make_shared<RiccatiEquations>();
 		riccatiEquationsPtr->setData(switchingTimes[i], switchingTimes[i+1],
 				AmStock_[i], BmStock_[i],
 				qStock_[i], QvStock_[i], QmStock_[i], RvStock_[i], RmStock_[i], PmStock_[i]);
 
-		ODE45<STATE_DIM*STATE_DIM+STATE_DIM+1> ode45(riccatiEquationsPtr);
-
+		// integrating the Riccati equations
+		ODE45<RiccatiEquations::S_DIM_> ode45(riccatiEquationsPtr);
 		std::vector<double> normalizedTimeTrajectory;
-		std::vector<Eigen::Matrix<double,STATE_DIM*STATE_DIM+STATE_DIM+1,1>, Eigen::aligned_allocator<Eigen::Matrix<double,STATE_DIM*STATE_DIM+STATE_DIM+1,1>> > allSsTrajectory;
-
+		std::vector<Eigen::Matrix<double,RiccatiEquations::S_DIM_,1>, Eigen::aligned_allocator<Eigen::Matrix<double,RiccatiEquations::S_DIM_,1>> > allSsTrajectory;
 		ode45.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory);
 
+		// denormalizing time and constructing 'Sm', 'Sv', and 's'
 		int N = normalizedTimeTrajectory.size();
 		timeTrajectoryStock_[i].resize(N);
 		SmTrajectoryStock_[i].resize(N);
@@ -230,15 +233,10 @@ void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveRiccatiEquation(const std:
 
 			RiccatiEquations::convert2Matrix(allSsTrajectory[N-1-k], SmTrajectoryStock_[i][k], SvTrajectoryStock_[i][k], sTrajectoryStock_[i][k]);
 			timeTrajectoryStock_[i][k] = (switchingTimes[i]-switchingTimes[i+1])*(normalizedTimeTrajectory[N-1-k]-i) + switchingTimes[i+1];
-//			std::cout << "Time " << timeTrajectoryStock_[i][k] << ",\t AllSs[" << i << "][" << k<< "]: " << allSsTrajectory[N-1-k].transpose() << std::endl;
 		}
-//		std::cout << "Sm[" << i << "][0]: \n" << SmTrajectoryStock_[i].front() << std::endl;
-//		std::cout << "SV[" << i << "][0]: " << SvTrajectoryStock_[i].front().transpose() << std::endl;
-//		std::cout << "s[" << i << "][0]: " << sTrajectoryStock_[i].front() << std::endl;
 
 		// reset the final value for next Riccati equation
 		allSsFinal = allSsTrajectory.back();
-
 	}
 
 	// calculate controller

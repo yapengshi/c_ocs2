@@ -35,7 +35,27 @@ public:
 
 	void reset()	{index_=0;}
 
+	void interpolate(const double& enquiryTime, Data_T& enquiryData) {
 
+//		std::cout << "INDEX: " << index_;
+		size_t ind = find(enquiryTime);
+//		std::cout << " --> " << ind << std::endl;
+
+		if (enquiryTime<timeStampPtr_->front()) {
+			enquiryData = dataPtr_->front();
+			return;
+		}
+
+		if (ind==timeStampPtr_->size()-1) {
+			enquiryData = dataPtr_->back();
+			return;
+		}
+
+		double alpha = (enquiryTime-timeStampPtr_->at(ind+1)) / (timeStampPtr_->at(ind)-timeStampPtr_->at(ind+1));
+		enquiryData = alpha*dataPtr_->at(ind) + (1-alpha)*dataPtr_->at(ind+1);
+	}
+
+protected:
 	size_t find(const double& enquiryTime) {
 
 		size_t index;
@@ -59,27 +79,6 @@ public:
 		index_ = index;
 		return index;
 	}
-
-	void interpolate(const double& enquiryTime, Data_T& enquiryData) {
-
-//		std::cout << "INDEX: " << index_;
-		size_t ind = find(enquiryTime);
-//		std::cout << " --> " << ind << std::endl;
-
-		if (enquiryTime<timeStampPtr_->front()) {
-			enquiryData = dataPtr_->front();
-			return;
-		}
-
-		if (ind==timeStampPtr_->size()-1) {
-			enquiryData = dataPtr_->back();
-			return;
-		}
-
-		double alpha = (enquiryTime-timeStampPtr_->at(ind+1)) / (timeStampPtr_->at(ind)-timeStampPtr_->at(ind+1));
-		enquiryData = alpha*dataPtr_->at(ind) + (1-alpha)*dataPtr_->at(ind+1);
-	}
-
 
 private:
 	size_t index_;

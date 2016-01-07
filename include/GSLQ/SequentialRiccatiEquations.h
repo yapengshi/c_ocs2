@@ -1,17 +1,20 @@
 /*
- * PartialRiccatiEquations.h
+ * SequentialRiccatiEquations.h
  *
- *  Created on: Jan 5, 2016
+ *  Created on: Jan 7, 2016
  *      Author: farbod
  */
 
-#ifndef PARTIALRICCATIEQUATIONS_H_
-#define PARTIALRICCATIEQUATIONS_H_
+#ifndef SEQUENTIALRICCATIEQUATIONS_H_
+#define SEQUENTIALRICCATIEQUATIONS_H_
+
 
 #include "dynamics/SystemBase.h"
 
+#include "misc/LinearInterpolation.h"
+
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-class PartialRiccatiEquations : public SystemBase<STATE_DIM*STATE_DIM+STATE_DIM+1>
+class SequentialRiccatiEquations : public SystemBase<STATE_DIM*STATE_DIM+STATE_DIM+1>
 {
 public:
 	enum { S_DIM_ = STATE_DIM*STATE_DIM+STATE_DIM+1 };
@@ -34,8 +37,8 @@ public:
 	typedef typename DIMENSIONS::control_gain_matrix_t 		 control_gain_matrix_t;
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
 
-	PartialRiccatiEquations() {}
-	~PartialRiccatiEquations() {}
+	SequentialRiccatiEquations() {}
+	~SequentialRiccatiEquations() {}
 
 	static void convert2Vector(const state_matrix_t& Sm, const state_vector_t& Sv, const eigen_scalar_t& s,
 			Eigen::Matrix<double,S_DIM_,1>& allSs)  {
@@ -53,22 +56,32 @@ public:
 		s  = allSs.template tail<1>();
 	}
 
-	void setData(const scalar_t& timeStart, const scalar_t& timeFinal,
-			const state_matrix_t& Am, const control_gain_matrix_t& Bm,
-			const eigen_scalar_t& q, const state_vector_t& Qv, const state_matrix_t& Qm,
-			const control_vector_t& Rv, const control_matrix_t& Rm,
-			const control_feedback_t& Pm)  {
+	void setData(const scalar_t& timeStart, const scalar_t& timeFinal, scalar_array_t* const timeStampPtr,
+			state_matrix_array_t* const AmPtr, control_gain_matrix_array_t* const BmPtr,
+			eigen_scalar_array_t* const qPtr, state_vector_array_t* const QvPtr, state_matrix_array_t* const QmPtr,
+			control_vector_array_t* const RvPtr, control_matrix_array_t* const RmPtr,
+			control_feedback_array_t* const PmPtr)  {
 
 		timeStart_ = timeStart;
 		timeFinal_ = timeFinal;
-		Am_ = Am;
-		Bm_ = Bm;
-		q_ = q;
-		Qv_ = Qv;
-		Qm_ = Qm;
-		Rv_ = Rv;
-		Rm_ = Rm;
-		Pm_ = Pm;
+
+		AmFunc_.setTimeStamp(timeStampPtr);
+		AmFunc_.setData(AmPtr);
+		BmFunc_.setTimeStamp(timeStampPtr);
+		BmFunc_.setData(BmPtr);
+
+		qFunc_.setTimeStamp(timeStampPtr);
+		qFunc_.setData(qPtr);
+		QvFunc_.setTimeStamp(timeStampPtr);
+		QvFunc_.setData(QvPtr);
+		QmFunc_.setTimeStamp(timeStampPtr);
+		QmFunc_.setData(QmPtr);
+		RvFunc_.setTimeStamp(timeStampPtr);
+		RvFunc_.setData(RvPtr);
+		RmFunc_.setTimeStamp(timeStampPtr);
+		RmFunc_.setData(RmPtr);
+		PmFunc_.setTimeStamp(timeStampPtr);
+		PmFunc_.setData(PmPtr);
 	}
 
 	void computeDerivative(const scalar_t& t,
@@ -80,15 +93,33 @@ public:
 		eigen_scalar_t s;
 		convert2Matrix(state, Sm, Sv, s);
 
+		state_matrix_t Am;
+		AmFunc_.interpolate(t, Am);
+		control_gain_matrix_t Bm;
+		BmFunc_.interpolate(t, Bm);
+
+		eigen_scalar_t q;
+		qFunc_.interpolate(t, q);
+		state_vector_t Qv;
+		QvFunc_.interpolate(t, Qv);
+		state_matrix_t Qm;
+		QmFunc_.interpolate(t, Qm);
+		control_vector_t Rv;
+		RvFunc_.interpolate(t, Rv);
+		control_matrix_t Rm;
+		RmFunc_.interpolate(t, Rm);
+		control_feedback_t Pm;
+		PmFunc_.interpolate(t, Pm);
+
 		state_matrix_t dSmdt, dSmdz;
 		state_vector_t dSvdt, dSvdz;
 		eigen_scalar_t dsdt, dsdz;
 
 		// Riccati equations for the original system
-		dSmdt = Qm_ + Am_.transpose()*Sm + Sm.transpose()*Am_ - (Pm_+Bm_.transpose()*Sm).transpose()*Rm_.inverse()*(Pm_+Bm_.transpose()*Sm);
+		dSmdt = Qm + Am.transpose()*Sm + Sm.transpose()*Am - (Pm+Bm.transpose()*Sm).transpose()*Rm.inverse()*(Pm+Bm.transpose()*Sm);
 		dSmdt = (dSmdt+dSmdt.transpose()).eval()*0.5;
-		dSvdt = Qv_ + Am_.transpose()*Sv - (Pm_+Bm_.transpose()*Sm).transpose()*Rm_.inverse()*(Rv_+Bm_.transpose()*Sv);
-		dsdt  = q_ - 0.5*(Rv_+Bm_.transpose()*Sv).transpose()*Rm_.inverse()*(Rv_+Bm_.transpose()*Sv);
+		dSvdt = Qv + Am.transpose()*Sv - (Pm+Bm.transpose()*Sm).transpose()*Rm.inverse()*(Rv+Bm.transpose()*Sv);
+		dsdt  = q - 0.5*(Rv+Bm.transpose()*Sv).transpose()*Rm.inverse()*(Rv+Bm.transpose()*Sv);
 		// Riccati equations for the equivalent system
 		dSmdz = (timeFinal_-timeStart_)*dSmdt;
 		dSvdz = (timeFinal_-timeStart_)*dSvdt;
@@ -102,18 +133,18 @@ private:
 	scalar_t timeStart_;
 	scalar_t timeFinal_;
 
-	state_matrix_t Am_;
-	control_gain_matrix_t Bm_;
+	LinearInterpolation<state_matrix_t,Eigen::aligned_allocator<state_matrix_t> > AmFunc_;
+	LinearInterpolation<control_gain_matrix_t,Eigen::aligned_allocator<control_gain_matrix_t> > BmFunc_;
 
-	eigen_scalar_t q_;
-	state_vector_t Qv_;
-	state_matrix_t Qm_;
-	control_vector_t Rv_;
-	control_matrix_t Rm_;
-	control_feedback_t Pm_;
+	LinearInterpolation<eigen_scalar_t,Eigen::aligned_allocator<eigen_scalar_t> > qFunc_;
+	LinearInterpolation<state_vector_t,Eigen::aligned_allocator<state_vector_t> > QvFunc_;
+	LinearInterpolation<state_matrix_t,Eigen::aligned_allocator<state_matrix_t> > QmFunc_;
+	LinearInterpolation<control_vector_t,Eigen::aligned_allocator<control_vector_t> > RvFunc_;
+	LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> > RmFunc_;
+	LinearInterpolation<control_feedback_t,Eigen::aligned_allocator<control_feedback_t> > PmFunc_;
 
 };
 
 
 
-#endif /* PARTIALRICCATIEQUATIONS_H_ */
+#endif /* SEQUENTIALRICCATIEQUATIONS_H_ */

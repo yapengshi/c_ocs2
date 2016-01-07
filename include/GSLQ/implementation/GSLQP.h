@@ -127,7 +127,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::approximateOptimalControlProbl
 /******************************************************************************************************/
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::calculatecontroller(const scalar_t& learningRate, std::vector<controller_t>& controllersStock) {
+void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::calculatecontroller(scalar_t& learningRate, std::vector<controller_t>& controllersStock) {
 
 	for (int i=0; i<NUM_Subsystems; i++) {
 
@@ -149,14 +149,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::calculatecontroller(const scal
 /******************************************************************************************************/
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveSequentialRiccatiEquations(const std::vector<scalar_t>& switchingTimes)  {
-
-	if (switchingTimes.size() != NUM_Subsystems+1)
-		throw std::runtime_error("Number of switching times should be one plus the number of subsystems.");
-	switchingTimes_ = switchingTimes;
-
-	// linearizing the dynamics and quadratizing the cost funtion along nominal trajectories
-	approximateOptimalControlProblem();
+void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveSequentialRiccatiEquations()  {
 
 	// final value for the last Riccati equations
 	Eigen::Matrix<double,RiccatiEquations::S_DIM_,1> allSsFinal;
@@ -166,7 +159,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveSequentialRiccatiEquation
 
 		// set data for Riccati equations
 		auto riccatiEquationsPtr = std::make_shared<RiccatiEquations>();
-		riccatiEquationsPtr->setData(switchingTimes[i], switchingTimes[i+1],
+		riccatiEquationsPtr->setData(switchingTimes_[i], switchingTimes_[i+1],
 				&AmTrajectoryStock_[i], &BmTrajectoryStock_[i],
 				&qTrajectoryStock_[i], &QvTrajectoryStock_[i], &QmTrajectoryStock_[i],
 				&RvTrajectoryStock_[i][i], &RmTrajectoryStock_[i][i], &PmTrajectoryStock_[i][i]);
@@ -186,18 +179,40 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveSequentialRiccatiEquation
 		for (int k=0; k<normalizedTimeTrajectory.size(); k++) {
 
 			RiccatiEquations::convert2Matrix(allSsTrajectory[N-1-k], SmTrajectoryStock_[i][k], SvTrajectoryStock_[i][k], sTrajectoryStock_[i][k]);
-			SsTimeTrajectoryStock_[i][k] = (switchingTimes[i]-switchingTimes[i+1])*(normalizedTimeTrajectory[N-1-k]-i) + switchingTimes[i+1];
+			SsTimeTrajectoryStock_[i][k] = (switchingTimes_[i]-switchingTimes_[i+1])*(normalizedTimeTrajectory[N-1-k]-i) + switchingTimes_[i+1];
 		}
 
 		// reset the final value for next Riccati equation
 		allSsFinal = allSsTrajectory.back();
 	}
 
+}
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes)  {
+
+	if (switchingTimes.size() != NUM_Subsystems+1)
+		throw std::runtime_error("Number of switching times should be one plus the number of subsystems.");
+	switchingTimes_ = switchingTimes;
+
+	if (nominalRolloutIsUpdated_==false)  {
+		rollout(initState, nominalControllersStock_,
+				nominalTimeTrajectoriesStock_, nominalStateTrajectoriesStock_, nominalControlTrajectoriesStock_);
+	}
+
+	// linearizing the dynamics and quadratizing the cost funtion along nominal trajectories
+	approximateOptimalControlProblem();
+
+	// solve Riccati equations
+	SolveSequentialRiccatiEquations();
+
 	// calculate controller
 	calculatecontroller(1.0, nominalControllersStock_);
 
 //	// transforme the local value funtion to the global representation
 //	transformeLocalValueFuntion2Global();
-
 }
 

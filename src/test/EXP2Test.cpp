@@ -37,7 +37,7 @@ int main (int argc, char* argv[])
 
 	std::vector<double> switchingTimes {0, 0.184, 2};
 	if (argc>1)  switchingTimes[1] = std::atof(argv[1]);
-	glqp.SolveRiccatiEquations(switchingTimes);
+	glqp.run(switchingTimes);
 
 	// get controller
 	std::vector<GLQP<2,1,2>::controller_t> controllersStock(2);

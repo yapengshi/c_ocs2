@@ -121,10 +121,12 @@ public:
 
 	void getValueFuntion(const scalar_t& time, const state_vector_t& state, scalar_t& valueFuntion);
 
-	void SolveRiccatiEquations(const std::vector<scalar_t>& switchingTimes);
+	void run(const std::vector<scalar_t>& switchingTimes);
 
 
 protected:
+	void SolveRiccatiEquations();
+
 	void approximateOptimalControlProblem();
 
 	void calculatecontroller(const scalar_t& learningRate, std::vector<controller_t>& controllersStock);

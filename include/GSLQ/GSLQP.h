@@ -78,6 +78,7 @@ public:
 		  SvTrajectoryStock_(NUM_Subsystems),
 		  SmTrajectoryStock_(NUM_Subsystems),
 		  switchingTimes_(NUM_Subsystems+1),
+		  nominalRolloutIsUpdated_(false),
 		  maxIteration_(10)
 	{
 
@@ -122,14 +123,15 @@ public:
 			const std::vector<control_vector_array_t>& controlTrajectoriesStock,
 			scalar_t& totalCost);
 
-	void SolveSequentialRiccatiEquations(const std::vector<scalar_t>& switchingTimes);
+	void run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes);
 
 
 protected:
+	void SolveSequentialRiccatiEquations();
+
 	void approximateOptimalControlProblem();
 
-	void calculatecontroller(const scalar_t& learningRate, std::vector<controller_t>& controllersStock);
-
+	void calculatecontroller(scalar_t& learningRate, std::vector<controller_t>& controllersStock);
 
 
 private:
@@ -166,6 +168,8 @@ private:
 	std::vector<state_matrix_array_t> SmTrajectoryStock_;
 
 	scalar_array_t switchingTimes_;
+
+	bool nominalRolloutIsUpdated_;
 
 	size_t maxIteration_;
 };

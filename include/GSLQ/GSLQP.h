@@ -64,7 +64,7 @@ public:
 		  nominalControllersStock_(nominalControllersStock),
 		  nominalTimeTrajectoriesStock_(NUM_Subsystems),
 		  nominalStateTrajectoriesStock_(NUM_Subsystems),
-		  nominalControlTrajectoriesStock_(NUM_Subsystems),
+		  nominalInputTrajectoriesStock_(NUM_Subsystems),
 		  AmTrajectoryStock_(NUM_Subsystems),
 		  BmTrajectoryStock_(NUM_Subsystems),
 		  qTrajectoryStock_(NUM_Subsystems),
@@ -133,6 +133,8 @@ protected:
 
 	void calculatecontroller(scalar_t& learningRate, std::vector<controller_t>& controllersStock);
 
+	void lineSearch(const std::vector<controller_t>& controllersStock, const std::vector<control_vector_array_t>& deltaUffStock,
+			scalar_t& learningRate, scalar_t& totalCost);
 
 private:
 	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > > subsystemDynamicsPtrStock;
@@ -147,7 +149,7 @@ private:
 	std::vector<controller_t> nominalControllersStock_;
 	std::vector<scalar_array_t> nominalTimeTrajectoriesStock_;
 	std::vector<state_vector_array_t> nominalStateTrajectoriesStock_;
-	std::vector<control_vector_array_t> nominalControlTrajectoriesStock_;
+	std::vector<control_vector_array_t> nominalInputTrajectoriesStock_;
 
 	std::vector<state_matrix_array_t>        AmTrajectoryStock_;
 	std::vector<control_gain_matrix_array_t> BmTrajectoryStock_;
@@ -168,6 +170,7 @@ private:
 	std::vector<state_matrix_array_t> SmTrajectoryStock_;
 
 	scalar_array_t switchingTimes_;
+	state_vector_t initState_;
 
 	bool nominalRolloutIsUpdated_;
 

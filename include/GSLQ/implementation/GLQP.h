@@ -109,20 +109,10 @@ void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::approximateOptimalControlProble
 		subsystemCostFunctionsPtrStock_[i]->controlSecondDerivative(RmStock_[i]);
 		subsystemCostFunctionsPtrStock_[i]->stateControlDerivative(PmStock_[i]);
 
-//		std::cout << "subsystem " << i << " A and B:\n";
-//		std::cout << AmStock_[i] << std::endl << BmStock_[i] << std::endl;
-//
-//		std::cout << "subsystem " << i << " Qm, Qv, q, Rm, Rv, Pm:\n";
-//		std::cout << QmStock_[i] << std::endl << QvStock_[i] << std::endl << qStock_[i] <<
-//				std::endl << RmStock_[i] << std::endl << RvStock_[i] << std::endl << PmStock_[i] << std::endl;
-
 		if (i==NUM_Subsystems-1)  {
 			subsystemCostFunctionsPtrStock_[i]->terminalCost(qFinal_(0));
 			subsystemCostFunctionsPtrStock_[i]->terminalCostStateDerivative(QvFinal_);
 			subsystemCostFunctionsPtrStock_[i]->terminalCostStateSecondDerivative(QmFinal_);
-
-//			std::cout << "subsystem " << i << " Qm_f, Qv_f, q_f:\n";
-//			std::cout << QmFinal_ << std::endl << QvFinal_ << std::endl << qFinal_ << std::endl;
 		}
 	}
 }

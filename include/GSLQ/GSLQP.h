@@ -49,9 +49,10 @@ public:
 	typedef typename DIMENSIONS::control_gain_matrix_t 		 control_gain_matrix_t;
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
 	struct Options {
-		Options() : maxIteration_(10), minLearningRate_(0.1) {}
+		Options() : maxIteration_(10), minLearningRate_(0.1), dispay_(false) {}
 		size_t maxIteration_;
 		scalar_t minLearningRate_;
+		bool dispay_;
 	};
 
 
@@ -60,7 +61,7 @@ public:
 			const std::vector<std::shared_ptr<CostFunctionBase<STATE_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
 			const std::vector<controller_t>& initialControllersStock,
 			const std::vector<size_t>& systemStockIndex,
-			const Options& options)
+			const Options& options = Options())
 		: subsystemDynamicsPtrStock(NUM_Subsystems),
 		  subsystemDerivativesPtrStock_(NUM_Subsystems),
 		  subsystemCostFunctionsPtrStock_(NUM_Subsystems),

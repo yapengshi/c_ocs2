@@ -73,6 +73,7 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	GSLQP<2,1,2>::Options gslqpOptions;
+	gslqpOptions.dispay_ = 1;
 
 	// GSLQ
 	GSLQP<2,1,2> gslqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);

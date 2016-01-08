@@ -274,6 +274,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::lineSearch(const std::vector<c
 		rolloutCost(currentTimeTrajectoriesStock, currentStateTrajectoriesStock, currentInputTrajectoriesStock,
 				currentTotalCost);
 
+		if (options_.dispay_)  std::cout << "\t learningRate " << learningRate << " cost: " << nominalTotalCost_ << std::endl;
+
 		// break condition 1: it exits with largest learningRate that its cost is smaller than nominal cost.
 		if (currentTotalCost < previousTotalCost*(1-1e-3*learningRate))  {
 			nominalRolloutIsUpdated_ = true;
@@ -291,6 +293,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::lineSearch(const std::vector<c
 
 	}  // end of while
 
+	if (options_.dispay_)  std::cout << "The chosen learningRate is: " << learningRateStar << std::endl;
 	if (learningRate <= options_.minLearningRate_) {
 		nominalRolloutIsUpdated_ = true;  // since the open loop input will not change, the nominal trajectories will be constatnt (no disturbance effect has been assumed)
 		learningRateStar = 0.0;
@@ -418,7 +421,12 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& init
 					nominalTimeTrajectoriesStock_, nominalStateTrajectoriesStock_, nominalInputTrajectoriesStock_);
 			rolloutCost(nominalTimeTrajectoriesStock_, nominalStateTrajectoriesStock_, nominalInputTrajectoriesStock_,
 					nominalTotalCost_);
+			// display
+			if (options_.dispay_ && iteration==0)  std::cout << "\n#### Initial controller: \ncost: " << nominalTotalCost_ << std::endl;
 		}
+
+		// display
+		if (options_.dispay_)  std::cout << "\n#### Iteration " <<  iteration << std::endl;
 
 		// linearizing the dynamics and quadratizing the cost funtion along nominal trajectories
 		approximateOptimalControlProblem();
@@ -430,6 +438,9 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& init
 		nominalRolloutIsUpdated_ = false;
 		learningRateStar = 1.0;  // resetting learningRateStar
 		calculatecontroller(learningRateStar);
+
+		// display
+		if (options_.dispay_)  std::cout << "cost: " << nominalTotalCost_ << std::endl;
 
 		iteration++;
 

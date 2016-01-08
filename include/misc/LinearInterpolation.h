@@ -29,9 +29,17 @@ public:
 	{}
 
 
-	void setData(std::vector<Data_T,Alloc>* const dataPtr)	{dataPtr_ = dataPtr;}
+	void setData(std::vector<Data_T,Alloc>* const dataPtr)	{
 
-	void setTimeStamp(std::vector<double>* const timeStampPtr)	{timeStampPtr_ = timeStampPtr;}
+		dataPtr_ = dataPtr;
+		reset();
+	}
+
+	void setTimeStamp(std::vector<double>* const timeStampPtr)	{
+
+		timeStampPtr_ = timeStampPtr;
+		reset();
+	}
 
 	void reset()	{index_=0;}
 
@@ -51,11 +59,13 @@ public:
 			return;
 		}
 
+		if (dataPtr_->size() <= ind+1)
+			std::cout << " --> " << ind << std::endl;
 		double alpha = (enquiryTime-timeStampPtr_->at(ind+1)) / (timeStampPtr_->at(ind)-timeStampPtr_->at(ind+1));
 		enquiryData = alpha*dataPtr_->at(ind) + (1-alpha)*dataPtr_->at(ind+1);
 	}
 
-protected:
+//protected:
 	size_t find(const double& enquiryTime) {
 
 		size_t index;

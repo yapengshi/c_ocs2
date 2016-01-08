@@ -6,7 +6,8 @@ project(c_ocs2)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS cmake_modules cereal) 
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wfatal-errors -march=native -O3 -fopenmp -pthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wfatal-errors -march=native -fopenmp -pthread")
+set(CMAKE_BUILD_TYPE DEBUG)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)

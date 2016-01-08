@@ -56,12 +56,14 @@ public:
 		s  = allSs.template tail<1>();
 	}
 
-	void setData(const scalar_t& timeStart, const scalar_t& timeFinal, scalar_array_t* const timeStampPtr,
+	void setData(const scalar_t& learningRate, const scalar_t& timeStart, const scalar_t& timeFinal,
+			scalar_array_t* const timeStampPtr,
 			state_matrix_array_t* const AmPtr, control_gain_matrix_array_t* const BmPtr,
 			eigen_scalar_array_t* const qPtr, state_vector_array_t* const QvPtr, state_matrix_array_t* const QmPtr,
 			control_vector_array_t* const RvPtr, control_matrix_array_t* const RmPtr,
 			control_feedback_array_t* const PmPtr)  {
 
+		alpha_ = learningRate;
 		timeStart_ = timeStart;
 		timeFinal_ = timeFinal;
 
@@ -119,7 +121,7 @@ public:
 		dSmdt = Qm + Am.transpose()*Sm + Sm.transpose()*Am - (Pm+Bm.transpose()*Sm).transpose()*Rm.inverse()*(Pm+Bm.transpose()*Sm);
 		dSmdt = (dSmdt+dSmdt.transpose()).eval()*0.5;
 		dSvdt = Qv + Am.transpose()*Sv - (Pm+Bm.transpose()*Sm).transpose()*Rm.inverse()*(Rv+Bm.transpose()*Sv);
-		dsdt  = q - 0.5*(Rv+Bm.transpose()*Sv).transpose()*Rm.inverse()*(Rv+Bm.transpose()*Sv);
+		dsdt  = q - 0.5*alpha_*(2.0-alpha_)*(Rv+Bm.transpose()*Sv).transpose()*Rm.inverse()*(Rv+Bm.transpose()*Sv);
 		// Riccati equations for the equivalent system
 		dSmdz = (timeFinal_-timeStart_)*dSmdt;
 		dSvdz = (timeFinal_-timeStart_)*dSvdt;
@@ -130,6 +132,7 @@ public:
 
 
 private:
+	scalar_t alpha_;
 	scalar_t timeStart_;
 	scalar_t timeFinal_;
 

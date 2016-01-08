@@ -32,7 +32,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::rollout(const state_vector_t& 
 		// set controller for subsystem i
 		subsystemDynamicsPtrStock[i]->setController(controllersStock[i]);
 		// simulate subsystem i
-		subsystemSimulatorsStockPtr_[i].integrate(x0, switchingTimes_[i], switchingTimes_[i+1], stateTrajectoriesStock[i], timeTrajectoriesStock[i], 1e-3);
+		subsystemSimulatorsStockPtr_[i]->integrate(x0, switchingTimes_[i], switchingTimes_[i+1], stateTrajectoriesStock[i], timeTrajectoriesStock[i], 1e-3);
 
 		// compute control trajectory for subsystem i
 		inputTrajectoriesStock[i].resize(timeTrajectoriesStock[i].size());
@@ -97,7 +97,18 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::approximateOptimalControlProbl
 
 	for (int i=0; i<NUM_Subsystems; i++) {
 
-		for (int k=0; k<nominalTimeTrajectoriesStock_[i].size(); k++) {
+		int N = nominalTimeTrajectoriesStock_[i].size();
+		AmTrajectoryStock_[i].resize(N);
+		BmTrajectoryStock_[i].resize(N);
+
+		qTrajectoryStock_[i].resize(N);
+		QvTrajectoryStock_[i].resize(N);
+		QmTrajectoryStock_[i].resize(N);
+		RvTrajectoryStock_[i].resize(N);
+		RmTrajectoryStock_[i].resize(N);
+		PmTrajectoryStock_[i].resize(N);
+
+		for (int k=0; k<N; k++) {
 
 			subsystemDerivativesPtrStock_[i]->setCurrentStateAndControl(nominalTimeTrajectoriesStock_[i][k],
 					nominalStateTrajectoriesStock_[i][k], nominalInputTrajectoriesStock_[i][k]);
@@ -127,7 +138,9 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::approximateOptimalControlProbl
 /******************************************************************************************************/
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::calculatecontroller(scalar_t& learningRate, std::vector<controller_t>& controllersStock) {
+void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::calculatecontroller(scalar_t& learningRateStar) {
+
+	std::vector<controller_t> controllersStock(NUM_Subsystems);
 
 	LinearInterpolation<state_matrix_t,Eigen::aligned_allocator<state_matrix_t> > AmFunc;
 	LinearInterpolation<control_gain_matrix_t,Eigen::aligned_allocator<control_gain_matrix_t> > BmFunc;
@@ -216,12 +229,15 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::calculatecontroller(scalar_t& 
 	}  // end of i loop
 
 	// finding the optimal learningRate
-	lineSearch(controllersStock, deltaUffStock, learningRate);
+	lineSearch(controllersStock, deltaUffStock, learningRateStar);
 
-	// updating uff by the local increment
-	for (int i=0; i<NUM_Subsystems; i++)
-		for (int k=0; k<SsTimeTrajectoryStock_[i].size(); k++)
-			controllersStock[i].uff_[k] += learningRate*deltaUffStock[i][k];
+	// calculating the nominal controller
+	nominalControllersStock_ = controllersStock;
+	if (learningRateStar>0) {
+		for (int i=0; i<NUM_Subsystems; i++)
+			for (int k=0; k<SsTimeTrajectoryStock_[i].size(); k++)
+				nominalControllersStock_[i].uff_[k] += learningRateStar*deltaUffStock[i][k];
+	}
 
 }
 
@@ -232,39 +248,53 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::calculatecontroller(scalar_t& 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::lineSearch(const std::vector<controller_t>& controllersStock,
 		const std::vector<control_vector_array_t>& deltaUffStock,
-		scalar_t& learningRate, scalar_t& totalCost)  {
+		scalar_t& learningRateStar)  {
 
-	scalar_t previousTotalCost;
-	std::vector<controller_t> previousControllersStock(NUM_Subsystems);
-	std::vector<scalar_array_t> previousTimeTrajectoriesStock(NUM_Subsystems);
-	std::vector<state_vector_array_t> previousStateTrajectoriesStock(NUM_Subsystems);
-	std::vector<control_vector_array_t> previousInputTrajectoriesStock(NUM_Subsystems);
+	scalar_t learningRate = learningRateStar;
 
+	scalar_t previousTotalCost = nominalTotalCost_;
 	scalar_t currentTotalCost;
-	std::vector<controller_t> currentControllersStock(controllersStock);
+	std::vector<controller_t> currentControllersStock(NUM_Subsystems);
 	std::vector<scalar_array_t> currentTimeTrajectoriesStock(NUM_Subsystems);
 	std::vector<state_vector_array_t> currentStateTrajectoriesStock(NUM_Subsystems);
 	std::vector<control_vector_array_t> currentInputTrajectoriesStock(NUM_Subsystems);
 
-	// modifying uff by the local increamant
-	for (int i=0; i<NUM_Subsystems; i++)
-		for (int k=0; k<SsTimeTrajectoryStock_[i].size(); k++)
-			currentControllersStock[i].uff_[k] += learningRate*deltaUffStock[i][k];
+	while (learningRate > options_.minLearningRate_)  {
+		// modifying uff by the local increamant
+		currentControllersStock = controllersStock;
+		for (int i=0; i<NUM_Subsystems; i++)
+			for (int k=0; k<SsTimeTrajectoryStock_[i].size(); k++)
+				currentControllersStock[i].uff_[k] += learningRate*deltaUffStock[i][k];
 
-	// rollout
-	rollout(initState_, currentControllersStock,
-			currentTimeTrajectoriesStock, currentStateTrajectoriesStock, currentInputTrajectoriesStock);
+		// rollout
+		rollout(initState_, currentControllersStock,
+				currentTimeTrajectoriesStock, currentStateTrajectoriesStock, currentInputTrajectoriesStock);
 
-	// calculate rollout cost
-	rolloutCost(currentTimeTrajectoriesStock, currentStateTrajectoriesStock, currentInputTrajectoriesStock,
-			currentTotalCost);
+		// calculate rollout cost
+		rolloutCost(currentTimeTrajectoriesStock, currentStateTrajectoriesStock, currentInputTrajectoriesStock,
+				currentTotalCost);
 
-	// cashing data
-	previousTotalCost = currentTotalCost;
-	previousControllersStock = currentControllersStock;
-	previousTimeTrajectoriesStock  = currentTimeTrajectoriesStock;
-	previousStateTrajectoriesStock = currentStateTrajectoriesStock;
-	previousInputTrajectoriesStock = currentInputTrajectoriesStock;
+		// break condition 1: it exits with largest learningRate that its cost is smaller than nominal cost.
+		if (currentTotalCost < previousTotalCost*(1-1e-3*learningRate))  {
+			nominalRolloutIsUpdated_ = true;
+			nominalTotalCost_ = currentTotalCost;
+			nominalControllersStock_ = currentControllersStock;
+			nominalTimeTrajectoriesStock_  = currentTimeTrajectoriesStock;
+			nominalStateTrajectoriesStock_ = currentStateTrajectoriesStock;
+			nominalInputTrajectoriesStock_ = currentInputTrajectoriesStock;
+			learningRateStar = learningRate;
+			break;
+		} else {
+			learningRate = 0.5*learningRate;
+			previousTotalCost = currentTotalCost;
+		}
+
+	}  // end of while
+
+	if (learningRate <= options_.minLearningRate_) {
+		nominalRolloutIsUpdated_ = true;  // since the open loop input will not change, the nominal trajectories will be constatnt (no disturbance effect has been assumed)
+		learningRateStar = 0.0;
+	}
 }
 
 
@@ -272,7 +302,61 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::lineSearch(const std::vector<c
 /******************************************************************************************************/
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveSequentialRiccatiEquations()  {
+void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::transformeLocalValueFuntion2Global() {
+
+	LinearInterpolation<state_vector_t,Eigen::aligned_allocator<state_vector_t> > nominalStateFunc;
+
+	for (int i=0; i<NUM_Subsystems; i++) {
+
+		nominalStateFunc.reset();
+		nominalStateFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
+		nominalStateFunc.setData(&nominalStateTrajectoriesStock_[i]);
+
+		for (int k=0; k<SsTimeTrajectoryStock_[i].size(); k++) {
+
+			state_vector_t nominalState;
+			nominalStateFunc.interpolate(SsTimeTrajectoryStock_[i][k], nominalState);
+
+			sTrajectoryStock_[i][k] = sTrajectoryStock_[i][k] - nominalState.transpose()*SvTrajectoryStock_[i][k] +
+					0.5*nominalState.transpose()*SmTrajectoryStock_[i][k]*nominalState;
+			SvTrajectoryStock_[i][k] = SvTrajectoryStock_[i][k] - SmTrajectoryStock_[i][k]*nominalState;
+		}  // end of k loop
+	}  // enf of i loop
+}
+
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getValueFuntion(const scalar_t& time, const state_vector_t& state, scalar_t& valueFuntion)  {
+
+	int activeSubsystem = -1;
+	for (int i=0; i<NUM_Subsystems; i++)  {
+		activeSubsystem = i;
+		if (switchingTimes_[i]<=time && time<switchingTimes_[i+1])
+			break;
+	}
+
+	state_matrix_t Sm;
+	LinearInterpolation<state_matrix_t,Eigen::aligned_allocator<state_matrix_t> > SmFunc(&SsTimeTrajectoryStock_[activeSubsystem], &SmTrajectoryStock_[activeSubsystem]);
+	SmFunc.interpolate(time, Sm);
+	state_vector_t Sv;
+	LinearInterpolation<state_vector_t,Eigen::aligned_allocator<state_vector_t> > SvFunc(&SsTimeTrajectoryStock_[activeSubsystem], &SvTrajectoryStock_[activeSubsystem]);
+	SvFunc.interpolate(time, Sv);
+	eigen_scalar_t s;
+	LinearInterpolation<eigen_scalar_t,Eigen::aligned_allocator<eigen_scalar_t> > sFunc(&SsTimeTrajectoryStock_[activeSubsystem], &sTrajectoryStock_[activeSubsystem]);
+	sFunc.interpolate(time, s);
+
+	valueFuntion = (s + state.transpose()*Sv + 0.5*state.transpose()*Sm*state).eval()(0);
+}
+
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveSequentialRiccatiEquations(const scalar_t& learningRate)  {
 
 	// final value for the last Riccati equations
 	Eigen::Matrix<double,RiccatiEquations::S_DIM_,1> allSsFinal;
@@ -282,10 +366,11 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveSequentialRiccatiEquation
 
 		// set data for Riccati equations
 		auto riccatiEquationsPtr = std::make_shared<RiccatiEquations>();
-		riccatiEquationsPtr->setData(switchingTimes_[i], switchingTimes_[i+1],
+		riccatiEquationsPtr->setData(learningRate, switchingTimes_[i], switchingTimes_[i+1],
+				&nominalTimeTrajectoriesStock_[i],
 				&AmTrajectoryStock_[i], &BmTrajectoryStock_[i],
 				&qTrajectoryStock_[i], &QvTrajectoryStock_[i], &QmTrajectoryStock_[i],
-				&RvTrajectoryStock_[i][i], &RmTrajectoryStock_[i][i], &PmTrajectoryStock_[i][i]);
+				&RvTrajectoryStock_[i], &RmTrajectoryStock_[i], &PmTrajectoryStock_[i]);
 
 		// integrating the Riccati equations
 		ODE45<RiccatiEquations::S_DIM_> ode45(riccatiEquationsPtr);
@@ -311,6 +396,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveSequentialRiccatiEquation
 
 }
 
+
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
@@ -322,21 +408,43 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& init
 	switchingTimes_ = switchingTimes;
 	initState_ = initState;
 
-	if (nominalRolloutIsUpdated_==false)  {
-		rollout(initState, nominalControllersStock_,
-				nominalTimeTrajectoriesStock_, nominalStateTrajectoriesStock_, nominalInputTrajectoriesStock_);
-	}
+	scalar_t learningRateStar = 1.0;  // resetting learningRateStar
+	size_t iteration = 0;
+	while (iteration<options_.maxIteration_ && learningRateStar>0)  {
+
+		// do a rollout if nominalRolloutIsUpdated_ is fale.
+		if (nominalRolloutIsUpdated_==false)  {
+			rollout(initState_, nominalControllersStock_,
+					nominalTimeTrajectoriesStock_, nominalStateTrajectoriesStock_, nominalInputTrajectoriesStock_);
+			rolloutCost(nominalTimeTrajectoriesStock_, nominalStateTrajectoriesStock_, nominalInputTrajectoriesStock_,
+					nominalTotalCost_);
+		}
+
+		// linearizing the dynamics and quadratizing the cost funtion along nominal trajectories
+		approximateOptimalControlProblem();
+
+		// solve Riccati equations
+		SolveSequentialRiccatiEquations(1.0 /*nominal learningRate*/);
+
+		// calculate controller
+		nominalRolloutIsUpdated_ = false;
+		learningRateStar = 1.0;  // resetting learningRateStar
+		calculatecontroller(learningRateStar);
+
+		iteration++;
+
+	}  // end of j loop
 
 	// linearizing the dynamics and quadratizing the cost funtion along nominal trajectories
 	approximateOptimalControlProblem();
-
+	// prevents the changes in the nominal trajectories and just update the gains
+	learningRateStar = 0.0;
 	// solve Riccati equations
-	SolveSequentialRiccatiEquations();
-
+	SolveSequentialRiccatiEquations(learningRateStar);
 	// calculate controller
-	calculatecontroller(1.0, nominalControllersStock_);
+	calculatecontroller(learningRateStar);
 
-//	// transforme the local value funtion to the global representation
-//	transformeLocalValueFuntion2Global();
+	transformeLocalValueFuntion2Global();
+
 }
 

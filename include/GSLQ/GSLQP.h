@@ -33,9 +33,9 @@ public:
 	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
+	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
 	typedef typename DIMENSIONS::eigen_scalar_t       eigen_scalar_t;
 	typedef typename DIMENSIONS::eigen_scalar_array_t eigen_scalar_array_t;
-	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
 	typedef typename DIMENSIONS::state_vector_t 	  state_vector_t;
 	typedef typename DIMENSIONS::state_vector_array_t state_vector_array_t;
 	typedef typename DIMENSIONS::control_vector_t 		control_vector_t;
@@ -48,20 +48,26 @@ public:
 	typedef typename DIMENSIONS::control_matrix_array_t control_matrix_array_t;
 	typedef typename DIMENSIONS::control_gain_matrix_t 		 control_gain_matrix_t;
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
+	struct Options {
+		Options() : maxIteration_(10), minLearningRate_(0.1) {}
+		size_t maxIteration_;
+		scalar_t minLearningRate_;
+	};
 
 
 	GSLQP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > >& subsystemDynamicsPtr,
 			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > >& subsystemDerivativesPtr,
 			const std::vector<std::shared_ptr<CostFunctionBase<STATE_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
-			const std::vector<controller_t>& nominalControllersStock,
-			const std::vector<size_t>& systemStockIndex)
+			const std::vector<controller_t>& initialControllersStock,
+			const std::vector<size_t>& systemStockIndex,
+			const Options& options)
 		: subsystemDynamicsPtrStock(NUM_Subsystems),
 		  subsystemDerivativesPtrStock_(NUM_Subsystems),
 		  subsystemCostFunctionsPtrStock_(NUM_Subsystems),
 //		  stateOperatingPointsStock_(NUM_Subsystems),
 //		  inputOperatingPointsStock_(NUM_Subsystems),
 		  subsystemSimulatorsStockPtr_(NUM_Subsystems),
-		  nominalControllersStock_(nominalControllersStock),
+		  nominalControllersStock_(initialControllersStock),
 		  nominalTimeTrajectoriesStock_(NUM_Subsystems),
 		  nominalStateTrajectoriesStock_(NUM_Subsystems),
 		  nominalInputTrajectoriesStock_(NUM_Subsystems),
@@ -79,7 +85,7 @@ public:
 		  SmTrajectoryStock_(NUM_Subsystems),
 		  switchingTimes_(NUM_Subsystems+1),
 		  nominalRolloutIsUpdated_(false),
-		  maxIteration_(10)
+		  options_(options)
 	{
 
 		if (subsystemDynamicsPtr.size() != subsystemDerivativesPtr.size())
@@ -92,8 +98,8 @@ public:
 //			throw std::runtime_error("Number of input operating points is not equal to the number of subsystems.");
 		if (subsystemDynamicsPtr.size()-1 != *std::max_element(systemStockIndex.begin(), systemStockIndex.end()))
 			throw std::runtime_error("systemStockIndex points to non-existing subsystem");
-		if (nominalControllersStock.size() != NUM_Subsystems)
-			throw std::runtime_error("nominalControllersStock has less controllers then the number of subsystems");
+		if (initialControllersStock.size() != NUM_Subsystems)
+			throw std::runtime_error("initialControllersStock has less controllers then the number of subsystems");
 		if (systemStockIndex.size() != NUM_Subsystems)
 			throw std::runtime_error("systemStockIndex has less elements then the number of subsystems");
 
@@ -123,18 +129,24 @@ public:
 			const std::vector<control_vector_array_t>& controlTrajectoriesStock,
 			scalar_t& totalCost);
 
+	void getController(std::vector<controller_t>& controllersStock) { controllersStock = nominalControllersStock_;}
+
+	void getValueFuntion(const scalar_t& time, const state_vector_t& state, scalar_t& valueFuntion);
+
 	void run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes);
 
 
 protected:
-	void SolveSequentialRiccatiEquations();
+	void SolveSequentialRiccatiEquations(const scalar_t& learningRate);
 
 	void approximateOptimalControlProblem();
 
-	void calculatecontroller(scalar_t& learningRate, std::vector<controller_t>& controllersStock);
+	void calculatecontroller(scalar_t& learningRate);
 
 	void lineSearch(const std::vector<controller_t>& controllersStock, const std::vector<control_vector_array_t>& deltaUffStock,
-			scalar_t& learningRate, scalar_t& totalCost);
+			scalar_t& learningRateStar);
+
+	void transformeLocalValueFuntion2Global();
 
 private:
 	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > > subsystemDynamicsPtrStock;
@@ -146,6 +158,7 @@ private:
 
 	std::vector<std::shared_ptr<ODE45<STATE_DIM> > > subsystemSimulatorsStockPtr_;
 
+	scalar_t nominalTotalCost_;
 	std::vector<controller_t> nominalControllersStock_;
 	std::vector<scalar_array_t> nominalTimeTrajectoriesStock_;
 	std::vector<state_vector_array_t> nominalStateTrajectoriesStock_;
@@ -174,7 +187,7 @@ private:
 
 	bool nominalRolloutIsUpdated_;
 
-	size_t maxIteration_;
+	Options options_;
 };
 
 #include "implementation/GSLQP.h"

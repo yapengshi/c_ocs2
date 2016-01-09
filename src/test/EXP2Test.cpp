@@ -18,7 +18,6 @@
 
 int main (int argc, char* argv[])
 {
-
 	// subsystem dynamics
 	std::vector<std::shared_ptr<ControlledSystemBase<2,1> > > subsystemDynamicsPtr {std::make_shared<EXP2_Sys1>(), std::make_shared<EXP2_Sys2>()};
 
@@ -46,7 +45,6 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	// GLQP
 	GLQP<2,1,2> glqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, stateOperatingPoints, inputOperatingPoints, systemStockIndex);
-
 
 	glqp.run(switchingTimes);
 
@@ -101,43 +99,48 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	/******************************************************************************************************/
-	std::cout << "Switching times are: [" << switchingTimes[0] << ", " << switchingTimes[1] << ", " << switchingTimes[2] << "]\n";
+	std::cout << std::endl;
+
+	std::cout << "Switching times are: [" << switchingTimes[0] << ", ";
+	for (size_t i=1; i<switchingTimes.size()-1; i++)  std::cout << switchingTimes[i] << ", ";
+	std::cout << switchingTimes[2] << "]\n";
+
 	std::cout << "The total cost: " << totalCost << std::endl;
 	std::cout << "The total cost in the test rollout: " << rolloutCost << std::endl;
 
-//	GLQP<2,1,2>::eigen_scalar_array_t timeEigenTrajectory;
-//	GLQP<2,1,2>::state_vector_array_t stateTrajectory;
-//	GLQP<2,1,2>::control_vector_array_t inputTrajectory;
-//
-//	for (size_t i=0; i<2; i++)  {
-//
-//		for (size_t k=0; k<timeTrajectoriesStock[i].size(); k++)  {
-//
-//			timeEigenTrajectory.push_back((Eigen::MatrixXd(1,1) << timeTrajectoriesStock[i][k]).finished());
-//			stateTrajectory.push_back(stateTrajectoriesStock[i][k]);
-//			inputTrajectory.push_back(controlTrajectoriesStock[i][k]);
-//		}
-//	}
-//
-//	std::string resultDir = "/home/farbod/Programs/ct_ws/src/c_ocs2/cereal/test/exp2_test";
-//	std::string stateFile = resultDir + "/exp2State.xml";
-//	std::string timeFile = resultDir + "/exp2Time.xml";
-//	std::string inputFile = resultDir + "/exp2Input.xml";
-//
-//
-//	{ // we need these brackets to make sure the archive goes out of scope and flushes
-//		std::ofstream xmlState(stateFile);
-//		cereal::XMLOutputArchive archive_state_xml(xmlState);
-//		archive_state_xml(CEREAL_NVP(stateTrajectory));
-//
-//		std::ofstream xmlTime(timeFile);
-//		cereal::XMLOutputArchive archive_time_xml(xmlTime);
-//		archive_time_xml(CEREAL_NVP(timeEigenTrajectory));
-//
-//		std::ofstream xmlInput(inputFile);
-//		cereal::XMLOutputArchive archive_input_xml(xmlInput);
-//		archive_input_xml(CEREAL_NVP(inputTrajectory));
-//	}
+	GSLQP<2,1,2>::eigen_scalar_array_t timeEigenTrajectory;
+	GSLQP<2,1,2>::state_vector_array_t stateTrajectory;
+	GSLQP<2,1,2>::control_vector_array_t inputTrajectory;
+
+	for (size_t i=0; i<2; i++)  {
+
+		for (size_t k=0; k<timeTrajectoriesStock[i].size(); k++)  {
+
+			timeEigenTrajectory.push_back((Eigen::MatrixXd(1,1) << timeTrajectoriesStock[i][k]).finished());
+			stateTrajectory.push_back(stateTrajectoriesStock[i][k]);
+			inputTrajectory.push_back(controlTrajectoriesStock[i][k]);
+		}
+	}
+
+	std::string resultDir = "/home/farbod/Programs/ct_ws/src/c_ocs2/cereal/test/exp2_test";
+	std::string stateFile = resultDir + "/exp2State.xml";
+	std::string timeFile = resultDir + "/exp2Time.xml";
+	std::string inputFile = resultDir + "/exp2Input.xml";
+
+
+	{ // we need these brackets to make sure the archive goes out of scope and flushes
+		std::ofstream xmlState(stateFile);
+		cereal::XMLOutputArchive archive_state_xml(xmlState);
+		archive_state_xml(CEREAL_NVP(stateTrajectory));
+
+		std::ofstream xmlTime(timeFile);
+		cereal::XMLOutputArchive archive_time_xml(xmlTime);
+		archive_time_xml(CEREAL_NVP(timeEigenTrajectory));
+
+		std::ofstream xmlInput(inputFile);
+		cereal::XMLOutputArchive archive_input_xml(xmlInput);
+		archive_input_xml(CEREAL_NVP(inputTrajectory));
+	}
 
 }
 

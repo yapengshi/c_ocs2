@@ -156,6 +156,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::calculatecontroller(scalar_t& 
 	LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> > nominalInputFunc;
 
 	std::vector<control_vector_array_t> deltaUffStock(NUM_Subsystems);
+	std::vector<control_vector_t> maxDeltaUffStock(NUM_Subsystems);
+
 	for (int i=0; i<NUM_Subsystems; i++) {
 
 		AmFunc.reset();
@@ -226,7 +228,19 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::calculatecontroller(scalar_t& 
 			controllersStock[i].uff_[k] = nominalInput - controllersStock[i].k_[k]*nominalState;
 			deltaUffStock[i][k] = -Rm.inverse() * (Rv + Bm.transpose()*SvTrajectoryStock_[i][k]);
 		}  // end of k loop
+
+		// display
+		if (options_.dispay_)  maxDeltaUffStock[i] = *std::max_element(deltaUffStock[i].begin(), deltaUffStock[i].end(),
+				[] (const control_vector_t& u1, const control_vector_t& u2){ return u1.norm() < u2.norm(); });
+
 	}  // end of i loop
+
+	// display
+	if (options_.dispay_)  {
+		control_vector_t maxDeltaUff = *std::max_element(maxDeltaUffStock.begin(), maxDeltaUffStock.end(),
+				[] (const control_vector_t& u1, const control_vector_t& u2){ return u1.norm() < u2.norm(); });
+		std::cout << "max delta_uff norm: " << maxDeltaUff.norm() << std::endl;
+	}
 
 	// finding the optimal learningRate
 	lineSearch(controllersStock, deltaUffStock, learningRateStar);
@@ -252,52 +266,49 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::lineSearch(const std::vector<c
 
 	scalar_t learningRate = learningRateStar;
 
-	scalar_t previousTotalCost = nominalTotalCost_;
-	scalar_t currentTotalCost;
-	std::vector<controller_t> currentControllersStock(NUM_Subsystems);
-	std::vector<scalar_array_t> currentTimeTrajectoriesStock(NUM_Subsystems);
-	std::vector<state_vector_array_t> currentStateTrajectoriesStock(NUM_Subsystems);
-	std::vector<control_vector_array_t> currentInputTrajectoriesStock(NUM_Subsystems);
+	scalar_t lsTotalCost;
+	std::vector<controller_t> lsControllersStock(NUM_Subsystems);
+	std::vector<scalar_array_t> lsTimeTrajectoriesStock(NUM_Subsystems);
+	std::vector<state_vector_array_t> lsStateTrajectoriesStock(NUM_Subsystems);
+	std::vector<control_vector_array_t> lsInputTrajectoriesStock(NUM_Subsystems);
 
 	while (learningRate > options_.minLearningRate_)  {
 		// modifying uff by the local increamant
-		currentControllersStock = controllersStock;
+		lsControllersStock = controllersStock;
 		for (int i=0; i<NUM_Subsystems; i++)
 			for (int k=0; k<SsTimeTrajectoryStock_[i].size(); k++)
-				currentControllersStock[i].uff_[k] += learningRate*deltaUffStock[i][k];
+				lsControllersStock[i].uff_[k] += learningRate*deltaUffStock[i][k];
 
 		// rollout
-		rollout(initState_, currentControllersStock,
-				currentTimeTrajectoriesStock, currentStateTrajectoriesStock, currentInputTrajectoriesStock);
-
+		rollout(initState_, lsControllersStock, lsTimeTrajectoriesStock, lsStateTrajectoriesStock, lsInputTrajectoriesStock);
 		// calculate rollout cost
-		rolloutCost(currentTimeTrajectoriesStock, currentStateTrajectoriesStock, currentInputTrajectoriesStock,
-				currentTotalCost);
+		rolloutCost(lsTimeTrajectoriesStock, lsStateTrajectoriesStock, lsInputTrajectoriesStock, lsTotalCost);
 
 		if (options_.dispay_)  std::cout << "\t learningRate " << learningRate << " cost: " << nominalTotalCost_ << std::endl;
 
 		// break condition 1: it exits with largest learningRate that its cost is smaller than nominal cost.
-		if (currentTotalCost < previousTotalCost*(1-1e-3*learningRate))  {
+		if (lsTotalCost < nominalTotalCost_*(1-1e-3*learningRate))  {
 			nominalRolloutIsUpdated_ = true;
-			nominalTotalCost_ = currentTotalCost;
-			nominalControllersStock_ = currentControllersStock;
-			nominalTimeTrajectoriesStock_  = currentTimeTrajectoriesStock;
-			nominalStateTrajectoriesStock_ = currentStateTrajectoriesStock;
-			nominalInputTrajectoriesStock_ = currentInputTrajectoriesStock;
+			nominalTotalCost_ = lsTotalCost;
+			nominalControllersStock_ = lsControllersStock;
+			nominalTimeTrajectoriesStock_  = lsTimeTrajectoriesStock;
+			nominalStateTrajectoriesStock_ = lsStateTrajectoriesStock;
+			nominalInputTrajectoriesStock_ = lsInputTrajectoriesStock;
 			learningRateStar = learningRate;
 			break;
 		} else {
 			learningRate = 0.5*learningRate;
-			previousTotalCost = currentTotalCost;
 		}
 
 	}  // end of while
 
-	if (options_.dispay_)  std::cout << "The chosen learningRate is: " << learningRateStar << std::endl;
 	if (learningRate <= options_.minLearningRate_) {
 		nominalRolloutIsUpdated_ = true;  // since the open loop input will not change, the nominal trajectories will be constatnt (no disturbance effect has been assumed)
 		learningRateStar = 0.0;
 	}
+
+	// display
+	if (options_.dispay_)  std::cout << "The chosen learningRate is: " << learningRateStar << std::endl;
 }
 
 
@@ -369,7 +380,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveSequentialRiccatiEquation
 
 		// set data for Riccati equations
 		auto riccatiEquationsPtr = std::make_shared<RiccatiEquations>();
-		riccatiEquationsPtr->setData(learningRate, switchingTimes_[i], switchingTimes_[i+1],
+		riccatiEquationsPtr->setData(learningRate,
+				i, switchingTimes_[i], switchingTimes_[i+1],
 				&nominalTimeTrajectoriesStock_[i],
 				&AmTrajectoryStock_[i], &BmTrajectoryStock_[i],
 				&qTrajectoryStock_[i], &QvTrajectoryStock_[i], &QmTrajectoryStock_[i],
@@ -445,6 +457,9 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& init
 		iteration++;
 
 	}  // end of j loop
+
+	// display
+	if (options_.dispay_)  std::cout << "\n#### Final iteration" << std::endl;
 
 	// linearizing the dynamics and quadratizing the cost funtion along nominal trajectories
 	approximateOptimalControlProblem();

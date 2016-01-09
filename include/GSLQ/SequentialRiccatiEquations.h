@@ -56,7 +56,8 @@ public:
 		s  = allSs.template tail<1>();
 	}
 
-	void setData(const scalar_t& learningRate, const scalar_t& timeStart, const scalar_t& timeFinal,
+	void setData(const scalar_t& learningRate,
+			const size_t& activeSubsystem, const scalar_t& switchingTimeStart, const scalar_t& switchingTimeFinal,
 			scalar_array_t* const timeStampPtr,
 			state_matrix_array_t* const AmPtr, control_gain_matrix_array_t* const BmPtr,
 			eigen_scalar_array_t* const qPtr, state_vector_array_t* const QvPtr, state_matrix_array_t* const QmPtr,
@@ -64,8 +65,10 @@ public:
 			control_feedback_array_t* const PmPtr)  {
 
 		alpha_ = learningRate;
-		timeStart_ = timeStart;
-		timeFinal_ = timeFinal;
+
+		activeSubsystem_ = activeSubsystem;
+		switchingTimeStart_ = switchingTimeStart;
+		switchingTimeFinal_ = switchingTimeFinal;
 
 		AmFunc_.setTimeStamp(timeStampPtr);
 		AmFunc_.setData(AmPtr);
@@ -86,14 +89,17 @@ public:
 		PmFunc_.setData(PmPtr);
 	}
 
-	void computeDerivative(const scalar_t& t,
-			const Eigen::Matrix<double,S_DIM_,1>& state,
-			Eigen::Matrix<double,S_DIM_,1>& derivative) {
+	void computeDerivative(const scalar_t& z,
+			const Eigen::Matrix<double,S_DIM_,1>& allSs,
+			Eigen::Matrix<double,S_DIM_,1>& derivatives) {
+
+		// denormalized time
+		scalar_t t = switchingTimeFinal_ - (switchingTimeFinal_-switchingTimeStart_)*(z-activeSubsystem_);
 
 		state_matrix_t Sm;
 		state_vector_t Sv;
 		eigen_scalar_t s;
-		convert2Matrix(state, Sm, Sv, s);
+		convert2Matrix(allSs, Sm, Sv, s);
 
 		state_matrix_t Am;
 		AmFunc_.interpolate(t, Am);
@@ -119,22 +125,24 @@ public:
 
 		// Riccati equations for the original system
 		dSmdt = Qm + Am.transpose()*Sm + Sm.transpose()*Am - (Pm+Bm.transpose()*Sm).transpose()*Rm.inverse()*(Pm+Bm.transpose()*Sm);
-		dSmdt = (dSmdt+dSmdt.transpose()).eval()*0.5;
+		dSmdt = 0.5*(dSmdt+dSmdt.transpose()).eval();
 		dSvdt = Qv + Am.transpose()*Sv - (Pm+Bm.transpose()*Sm).transpose()*Rm.inverse()*(Rv+Bm.transpose()*Sv);
 		dsdt  = q - 0.5*alpha_*(2.0-alpha_)*(Rv+Bm.transpose()*Sv).transpose()*Rm.inverse()*(Rv+Bm.transpose()*Sv);
 		// Riccati equations for the equivalent system
-		dSmdz = (timeFinal_-timeStart_)*dSmdt;
-		dSvdz = (timeFinal_-timeStart_)*dSvdt;
-		dsdz  = (timeFinal_-timeStart_)*dsdt;
+		dSmdz = (switchingTimeFinal_-switchingTimeStart_)*dSmdt;
+		dSvdz = (switchingTimeFinal_-switchingTimeStart_)*dSvdt;
+		dsdz  = (switchingTimeFinal_-switchingTimeStart_)*dsdt;
 
-		convert2Vector(dSmdz, dSvdz, dsdz, derivative);
+		convert2Vector(dSmdz, dSvdz, dsdz, derivatives);
 	}
 
 
 private:
 	scalar_t alpha_;
-	scalar_t timeStart_;
-	scalar_t timeFinal_;
+
+	size_t activeSubsystem_;
+	scalar_t switchingTimeStart_;
+	scalar_t switchingTimeFinal_;
 
 	LinearInterpolation<state_matrix_t,Eigen::aligned_allocator<state_matrix_t> > AmFunc_;
 	LinearInterpolation<control_gain_matrix_t,Eigen::aligned_allocator<control_gain_matrix_t> > BmFunc_;

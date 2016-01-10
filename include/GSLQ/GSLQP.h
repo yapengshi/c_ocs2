@@ -58,15 +58,16 @@ public:
 	typedef typename RolloutSensitivityEquations_t::nabla_state_matrix_array_t nabla_state_matrix_array_t;
 	typedef typename RolloutSensitivityEquations_t::nabla_input_matrix_t       nabla_input_matrix_t;
 	typedef typename RolloutSensitivityEquations_t::nabla_input_matrix_array_t nabla_input_matrix_array_t;
+	typedef typename RolloutSensitivityEquations_t::nabla_scalar_rowvector_t       nabla_scalar_rowvector_t;
+	typedef typename RolloutSensitivityEquations_t::nabla_scalar_rowvector_array_t nabla_scalar_rowvector_array_t;
 
-	typedef Eigen::Matrix<double,1,NUM_Subsystems-1>                                                   nabla_scalar_rowvector_t;
-	typedef std::vector<nabla_scalar_rowvector_t, Eigen::aligned_allocator<nabla_scalar_rowvector_t> > nabla_scalar_rowvector_array_t;
 	typedef std::array<state_matrix_t, NUM_Subsystems-1> nabla_Sm_t;
 	typedef std::array<state_vector_t, NUM_Subsystems-1> nabla_Sv_t;
 	typedef std::array<eigen_scalar_t, NUM_Subsystems-1> nabla_s_t;
 	typedef std::vector<nabla_Sm_t> nabla_Sm_array_t;
 	typedef std::vector<nabla_Sv_t> nabla_Sv_array_t;
     typedef std::vector<nabla_s_t> nabla_s_array_t;
+
     struct Options {
     	Options() : maxIteration_(10), minLearningRate_(0.1), dispay_(false) {}
     	size_t maxIteration_;

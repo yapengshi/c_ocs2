@@ -39,6 +39,8 @@ public:
 	typedef std::vector<nabla_state_matrix_t, Eigen::aligned_allocator<nabla_state_matrix_t> > nabla_state_matrix_array_t;
 	typedef Eigen::Matrix<double,INPUT_DIM,NUM_Subsystems-1> nabla_input_matrix_t;
 	typedef std::vector<nabla_input_matrix_t, Eigen::aligned_allocator<nabla_input_matrix_t> > nabla_input_matrix_array_t;
+	typedef Eigen::Matrix<double,1,NUM_Subsystems-1>                                                   nabla_scalar_rowvector_t;
+	typedef std::vector<nabla_scalar_rowvector_t, Eigen::aligned_allocator<nabla_scalar_rowvector_t> > nabla_scalar_rowvector_array_t;
 
 	RolloutSensitivityEquations()  {}
 	~RolloutSensitivityEquations() {}

@@ -462,9 +462,9 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveFullSequentialRiccatiEqua
 /******************************************************************************************************/
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::RolloutSensitivity2SwitchingTime()  {
+void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::rolloutSensitivity2SwitchingTime()  {
 
-	auto rolloutSensitivityEquationsPtr = std::make_shared<RolloutSensitivityEquations>();
+	auto rolloutSensitivityEquationsPtr = std::make_shared<RolloutSensitivityEquations_t>();
 
 	nabla_state_matrix_t nabla_XmInit = nabla_state_matrix_t::Zero();
 
@@ -475,7 +475,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::RolloutSensitivity2SwitchingTi
 				&AmTrajectoryStock_[i], &BmTrajectoryStock_[i]);
 
 		scalar_array_t normalizedSensitivityTimeTrajectory;
-		std::vector<RolloutSensitivityEquations::nabla_state_vector_t, Eigen::aligned_allocator<RolloutSensitivityEquations::nabla_state_vector_t> > sensitivityStateTrajectory;
+		std::vector<typename RolloutSensitivityEquations_t::nabla_state_vector_t,
+			Eigen::aligned_allocator<typename RolloutSensitivityEquations_t::nabla_state_vector_t> > sensitivityStateTrajectory;
 
 		// integrating
 		ODE45<(NUM_Subsystems-1)*STATE_DIM> ode45(rolloutSensitivityEquationsPtr);
@@ -489,7 +490,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::RolloutSensitivity2SwitchingTi
 		for (int k=0; k<N; k++) {
 
 			nominalSensitivityTimeTrajectoriesStock_[i][k] = switchingTimes_[i] + (switchingTimes_[i+1]-switchingTimes_[i])*(normalizedSensitivityTimeTrajectory[k]-i);
-			RolloutSensitivityEquations::convert2Matrix(sensitivityStateTrajectory[k], nominalSensitivityStateTrajectoriesStock_[i][k]);
+			RolloutSensitivityEquations_t::convert2Matrix(sensitivityStateTrajectory[k], nominalSensitivityStateTrajectoriesStock_[i][k]);
 			rolloutSensitivityEquationsPtr->computeInputSensitivity(nominalSensitivityTimeTrajectoriesStock_[i][k], nominalSensitivityStateTrajectoriesStock_[i][k],
 					nominalSensitivityInputTrajectoriesStock_[i][k]);
 		}
@@ -551,15 +552,16 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& init
 
 	// linearizing the dynamics and quadratizing the cost funtion along nominal trajectories
 	approximateOptimalControlProblem();
-	// prevents the changes in the nominal trajectories and just update the gains
-	learningRateStar = 0.0;
+	// calculate nominal rollout sensitivity to switching times
+	rolloutSensitivity2SwitchingTime();
+
 	// solve Riccati equations
+	learningRateStar = 0.0;  // prevents the changes in the nominal trajectories and just update the gains
 	SolveSequentialRiccatiEquations(learningRateStar);
 	// calculate controller
 	calculatecontroller(learningRateStar);
 
-	RolloutSensitivity2SwitchingTime();
-
+	// transforme from local value funtion representation to global representation
 	transformeLocalValueFuntion2Global();
 
 }

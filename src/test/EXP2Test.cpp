@@ -122,11 +122,28 @@ int main (int argc, char* argv[])
 		}
 	}
 
+
+	// Sensitivity2SwitchingTime
+	std::vector<GSLQP<2,1,2>::scalar_array_t> sensitivityTimeTrajectoriesStock;
+	std::vector<GSLQP<2,1,2>::nabla_state_matrix_array_t> sensitivityStateTrajectoriesStock;
+	std::vector<GSLQP<2,1,2>::nabla_input_matrix_array_t> sensitivityInputTrajectoriesStock;
+	gslqp.getRolloutSensitivity2SwitchingTime(sensitivityTimeTrajectoriesStock, sensitivityStateTrajectoriesStock, sensitivityInputTrajectoriesStock);
+
+	GSLQP<2,1,2>::eigen_scalar_array_t sensitivityTimeTrajectory;
+	GSLQP<2,1,2>::nabla_state_matrix_array_t sensitivityStateTrajectory;
+	for (size_t i=0; i<2; i++)  {
+		for (size_t k=0; k<sensitivityTimeTrajectoriesStock[i].size(); k++)  {
+			sensitivityTimeTrajectory.push_back((Eigen::MatrixXd(1,1) << sensitivityTimeTrajectoriesStock[i][k]).finished());
+			sensitivityStateTrajectory.push_back(sensitivityStateTrajectoriesStock[i][k]);
+		}
+	}
+
 	std::string resultDir = "/home/farbod/Programs/ct_ws/src/c_ocs2/cereal/test/exp2_test";
 	std::string stateFile = resultDir + "/exp2State.xml";
 	std::string timeFile = resultDir + "/exp2Time.xml";
 	std::string inputFile = resultDir + "/exp2Input.xml";
-
+	std::string stateSensitivityFile = resultDir + "/exp2StateSensitivity.xml";
+	std::string timeSensitivityFile = resultDir + "/exp2TimeSensitivity.xml";
 
 	{ // we need these brackets to make sure the archive goes out of scope and flushes
 		std::ofstream xmlState(stateFile);
@@ -140,6 +157,14 @@ int main (int argc, char* argv[])
 		std::ofstream xmlInput(inputFile);
 		cereal::XMLOutputArchive archive_input_xml(xmlInput);
 		archive_input_xml(CEREAL_NVP(inputTrajectory));
+
+		std::ofstream xmlStateSensitivity(stateSensitivityFile);
+		cereal::XMLOutputArchive archive_stateSensitivity_xml(xmlStateSensitivity);
+		archive_stateSensitivity_xml(CEREAL_NVP(sensitivityStateTrajectory));
+
+		std::ofstream xmlTimeSensitivity(timeSensitivityFile);
+		cereal::XMLOutputArchive archive_timeSensitivity_xml(xmlTimeSensitivity);
+		archive_timeSensitivity_xml(CEREAL_NVP(sensitivityTimeTrajectory));
 	}
 
 }

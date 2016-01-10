@@ -67,7 +67,7 @@ public:
 			subsystemDynamicsPtr->computeDerivative(t, x, u, dxdt); };
 
 		KmFunc_.setTimeStamp(&(controllerPtr->time_));
-		KmFunc_.setData(&(controllerPtr->K_));
+		KmFunc_.setData(&(controllerPtr->k_));
 
 		stateFunc_.setTimeStamp(timeTrajectoryPtr);
 		stateFunc_.setData(stateTrajectoryPtr);

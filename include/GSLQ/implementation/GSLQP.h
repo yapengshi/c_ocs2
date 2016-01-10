@@ -431,7 +431,9 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveFullSequentialRiccatiEqua
 				&nominalTimeTrajectoriesStock_[i],
 				&AmTrajectoryStock_[i], &BmTrajectoryStock_[i],
 				&qTrajectoryStock_[i], &QvTrajectoryStock_[i], &QmTrajectoryStock_[i],
-				&RvTrajectoryStock_[i], &RmTrajectoryStock_[i], &PmTrajectoryStock_[i]);
+				&RvTrajectoryStock_[i], &RmTrajectoryStock_[i], &PmTrajectoryStock_[i],
+				&sensitivityTimeTrajectoryStock_[i], &nablaqTrajectoryStock_[i],
+				&nablaQvTrajectoryStock_[i], &nablaRvTrajectoryStock_[i]);
 
 		// integrating the Riccati equations
 		ODE45<FullRiccatiEquations::S_DIM_> ode45(riccatiEquationsPtr);
@@ -484,20 +486,65 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::rolloutSensitivity2SwitchingTi
 
 		// denormalizing time and constructing SensitivityStateTrajectory and computing control trajectory sensitivity for subsystem i
 		int N = sensitivityStateTrajectory.size();
-		nominalSensitivityTimeTrajectoriesStock_[i].resize(N);
-		nominalSensitivityStateTrajectoriesStock_[i].resize(N);
-		nominalSensitivityInputTrajectoriesStock_[i].resize(N);
+		sensitivityTimeTrajectoryStock_[i].resize(N);
+		nablaStateTrajectoryStock_[i].resize(N);
+		nablaInputTrajectoryStock_[i].resize(N);
 		for (int k=0; k<N; k++) {
 
-			nominalSensitivityTimeTrajectoriesStock_[i][k] = switchingTimes_[i] + (switchingTimes_[i+1]-switchingTimes_[i])*(normalizedSensitivityTimeTrajectory[k]-i);
-			RolloutSensitivityEquations_t::convert2Matrix(sensitivityStateTrajectory[k], nominalSensitivityStateTrajectoriesStock_[i][k]);
-			rolloutSensitivityEquationsPtr->computeInputSensitivity(nominalSensitivityTimeTrajectoriesStock_[i][k], nominalSensitivityStateTrajectoriesStock_[i][k],
-					nominalSensitivityInputTrajectoriesStock_[i][k]);
+			sensitivityTimeTrajectoryStock_[i][k] = switchingTimes_[i] + (switchingTimes_[i+1]-switchingTimes_[i])*(normalizedSensitivityTimeTrajectory[k]-i);
+			RolloutSensitivityEquations_t::convert2Matrix(sensitivityStateTrajectory[k], nablaStateTrajectoryStock_[i][k]);
+			rolloutSensitivityEquationsPtr->computeInputSensitivity(sensitivityTimeTrajectoryStock_[i][k], nablaStateTrajectoryStock_[i][k],
+					nablaInputTrajectoryStock_[i][k]);
 		}
 
 		// reset the initial state
 		nabla_XmInit = sensitivityStateTrajectory.back();
 	}
+
+	// calculate nabla_q, nabla_Qv, nabla_Rv
+	LinearInterpolation<state_vector_t,Eigen::aligned_allocator<state_vector_t> > QvFunc;
+	LinearInterpolation<state_matrix_t,Eigen::aligned_allocator<state_matrix_t> > QmFunc;
+	LinearInterpolation<control_vector_t,Eigen::aligned_allocator<control_vector_t> > RvFunc;
+	LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> > RmFunc;
+	LinearInterpolation<control_feedback_t,Eigen::aligned_allocator<control_feedback_t> > PmFunc;
+
+	for (int i=0; i<NUM_Subsystems; i++) {
+
+		QvFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
+		QvFunc.setData(&QvTrajectoryStock_[i]);
+		QmFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
+		QmFunc.setData(&QmTrajectoryStock_[i]);
+		RvFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
+		RvFunc.setData(&RvTrajectoryStock_[i]);
+		RmFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
+		RmFunc.setData(&RmTrajectoryStock_[i]);
+		PmFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
+		PmFunc.setData(&PmTrajectoryStock_[i]);
+
+		int N = sensitivityTimeTrajectoryStock_[i].size();
+		nablaqTrajectoryStock_[i].resize(N);
+		nablaQvTrajectoryStock_[i].resize(N);
+		nablaRvTrajectoryStock_[i].resize(N);
+
+		for (int k=0; k<N; k++) {
+
+			state_vector_t Qv;
+			QvFunc.interpolate(sensitivityTimeTrajectoryStock_[i][k], Qv);
+			state_matrix_t Qm;
+			QmFunc.interpolate(sensitivityTimeTrajectoryStock_[i][k], Qm);
+			control_vector_t Rv;
+			RvFunc.interpolate(sensitivityTimeTrajectoryStock_[i][k], Rv);
+			control_matrix_t Rm;
+			RmFunc.interpolate(sensitivityTimeTrajectoryStock_[i][k], Rm);
+			control_feedback_t Pm;
+			PmFunc.interpolate(sensitivityTimeTrajectoryStock_[i][k], Pm);
+
+			nablaqTrajectoryStock_[i][k]  = Qv.transpose()*nablaStateTrajectoryStock_[i][k] + Rv.transpose()*nablaInputTrajectoryStock_[i][k];
+			nablaQvTrajectoryStock_[i][k] = Qm*nablaStateTrajectoryStock_[i][k] + Pm.transpose()*nablaInputTrajectoryStock_[i][k];
+			nablaRvTrajectoryStock_[i][k] = Pm*nablaStateTrajectoryStock_[i][k] + Rm*nablaInputTrajectoryStock_[i][k];
+		}
+	}
+
 }
 
 

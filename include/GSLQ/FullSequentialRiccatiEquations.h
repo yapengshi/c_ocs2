@@ -40,6 +40,13 @@ public:
 	typedef typename DIMENSIONS::control_gain_matrix_t 		 control_gain_matrix_t;
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
 
+	typedef Eigen::Matrix<double,STATE_DIM,NUM_Subsystems-1> nabla_state_matrix_t;
+	typedef Eigen::Matrix<double,INPUT_DIM,NUM_Subsystems-1> nabla_input_matrix_t;
+	typedef Eigen::Matrix<double,1,NUM_Subsystems-1> 		 nabla_scalar_rowvector_t;
+	typedef std::vector<nabla_state_matrix_t, Eigen::aligned_allocator<nabla_state_matrix_t> > nabla_state_matrix_array_t;
+	typedef std::vector<nabla_input_matrix_t, Eigen::aligned_allocator<nabla_input_matrix_t> > nabla_input_matrix_array_t;
+	typedef std::vector<nabla_scalar_rowvector_t, Eigen::aligned_allocator<nabla_scalar_rowvector_t> > nabla_scalar_rowvector_array_t;
+
 	FullSequentialRiccatiEquations() {}
 	~FullSequentialRiccatiEquations() {}
 
@@ -85,7 +92,9 @@ public:
 			state_matrix_array_t* const AmPtr, control_gain_matrix_array_t* const BmPtr,
 			eigen_scalar_array_t* const qPtr, state_vector_array_t* const QvPtr, state_matrix_array_t* const QmPtr,
 			control_vector_array_t* const RvPtr, control_matrix_array_t* const RmPtr,
-			control_feedback_array_t* const PmPtr)  {
+			control_feedback_array_t* const PmPtr,
+			scalar_array_t* const sensitivityTimeStampPtr, nabla_scalar_rowvector_array_t* const nablaqPtr,
+			nabla_state_matrix_array_t* const nablaQvPtr, nabla_input_matrix_array_t* const nablaRvPtr)  {
 
 		alpha_ = learningRate;
 
@@ -110,6 +119,13 @@ public:
 		RmFunc_.setData(RmPtr);
 		PmFunc_.setTimeStamp(timeStampPtr);
 		PmFunc_.setData(PmPtr);
+
+		nablaqFunc_.setTimeStamp(sensitivityTimeStampPtr);
+		nablaqFunc_.setData(nablaqPtr);
+		nablaQvFunc_.setTimeStamp(sensitivityTimeStampPtr);
+		nablaQvFunc_.setData(nablaQvPtr);
+		nablaRvFunc_.setTimeStamp(sensitivityTimeStampPtr);
+		nablaRvFunc_.setData(nablaRvPtr);
 	}
 
 	void computeDerivative(const scalar_t& z, const all_s_vector_t& allSs, s_vector_t& derivatives) {
@@ -142,6 +158,13 @@ public:
 		RmFunc_.interpolate(t, Rm);
 		control_feedback_t Pm;
 		PmFunc_.interpolate(t, Pm);
+
+		nabla_scalar_rowvector_t nablaq;
+		nablaqFunc_.interpolate(t, nablaq);
+		nabla_state_matrix_t nablaQv;
+		nablaQvFunc_.interpolate(t, nablaQv);
+		nabla_input_matrix_t nablaRv;
+		nablaRvFunc_.interpolate(t, nablaRv);
 
 		state_matrix_t dSmdt, dSmdz;
 		state_vector_t dSvdt, dSvdz;
@@ -190,6 +213,10 @@ private:
 	LinearInterpolation<control_vector_t,Eigen::aligned_allocator<control_vector_t> > RvFunc_;
 	LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> > RmFunc_;
 	LinearInterpolation<control_feedback_t,Eigen::aligned_allocator<control_feedback_t> > PmFunc_;
+
+	LinearInterpolation<nabla_scalar_rowvector_t,Eigen::aligned_allocator<nabla_scalar_rowvector_t> > nablaqFunc_;
+	LinearInterpolation<nabla_state_matrix_t,Eigen::aligned_allocator<nabla_state_matrix_t> > nablaQvFunc_;
+	LinearInterpolation<nabla_input_matrix_t,Eigen::aligned_allocator<nabla_input_matrix_t> > nablaRvFunc_;
 
 };
 

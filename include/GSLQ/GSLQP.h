@@ -57,10 +57,12 @@ public:
 		bool dispay_;
 	};
 	typedef RolloutSensitivityEquations<STATE_DIM, INPUT_DIM, NUM_Subsystems> RolloutSensitivityEquations_t;
-	typedef typename RolloutSensitivityEquations_t::nabla_state_matrix_t nabla_state_matrix_t;
+	typedef typename RolloutSensitivityEquations_t::nabla_state_matrix_t                       nabla_state_matrix_t;
 	typedef std::vector<nabla_state_matrix_t, Eigen::aligned_allocator<nabla_state_matrix_t> > nabla_state_matrix_array_t;
-	typedef typename RolloutSensitivityEquations_t::nabla_input_matrix_t nabla_input_matrix_t;
+	typedef typename RolloutSensitivityEquations_t::nabla_input_matrix_t                       nabla_input_matrix_t;
 	typedef std::vector<nabla_input_matrix_t, Eigen::aligned_allocator<nabla_input_matrix_t> > nabla_input_matrix_array_t;
+	typedef Eigen::Matrix<double,1,NUM_Subsystems-1>                                                   nabla_scalar_rowvector_t;
+	typedef std::vector<nabla_scalar_rowvector_t, Eigen::aligned_allocator<nabla_scalar_rowvector_t> > nabla_scalar_rowvector_array_t;
 
 	GSLQP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > >& subsystemDynamicsPtr,
 			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > >& subsystemDerivativesPtr,
@@ -78,9 +80,12 @@ public:
 		  nominalTimeTrajectoriesStock_(NUM_Subsystems),
 		  nominalStateTrajectoriesStock_(NUM_Subsystems),
 		  nominalInputTrajectoriesStock_(NUM_Subsystems),
-		  nominalSensitivityTimeTrajectoriesStock_(NUM_Subsystems),
-		  nominalSensitivityStateTrajectoriesStock_(NUM_Subsystems),
-		  nominalSensitivityInputTrajectoriesStock_(NUM_Subsystems),
+		  sensitivityTimeTrajectoryStock_(NUM_Subsystems),
+		  nablaStateTrajectoryStock_(NUM_Subsystems),
+		  nablaInputTrajectoryStock_(NUM_Subsystems),
+		  nablaqTrajectoryStock_(NUM_Subsystems),
+		  nablaQvTrajectoryStock_(NUM_Subsystems),
+		  nablaRvTrajectoryStock_(NUM_Subsystems),
 		  AmTrajectoryStock_(NUM_Subsystems),
 		  BmTrajectoryStock_(NUM_Subsystems),
 		  qTrajectoryStock_(NUM_Subsystems),
@@ -142,9 +147,9 @@ public:
 	void getRolloutSensitivity2SwitchingTime(std::vector<scalar_array_t>& sensitivityTimeTrajectoriesStock,
 		std::vector<nabla_state_matrix_array_t>& sensitivityStateTrajectoriesStock,
 		std::vector<nabla_input_matrix_array_t>& sensitivityInputTrajectoriesStock) {
-		sensitivityTimeTrajectoriesStock = nominalSensitivityTimeTrajectoriesStock_;
-		sensitivityStateTrajectoriesStock = nominalSensitivityStateTrajectoriesStock_;
-		sensitivityInputTrajectoriesStock = nominalSensitivityInputTrajectoriesStock_;
+		sensitivityTimeTrajectoriesStock = sensitivityTimeTrajectoryStock_;
+		sensitivityStateTrajectoriesStock = nablaStateTrajectoryStock_;
+		sensitivityInputTrajectoriesStock = nablaInputTrajectoryStock_;
 	}
 
 	void getController(std::vector<controller_t>& controllersStock) { controllersStock = nominalControllersStock_;}
@@ -186,9 +191,12 @@ private:
 	std::vector<state_vector_array_t> nominalStateTrajectoriesStock_;
 	std::vector<control_vector_array_t> nominalInputTrajectoriesStock_;
 
-	std::vector<scalar_array_t> nominalSensitivityTimeTrajectoriesStock_;
-	std::vector<nabla_state_matrix_array_t> nominalSensitivityStateTrajectoriesStock_;
-	std::vector<nabla_input_matrix_array_t> nominalSensitivityInputTrajectoriesStock_;
+	std::vector<scalar_array_t> sensitivityTimeTrajectoryStock_;
+	std::vector<nabla_state_matrix_array_t> nablaStateTrajectoryStock_;
+	std::vector<nabla_input_matrix_array_t> nablaInputTrajectoryStock_;
+	std::vector<nabla_scalar_rowvector_array_t> nablaqTrajectoryStock_;
+	std::vector<nabla_state_matrix_array_t> nablaQvTrajectoryStock_;
+	std::vector<nabla_input_matrix_array_t> nablaRvTrajectoryStock_;
 
 	std::vector<state_matrix_array_t>        AmTrajectoryStock_;
 	std::vector<control_gain_matrix_array_t> BmTrajectoryStock_;

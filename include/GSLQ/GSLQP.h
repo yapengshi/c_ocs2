@@ -33,6 +33,7 @@ class GSLQP
 public:
 	typedef SequentialRiccatiEquations<STATE_DIM, INPUT_DIM, NUM_Subsystems> RiccatiEquations;
 	typedef FullSequentialRiccatiEquations<STATE_DIM, INPUT_DIM, NUM_Subsystems> FullRiccatiEquations;
+
 	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
@@ -51,17 +52,13 @@ public:
 	typedef typename DIMENSIONS::control_matrix_array_t control_matrix_array_t;
 	typedef typename DIMENSIONS::control_gain_matrix_t 		 control_gain_matrix_t;
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
-	struct Options {
-		Options() : maxIteration_(10), minLearningRate_(0.1), dispay_(false) {}
-		size_t maxIteration_;
-		scalar_t minLearningRate_;
-		bool dispay_;
-	};
+
 	typedef RolloutSensitivityEquations<STATE_DIM, INPUT_DIM, NUM_Subsystems> RolloutSensitivityEquations_t;
-	typedef typename RolloutSensitivityEquations_t::nabla_state_matrix_t                       nabla_state_matrix_t;
-	typedef std::vector<nabla_state_matrix_t, Eigen::aligned_allocator<nabla_state_matrix_t> > nabla_state_matrix_array_t;
-	typedef typename RolloutSensitivityEquations_t::nabla_input_matrix_t                       nabla_input_matrix_t;
-	typedef std::vector<nabla_input_matrix_t, Eigen::aligned_allocator<nabla_input_matrix_t> > nabla_input_matrix_array_t;
+	typedef typename RolloutSensitivityEquations_t::nabla_state_matrix_t       nabla_state_matrix_t;
+	typedef typename RolloutSensitivityEquations_t::nabla_state_matrix_array_t nabla_state_matrix_array_t;
+	typedef typename RolloutSensitivityEquations_t::nabla_input_matrix_t       nabla_input_matrix_t;
+	typedef typename RolloutSensitivityEquations_t::nabla_input_matrix_array_t nabla_input_matrix_array_t;
+
 	typedef Eigen::Matrix<double,1,NUM_Subsystems-1>                                                   nabla_scalar_rowvector_t;
 	typedef std::vector<nabla_scalar_rowvector_t, Eigen::aligned_allocator<nabla_scalar_rowvector_t> > nabla_scalar_rowvector_array_t;
 	typedef std::array<state_matrix_t, NUM_Subsystems-1> nabla_Sm_t;
@@ -70,6 +67,12 @@ public:
 	typedef std::vector<nabla_Sm_t> nabla_Sm_array_t;
 	typedef std::vector<nabla_Sv_t> nabla_Sv_array_t;
     typedef std::vector<nabla_s_t> nabla_s_array_t;
+    struct Options {
+    	Options() : maxIteration_(10), minLearningRate_(0.1), dispay_(false) {}
+    	size_t maxIteration_;
+    	scalar_t minLearningRate_;
+    	bool dispay_;
+    };
 
 	GSLQP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > >& subsystemDynamicsPtr,
 			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > >& subsystemDerivativesPtr,

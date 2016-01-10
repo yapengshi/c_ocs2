@@ -20,27 +20,25 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 class RolloutSensitivityEquations : public SystemBase<(NUM_Subsystems-1)*STATE_DIM>
 {
 public:
-	typedef Eigen::Matrix<double,STATE_DIM,NUM_Subsystems-1>     nabla_state_matrix_t;
-	typedef Eigen::Matrix<double,(NUM_Subsystems-1)*STATE_DIM,1> nabla_state_vector_t;
-	typedef Eigen::Matrix<double,INPUT_DIM,NUM_Subsystems-1>     nabla_input_matrix_t;
 	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
 	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
-	typedef typename DIMENSIONS::eigen_scalar_t       eigen_scalar_t;
-	typedef typename DIMENSIONS::eigen_scalar_array_t eigen_scalar_array_t;
 	typedef typename DIMENSIONS::state_vector_t 	  state_vector_t;
 	typedef typename DIMENSIONS::state_vector_array_t state_vector_array_t;
 	typedef typename DIMENSIONS::control_vector_t 		control_vector_t;
 	typedef typename DIMENSIONS::control_vector_array_t control_vector_array_t;
 	typedef typename DIMENSIONS::control_feedback_t 	  control_feedback_t;
-	typedef typename DIMENSIONS::control_feedback_array_t control_feedback_array_t;
 	typedef typename DIMENSIONS::state_matrix_t 	  state_matrix_t;
 	typedef typename DIMENSIONS::state_matrix_array_t state_matrix_array_t;
-	typedef typename DIMENSIONS::control_matrix_t 		control_matrix_t;
-	typedef typename DIMENSIONS::control_matrix_array_t control_matrix_array_t;
 	typedef typename DIMENSIONS::control_gain_matrix_t 		 control_gain_matrix_t;
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
+
+	typedef Eigen::Matrix<double,(NUM_Subsystems-1)*STATE_DIM,1> nabla_state_vector_t;
+	typedef Eigen::Matrix<double,STATE_DIM,NUM_Subsystems-1> nabla_state_matrix_t;
+	typedef std::vector<nabla_state_matrix_t, Eigen::aligned_allocator<nabla_state_matrix_t> > nabla_state_matrix_array_t;
+	typedef Eigen::Matrix<double,INPUT_DIM,NUM_Subsystems-1> nabla_input_matrix_t;
+	typedef std::vector<nabla_input_matrix_t, Eigen::aligned_allocator<nabla_input_matrix_t> > nabla_input_matrix_array_t;
 
 	RolloutSensitivityEquations()  {}
 	~RolloutSensitivityEquations() {}

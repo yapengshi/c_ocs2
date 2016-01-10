@@ -23,13 +23,15 @@
 #include "misc/LinearInterpolation.h"
 
 #include "GSLQ/SequentialRiccatiEquations.h"
-
+#include "GSLQ/FullSequentialRiccatiEquations.h"
+#include "GSLQ/RolloutSensitivityEquations.h"
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 class GSLQP
 {
 public:
 	typedef SequentialRiccatiEquations<STATE_DIM, INPUT_DIM, NUM_Subsystems> RiccatiEquations;
+	typedef FullSequentialRiccatiEquations<STATE_DIM, INPUT_DIM, NUM_Subsystems> FullRiccatiEquations;
 	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
@@ -54,7 +56,11 @@ public:
 		scalar_t minLearningRate_;
 		bool dispay_;
 	};
-
+	typedef RolloutSensitivityEquations<STATE_DIM, INPUT_DIM, NUM_Subsystems> RolloutSensitivityEquations;
+	typedef typename RolloutSensitivityEquations::nabla_state_matrix_t nabla_state_matrix_t;
+	typedef std::vector<nabla_state_matrix_t, Eigen::aligned_allocator<nabla_state_matrix_t> > nabla_state_matrix_array_t;
+	typedef typename RolloutSensitivityEquations::nabla_input_matrix_t nabla_input_matrix_t;
+	typedef std::vector<nabla_input_matrix_t, Eigen::aligned_allocator<nabla_input_matrix_t> > nabla_input_matrix_array_t;
 
 	GSLQP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > >& subsystemDynamicsPtr,
 			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > >& subsystemDerivativesPtr,
@@ -62,7 +68,7 @@ public:
 			const std::vector<controller_t>& initialControllersStock,
 			const std::vector<size_t>& systemStockIndex,
 			const Options& options = Options())
-		: subsystemDynamicsPtrStock(NUM_Subsystems),
+		: subsystemDynamicsPtrStock_(NUM_Subsystems),
 		  subsystemDerivativesPtrStock_(NUM_Subsystems),
 		  subsystemCostFunctionsPtrStock_(NUM_Subsystems),
 //		  stateOperatingPointsStock_(NUM_Subsystems),
@@ -72,6 +78,9 @@ public:
 		  nominalTimeTrajectoriesStock_(NUM_Subsystems),
 		  nominalStateTrajectoriesStock_(NUM_Subsystems),
 		  nominalInputTrajectoriesStock_(NUM_Subsystems),
+		  nominalSensitivityTimeTrajectoriesStock_(NUM_Subsystems),
+		  nominalSensitivityStateTrajectoriesStock_(NUM_Subsystems),
+		  nominalSensitivityInputTrajectoriesStock_(NUM_Subsystems),
 		  AmTrajectoryStock_(NUM_Subsystems),
 		  BmTrajectoryStock_(NUM_Subsystems),
 		  qTrajectoryStock_(NUM_Subsystems),
@@ -106,14 +115,14 @@ public:
 
 		for (int i=0; i<NUM_Subsystems; i++) {
 
-			subsystemDynamicsPtrStock[i] = subsystemDynamicsPtr[systemStockIndex[i]]->clone();
+			subsystemDynamicsPtrStock_[i] = subsystemDynamicsPtr[systemStockIndex[i]]->clone();
 			subsystemDerivativesPtrStock_[i] = subsystemDerivativesPtr[systemStockIndex[i]]->clone();
 			subsystemCostFunctionsPtrStock_[i] = subsystemCostFunctionsPtr[systemStockIndex[i]]->clone();
 
 //			stateOperatingPointsStock_[i] = stateOperatingPoints[systemStockIndex[i]];
 //			inputOperatingPointsStock_[i] = inputOperatingPoints[systemStockIndex[i]];
 
-			subsystemSimulatorsStockPtr_[i] = std::make_shared<ODE45<STATE_DIM> >(subsystemDynamicsPtrStock[i]);
+			subsystemSimulatorsStockPtr_[i] = std::make_shared<ODE45<STATE_DIM> >(subsystemDynamicsPtrStock_[i]);
 		}
 	}
 
@@ -123,11 +132,11 @@ public:
 			const std::vector<controller_t>& controllersStock,
 			std::vector<scalar_array_t>& timeTrajectoriesStock,
 			std::vector<state_vector_array_t>& stateTrajectoriesStock,
-			std::vector<control_vector_array_t>& controlTrajectoriesStock);
+			std::vector<control_vector_array_t>& inputTrajectoriesStock);
 
 	void rolloutCost(const std::vector<scalar_array_t>& timeTrajectoriesStock,
 			const std::vector<state_vector_array_t>& stateTrajectoriesStock,
-			const std::vector<control_vector_array_t>& controlTrajectoriesStock,
+			const std::vector<control_vector_array_t>& inputTrajectoriesStock,
 			scalar_t& totalCost);
 
 	void getController(std::vector<controller_t>& controllersStock) { controllersStock = nominalControllersStock_;}
@@ -140,6 +149,8 @@ public:
 protected:
 	void SolveSequentialRiccatiEquations(const scalar_t& learningRate);
 
+	void SolveFullSequentialRiccatiEquations(const scalar_t& learningRate);
+
 	void approximateOptimalControlProblem();
 
 	void calculatecontroller(scalar_t& learningRate);
@@ -149,8 +160,10 @@ protected:
 
 	void transformeLocalValueFuntion2Global();
 
+	void RolloutSensitivity2SwitchingTime();
+
 private:
-	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > > subsystemDynamicsPtrStock;
+	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > > subsystemDynamicsPtrStock_;
 	std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > > subsystemDerivativesPtrStock_;
 	std::vector<std::shared_ptr<CostFunctionBase<STATE_DIM, INPUT_DIM> > > subsystemCostFunctionsPtrStock_;
 
@@ -164,6 +177,10 @@ private:
 	std::vector<scalar_array_t> nominalTimeTrajectoriesStock_;
 	std::vector<state_vector_array_t> nominalStateTrajectoriesStock_;
 	std::vector<control_vector_array_t> nominalInputTrajectoriesStock_;
+
+	std::vector<scalar_array_t> nominalSensitivityTimeTrajectoriesStock_;
+	std::vector<nabla_state_matrix_array_t> nominalSensitivityStateTrajectoriesStock_;
+	std::vector<nabla_state_matrix_array_t> nominalSensitivityInputTrajectoriesStock_;
 
 	std::vector<state_matrix_array_t>        AmTrajectoryStock_;
 	std::vector<control_gain_matrix_array_t> BmTrajectoryStock_;

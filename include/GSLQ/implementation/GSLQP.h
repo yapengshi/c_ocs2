@@ -30,20 +30,20 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::rollout(const state_vector_t& 
 		inputTrajectoriesStock[i].clear();
 
 		// set controller for subsystem i
-		subsystemDynamicsPtrStock[i]->setController(controllersStock[i]);
+		subsystemDynamicsPtrStock_[i]->setController(controllersStock[i]);
 		// simulate subsystem i
 		subsystemSimulatorsStockPtr_[i]->integrate(x0, switchingTimes_[i], switchingTimes_[i+1], stateTrajectoriesStock[i], timeTrajectoriesStock[i], 1e-3);
 
 		// compute control trajectory for subsystem i
 		inputTrajectoriesStock[i].resize(timeTrajectoriesStock[i].size());
 		for (int k=0; k<timeTrajectoriesStock[i].size(); k++)
-			subsystemDynamicsPtrStock[i]->computeInput(timeTrajectoriesStock[i][k], stateTrajectoriesStock[i][k], inputTrajectoriesStock[i][k]);
+			subsystemDynamicsPtrStock_[i]->computeInput(timeTrajectoriesStock[i][k], stateTrajectoriesStock[i][k], inputTrajectoriesStock[i][k]);
 
 		// reset the initial state
 		x0 = stateTrajectoriesStock[i].back();
 	}
-}
 
+}
 
 
 /******************************************************************************************************/
@@ -373,7 +373,7 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveSequentialRiccatiEquations(const scalar_t& learningRate)  {
 
 	// final value for the last Riccati equations
-	Eigen::Matrix<double,RiccatiEquations::S_DIM_,1> allSsFinal;
+	typename RiccatiEquations::s_vector_t allSsFinal;
 	RiccatiEquations::convert2Vector(QmFinal_, QvFinal_, qFinal_, allSsFinal);
 
 	for (int i=NUM_Subsystems-1; i>=0; i--) {
@@ -390,7 +390,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveSequentialRiccatiEquation
 		// integrating the Riccati equations
 		ODE45<RiccatiEquations::S_DIM_> ode45(riccatiEquationsPtr);
 		std::vector<double> normalizedTimeTrajectory;
-		std::vector<Eigen::Matrix<double,RiccatiEquations::S_DIM_,1>, Eigen::aligned_allocator<Eigen::Matrix<double,RiccatiEquations::S_DIM_,1>> > allSsTrajectory;
+		std::vector<typename RiccatiEquations::s_vector_t, Eigen::aligned_allocator<typename RiccatiEquations::s_vector_t> > allSsTrajectory;
 		ode45.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory);
 
 		// denormalizing time and constructing 'Sm', 'Sv', and 's'
@@ -409,6 +409,94 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveSequentialRiccatiEquation
 		allSsFinal = allSsTrajectory.back();
 	}
 
+}
+
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveFullSequentialRiccatiEquations(const scalar_t& learningRate)  {
+
+	// final value for the last Riccati equations
+	typename FullRiccatiEquations::s_vector_t allSsFinal;
+	FullRiccatiEquations::convert2Vector(QmFinal_, QvFinal_, qFinal_, allSsFinal);
+
+	for (int i=NUM_Subsystems-1; i>=0; i--) {
+
+		// set data for Riccati equations
+		auto riccatiEquationsPtr = std::make_shared<FullRiccatiEquations>();
+		riccatiEquationsPtr->setData(learningRate,
+				i, switchingTimes_[i], switchingTimes_[i+1],
+				&nominalTimeTrajectoriesStock_[i],
+				&AmTrajectoryStock_[i], &BmTrajectoryStock_[i],
+				&qTrajectoryStock_[i], &QvTrajectoryStock_[i], &QmTrajectoryStock_[i],
+				&RvTrajectoryStock_[i], &RmTrajectoryStock_[i], &PmTrajectoryStock_[i]);
+
+		// integrating the Riccati equations
+		ODE45<FullRiccatiEquations::S_DIM_> ode45(riccatiEquationsPtr);
+		std::vector<double> normalizedTimeTrajectory;
+		std::vector<typename FullRiccatiEquations::s_vector_t, Eigen::aligned_allocator<typename FullRiccatiEquations::s_vector_t> > allSsTrajectory;
+		ode45.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory);
+
+		// denormalizing time and constructing 'Sm', 'Sv', and 's'
+		int N = normalizedTimeTrajectory.size();
+		SsTimeTrajectoryStock_[i].resize(N);
+		SmTrajectoryStock_[i].resize(N);
+		SvTrajectoryStock_[i].resize(N);
+		sTrajectoryStock_[i].resize(N);
+		for (int k=0; k<normalizedTimeTrajectory.size(); k++) {
+
+			FullRiccatiEquations::convert2Matrix(allSsTrajectory[N-1-k], SmTrajectoryStock_[i][k], SvTrajectoryStock_[i][k], sTrajectoryStock_[i][k]);
+			SsTimeTrajectoryStock_[i][k] = (switchingTimes_[i]-switchingTimes_[i+1])*(normalizedTimeTrajectory[N-1-k]-i) + switchingTimes_[i+1];
+		}
+
+		// reset the final value for next Riccati equation
+		allSsFinal = allSsTrajectory.back();
+	}
+
+}
+
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::RolloutSensitivity2SwitchingTime()  {
+
+	auto rolloutSensitivityEquationsPtr = std::make_shared<RolloutSensitivityEquations>();
+
+	nabla_state_matrix_t nabla_XmInit = nabla_state_matrix_t::Zero();
+
+	for (int i=0; i<NUM_Subsystems; i++) {
+
+		rolloutSensitivityEquationsPtr->setData(i, switchingTimes_, subsystemDynamicsPtrStock_[i], &nominalControllersStock_[i],
+				&nominalTimeTrajectoriesStock_[i], &nominalStateTrajectoriesStock_[i], &nominalInputTrajectoriesStock_[i],
+				&AmTrajectoryStock_[i], &BmTrajectoryStock_[i]);
+
+		scalar_array_t normalizedSensitivityTimeTrajectory;
+		std::vector<RolloutSensitivityEquations::nabla_state_vector_t, Eigen::aligned_allocator<RolloutSensitivityEquations::nabla_state_vector_t> > sensitivityStateTrajectory;
+
+		// integrating
+		ODE45<(NUM_Subsystems-1)*STATE_DIM> ode45(rolloutSensitivityEquationsPtr);
+		ode45.integrate(nabla_XmInit, i, i+1, sensitivityStateTrajectory, normalizedSensitivityTimeTrajectory);
+
+		// denormalizing time and constructing SensitivityStateTrajectory and computing control trajectory sensitivity for subsystem i
+		int N = sensitivityStateTrajectory.size();
+		nominalSensitivityTimeTrajectoriesStock_[i].resize(N);
+		nominalSensitivityStateTrajectoriesStock_[i].resize(N);
+		nominalSensitivityInputTrajectoriesStock_[i].resize(N);
+		for (int k=0; k<N; k++) {
+
+			nominalSensitivityTimeTrajectoriesStock_[i][k] = switchingTimes_[i] + (switchingTimes_[i+1]-switchingTimes_[i])*(normalizedSensitivityTimeTrajectory[k]-i);
+			RolloutSensitivityEquations::convert2Matrix(sensitivityStateTrajectory[k], nominalSensitivityStateTrajectoriesStock_[i][k]);
+			rolloutSensitivityEquationsPtr->computeInputSensitivity(nominalSensitivityTimeTrajectoriesStock_[i][k], nominalSensitivityStateTrajectoriesStock_[i][k],
+					nominalSensitivityInputTrajectoriesStock_[i][k]);
+		}
+
+		// reset the initial state
+		nabla_XmInit = sensitivityStateTrajectory.back();
+	}
 }
 
 
@@ -469,6 +557,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& init
 	SolveSequentialRiccatiEquations(learningRateStar);
 	// calculate controller
 	calculatecontroller(learningRateStar);
+
+	RolloutSensitivity2SwitchingTime();
 
 	transformeLocalValueFuntion2Global();
 

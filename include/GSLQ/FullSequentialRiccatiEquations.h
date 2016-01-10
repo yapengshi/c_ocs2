@@ -1,12 +1,12 @@
 /*
- * SequentialRiccatiEquations.h
+ * FullSequentialRiccatiEquations.h
  *
- *  Created on: Jan 7, 2016
+ *  Created on: Jan 9, 2016
  *      Author: farbod
  */
 
-#ifndef SEQUENTIALRICCATIEQUATIONS_H_
-#define SEQUENTIALRICCATIEQUATIONS_H_
+#ifndef FULLSEQUENTIALRICCATIEQUATIONS_H_
+#define FULLSEQUENTIALRICCATIEQUATIONS_H_
 
 #include "Dimensions.h"
 
@@ -15,11 +15,12 @@
 #include "misc/LinearInterpolation.h"
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-class SequentialRiccatiEquations : public SystemBase<STATE_DIM*STATE_DIM+STATE_DIM+1>
+class FullSequentialRiccatiEquations : public SystemBase<NUM_Subsystems*(STATE_DIM*STATE_DIM+STATE_DIM+1)>
 {
 public:
 	enum { S_DIM_ = STATE_DIM*STATE_DIM+STATE_DIM+1 };
 	typedef Eigen::Matrix<double,S_DIM_,1> s_vector_t;
+	typedef Eigen::Matrix<double,NUM_Subsystems*S_DIM_,1> all_s_vector_t;
 	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
@@ -39,21 +40,43 @@ public:
 	typedef typename DIMENSIONS::control_gain_matrix_t 		 control_gain_matrix_t;
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
 
-	SequentialRiccatiEquations() {}
-	~SequentialRiccatiEquations() {}
+	FullSequentialRiccatiEquations() {}
+	~FullSequentialRiccatiEquations() {}
 
-	static void convert2Vector(const state_matrix_t& Sm, const state_vector_t& Sv, const eigen_scalar_t& s, s_vector_t& allSs)  {
+	static void convert2Vector(const state_matrix_t& Sm, const state_vector_t& Sv, const eigen_scalar_t& s,
+			const state_matrix_array_t& nabla_Sm, const state_vector_array_t& nabla_Sv, const eigen_scalar_array_t& nabla_s,
+			all_s_vector_t& allSs)  {
 
-		allSs << Eigen::Map<const Eigen::VectorXd>(Sm.data(),STATE_DIM*STATE_DIM),
-				Eigen::Map<const Eigen::VectorXd>(Sv.data(),STATE_DIM),
-				s;
+		if (nabla_Sm.size() != NUM_Subsystems-1)  throw std::runtime_error("nabla_Sm std::vector size should be the number of subsystems minus one.");
+		if (nabla_Sv.size() != NUM_Subsystems-1)  throw std::runtime_error("nabla_Sv std::vector size should be the number of subsystems minus one.");
+		if (nabla_s.size() != NUM_Subsystems-1)   throw std::runtime_error("nabla_s std::vector should be the number of subsystems minus one.");
+
+		allSs.template head<S_DIM_>() = (s_vector_t() << Eigen::Map<const Eigen::VectorXd>(Sm.data(),STATE_DIM*STATE_DIM),
+														 Eigen::Map<const Eigen::VectorXd>(Sv.data(),STATE_DIM),
+														 s).finished();
+
+		for (size_t i=0; i<NUM_Subsystems-1; i++) {
+
+			allSs.template segment<S_DIM_>(S_DIM_+i*S_DIM_) = (s_vector_t() << Eigen::Map<const Eigen::VectorXd>(nabla_Sm[i].data(),STATE_DIM*STATE_DIM),
+					Eigen::Map<const Eigen::VectorXd>(nabla_Sv[i].data(),STATE_DIM),
+					nabla_s[i]).finished();
+		}
 	}
 
-	static void convert2Matrix(const s_vector_t& allSs, state_matrix_t& Sm, state_vector_t& Sv, eigen_scalar_t& s)  {
+	static void convert2Matrix(const s_vector_t& allSs,
+			state_matrix_t& Sm, state_vector_t& Sv, eigen_scalar_t& s,
+			state_matrix_array_t& nabla_Sm, state_vector_array_t& nabla_Sv, eigen_scalar_array_t& nabla_s)  {
 
-		Sm = Eigen::Map<const Eigen::MatrixXd>(allSs.data(),STATE_DIM,STATE_DIM);
+		Sm = Eigen::Map<const Eigen::MatrixXd>(allSs.data(),STATE_DIM, STATE_DIM);
 		Sv = Eigen::Map<const Eigen::VectorXd>(allSs.data()+STATE_DIM*STATE_DIM, STATE_DIM);
-		s  = allSs.template tail<1>();
+		s  = Eigen::Map<const Eigen::VectorXd>(allSs.data()+STATE_DIM*STATE_DIM+STATE_DIM, 1);
+
+		for (size_t i=0; i<NUM_Subsystems-1; i++) {
+
+			nabla_Sm.at(i) = Eigen::Map<const Eigen::MatrixXd>(allSs.data()+(i+1)*S_DIM_,STATE_DIM, STATE_DIM);
+			nabla_Sv.at(i) = Eigen::Map<const Eigen::VectorXd>(allSs.data()+(i+1)*S_DIM_+STATE_DIM*STATE_DIM, STATE_DIM);
+			nabla_s.at(i)  = Eigen::Map<const Eigen::VectorXd>(allSs.data()+(i+1)*S_DIM_+STATE_DIM*STATE_DIM+STATE_DIM, 1);
+		}
 	}
 
 	void setData(const scalar_t& learningRate,
@@ -89,7 +112,7 @@ public:
 		PmFunc_.setData(PmPtr);
 	}
 
-	void computeDerivative(const scalar_t& z, const s_vector_t& allSs, s_vector_t& derivatives) {
+	void computeDerivative(const scalar_t& z, const all_s_vector_t& allSs, s_vector_t& derivatives) {
 
 		// denormalized time
 		scalar_t t = switchingTimeFinal_ - (switchingTimeFinal_-switchingTimeStart_)*(z-activeSubsystem_);
@@ -97,7 +120,10 @@ public:
 		state_matrix_t Sm;
 		state_vector_t Sv;
 		eigen_scalar_t s;
-		convert2Matrix(allSs, Sm, Sv, s);
+		state_matrix_array_t nabla_Sm(NUM_Subsystems-1);
+		state_vector_array_t nabla_Sv(NUM_Subsystems-1);
+		eigen_scalar_array_t nabla_s(NUM_Subsystems-1);
+		convert2Matrix(allSs, Sm, Sv, s, nabla_Sm, nabla_Sv, nabla_s);
 
 		state_matrix_t Am;
 		AmFunc_.interpolate(t, Am);
@@ -121,6 +147,14 @@ public:
 		state_vector_t dSvdt, dSvdz;
 		eigen_scalar_t dsdt, dsdz;
 
+		state_matrix_array_t dnabla_Smdt(NUM_Subsystems-1);
+		state_vector_array_t dnabla_Svdt(NUM_Subsystems-1);
+		eigen_scalar_array_t dnabla_sdt(NUM_Subsystems-1);
+
+		state_matrix_array_t dnabla_Smdz(NUM_Subsystems-1);
+		state_vector_array_t dnabla_Svdz(NUM_Subsystems-1);
+		eigen_scalar_array_t dnabla_sdz(NUM_Subsystems-1);
+
 		// Riccati equations for the original system
 		dSmdt = Qm + Am.transpose()*Sm + Sm.transpose()*Am - (Pm+Bm.transpose()*Sm).transpose()*Rm.inverse()*(Pm+Bm.transpose()*Sm);
 		dSmdt = 0.5*(dSmdt+dSmdt.transpose()).eval();
@@ -131,7 +165,12 @@ public:
 		dSvdz = (switchingTimeFinal_-switchingTimeStart_)*dSvdt;
 		dsdz  = (switchingTimeFinal_-switchingTimeStart_)*dsdt;
 
-		convert2Vector(dSmdz, dSvdz, dsdz, derivatives);
+		for (size_t i=0; i<NUM_Subsystems-1; i++) {
+
+
+		}
+
+		convert2Vector(dSmdz, dSvdz, dsdz, dnabla_Smdz, dnabla_Svdz, dnabla_sdz, derivatives);
 	}
 
 
@@ -155,4 +194,4 @@ private:
 };
 
 
-#endif /* SEQUENTIALRICCATIEQUATIONS_H_ */
+#endif /* FULLSEQUENTIALRICCATIEQUATIONS_H_ */

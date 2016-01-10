@@ -9,6 +9,7 @@
 #define GSLQP_H_
 
 #include <vector>
+#include <array>
 #include <algorithm>
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
@@ -63,6 +64,12 @@ public:
 	typedef std::vector<nabla_input_matrix_t, Eigen::aligned_allocator<nabla_input_matrix_t> > nabla_input_matrix_array_t;
 	typedef Eigen::Matrix<double,1,NUM_Subsystems-1>                                                   nabla_scalar_rowvector_t;
 	typedef std::vector<nabla_scalar_rowvector_t, Eigen::aligned_allocator<nabla_scalar_rowvector_t> > nabla_scalar_rowvector_array_t;
+	typedef std::array<state_matrix_t, NUM_Subsystems-1> nabla_Sm_t;
+	typedef std::array<state_vector_t, NUM_Subsystems-1> nabla_Sv_t;
+	typedef std::array<eigen_scalar_t, NUM_Subsystems-1> nabla_s_t;
+	typedef std::vector<nabla_Sm_t> nabla_Sm_array_t;
+	typedef std::vector<nabla_Sv_t> nabla_Sv_array_t;
+    typedef std::vector<nabla_s_t> nabla_s_array_t;
 
 	GSLQP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > >& subsystemDynamicsPtr,
 			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > >& subsystemDerivativesPtr,
@@ -98,6 +105,9 @@ public:
 		  sTrajectoryStock_(NUM_Subsystems),
 		  SvTrajectoryStock_(NUM_Subsystems),
 		  SmTrajectoryStock_(NUM_Subsystems),
+		  nablasTrajectoryStock_(NUM_Subsystems),
+		  nablaSvTrajectoryStock_(NUM_Subsystems),
+		  nablaSmTrajectoryStock_(NUM_Subsystems),
 		  switchingTimes_(NUM_Subsystems+1),
 		  nominalRolloutIsUpdated_(false),
 		  options_(options)
@@ -215,6 +225,9 @@ private:
 	std::vector<eigen_scalar_array_t> sTrajectoryStock_;
 	std::vector<state_vector_array_t> SvTrajectoryStock_;
 	std::vector<state_matrix_array_t> SmTrajectoryStock_;
+	std::vector<nabla_s_array_t>  nablasTrajectoryStock_;
+	std::vector<nabla_Sv_array_t> nablaSvTrajectoryStock_;
+	std::vector<nabla_Sm_array_t> nablaSmTrajectoryStock_;
 
 	scalar_array_t switchingTimes_;
 	state_vector_t initState_;

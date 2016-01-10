@@ -8,6 +8,8 @@
 #ifndef FULLSEQUENTIALRICCATIEQUATIONS_H_
 #define FULLSEQUENTIALRICCATIEQUATIONS_H_
 
+#include <array>
+
 #include "Dimensions.h"
 
 #include "dynamics/SystemBase.h"
@@ -46,43 +48,39 @@ public:
 	typedef std::vector<nabla_state_matrix_t, Eigen::aligned_allocator<nabla_state_matrix_t> > nabla_state_matrix_array_t;
 	typedef std::vector<nabla_input_matrix_t, Eigen::aligned_allocator<nabla_input_matrix_t> > nabla_input_matrix_array_t;
 	typedef std::vector<nabla_scalar_rowvector_t, Eigen::aligned_allocator<nabla_scalar_rowvector_t> > nabla_scalar_rowvector_array_t;
+	typedef std::array<state_matrix_t, NUM_Subsystems-1> nabla_Sm_t;
+	typedef std::array<state_vector_t, NUM_Subsystems-1> nabla_Sv_t;
+	typedef std::array<eigen_scalar_t, NUM_Subsystems-1> nabla_s_t;
 
 	FullSequentialRiccatiEquations() {}
 	~FullSequentialRiccatiEquations() {}
 
 	static void convert2Vector(const state_matrix_t& Sm, const state_vector_t& Sv, const eigen_scalar_t& s,
-			const state_matrix_array_t& nabla_Sm, const state_vector_array_t& nabla_Sv, const eigen_scalar_array_t& nabla_s,
+			const nabla_Sm_t& nabla_Sm, const nabla_Sv_t& nabla_Sv, const nabla_s_t& nabla_s,
 			all_s_vector_t& allSs)  {
-
-		if (nabla_Sm.size() != NUM_Subsystems-1)  throw std::runtime_error("nabla_Sm std::vector size should be the number of subsystems minus one.");
-		if (nabla_Sv.size() != NUM_Subsystems-1)  throw std::runtime_error("nabla_Sv std::vector size should be the number of subsystems minus one.");
-		if (nabla_s.size() != NUM_Subsystems-1)   throw std::runtime_error("nabla_s std::vector should be the number of subsystems minus one.");
 
 		allSs.template head<S_DIM_>() = (s_vector_t() << Eigen::Map<const Eigen::VectorXd>(Sm.data(),STATE_DIM*STATE_DIM),
 														 Eigen::Map<const Eigen::VectorXd>(Sv.data(),STATE_DIM),
 														 s).finished();
 
-		for (size_t i=0; i<NUM_Subsystems-1; i++) {
-
-			allSs.template segment<S_DIM_>(S_DIM_+i*S_DIM_) = (s_vector_t() << Eigen::Map<const Eigen::VectorXd>(nabla_Sm[i].data(),STATE_DIM*STATE_DIM),
-					Eigen::Map<const Eigen::VectorXd>(nabla_Sv[i].data(),STATE_DIM),
-					nabla_s[i]).finished();
-		}
+		for (size_t j=0; j<NUM_Subsystems-1; j++)
+			allSs.template segment<S_DIM_>(S_DIM_+j*S_DIM_) = (s_vector_t() << Eigen::Map<const Eigen::VectorXd>(nabla_Sm[j].data(),STATE_DIM*STATE_DIM),
+					Eigen::Map<const Eigen::VectorXd>(nabla_Sv[j].data(),STATE_DIM),
+					nabla_s[j]).finished();
 	}
 
-	static void convert2Matrix(const s_vector_t& allSs,
+	static void convert2Matrix(const all_s_vector_t& allSs,
 			state_matrix_t& Sm, state_vector_t& Sv, eigen_scalar_t& s,
-			state_matrix_array_t& nabla_Sm, state_vector_array_t& nabla_Sv, eigen_scalar_array_t& nabla_s)  {
+			nabla_Sm_t& nabla_Sm, nabla_Sv_t& nabla_Sv, nabla_s_t& nabla_s)  {
 
 		Sm = Eigen::Map<const Eigen::MatrixXd>(allSs.data(),STATE_DIM, STATE_DIM);
 		Sv = Eigen::Map<const Eigen::VectorXd>(allSs.data()+STATE_DIM*STATE_DIM, STATE_DIM);
 		s  = Eigen::Map<const Eigen::VectorXd>(allSs.data()+STATE_DIM*STATE_DIM+STATE_DIM, 1);
 
-		for (size_t i=0; i<NUM_Subsystems-1; i++) {
-
-			nabla_Sm.at(i) = Eigen::Map<const Eigen::MatrixXd>(allSs.data()+(i+1)*S_DIM_,STATE_DIM, STATE_DIM);
-			nabla_Sv.at(i) = Eigen::Map<const Eigen::VectorXd>(allSs.data()+(i+1)*S_DIM_+STATE_DIM*STATE_DIM, STATE_DIM);
-			nabla_s.at(i)  = Eigen::Map<const Eigen::VectorXd>(allSs.data()+(i+1)*S_DIM_+STATE_DIM*STATE_DIM+STATE_DIM, 1);
+		for (size_t j=0; j<NUM_Subsystems-1; j++) {
+			nabla_Sm.at(j) = Eigen::Map<const Eigen::MatrixXd>(allSs.data()+(j+1)*S_DIM_,STATE_DIM, STATE_DIM);
+			nabla_Sv.at(j) = Eigen::Map<const Eigen::VectorXd>(allSs.data()+(j+1)*S_DIM_+STATE_DIM*STATE_DIM, STATE_DIM);
+			nabla_s.at(j)  = Eigen::Map<const Eigen::VectorXd>(allSs.data()+(j+1)*S_DIM_+STATE_DIM*STATE_DIM+STATE_DIM, 1);
 		}
 	}
 
@@ -128,7 +126,7 @@ public:
 		nablaRvFunc_.setData(nablaRvPtr);
 	}
 
-	void computeDerivative(const scalar_t& z, const all_s_vector_t& allSs, s_vector_t& derivatives) {
+	void computeDerivative(const scalar_t& z, const all_s_vector_t& allSs, all_s_vector_t& derivatives)  {
 
 		// denormalized time
 		scalar_t t = switchingTimeFinal_ - (switchingTimeFinal_-switchingTimeStart_)*(z-activeSubsystem_);
@@ -136,9 +134,9 @@ public:
 		state_matrix_t Sm;
 		state_vector_t Sv;
 		eigen_scalar_t s;
-		state_matrix_array_t nabla_Sm(NUM_Subsystems-1);
-		state_vector_array_t nabla_Sv(NUM_Subsystems-1);
-		eigen_scalar_array_t nabla_s(NUM_Subsystems-1);
+		nabla_Sm_t nabla_Sm;
+		nabla_Sv_t nabla_Sv;
+		nabla_s_t  nabla_s;
 		convert2Matrix(allSs, Sm, Sv, s, nabla_Sm, nabla_Sv, nabla_s);
 
 		state_matrix_t Am;
@@ -156,6 +154,7 @@ public:
 		RvFunc_.interpolate(t, Rv);
 		control_matrix_t Rm;
 		RmFunc_.interpolate(t, Rm);
+		control_matrix_t inverseRm = Rm.inverse();
 		control_feedback_t Pm;
 		PmFunc_.interpolate(t, Pm);
 
@@ -166,34 +165,55 @@ public:
 		nabla_input_matrix_t nablaRv;
 		nablaRvFunc_.interpolate(t, nablaRv);
 
-		state_matrix_t dSmdt, dSmdz;
-		state_vector_t dSvdt, dSvdz;
-		eigen_scalar_t dsdt, dsdz;
-
-		state_matrix_array_t dnabla_Smdt(NUM_Subsystems-1);
-		state_vector_array_t dnabla_Svdt(NUM_Subsystems-1);
-		eigen_scalar_array_t dnabla_sdt(NUM_Subsystems-1);
-
-		state_matrix_array_t dnabla_Smdz(NUM_Subsystems-1);
-		state_vector_array_t dnabla_Svdz(NUM_Subsystems-1);
-		eigen_scalar_array_t dnabla_sdz(NUM_Subsystems-1);
-
 		// Riccati equations for the original system
-		dSmdt = Qm + Am.transpose()*Sm + Sm.transpose()*Am - (Pm+Bm.transpose()*Sm).transpose()*Rm.inverse()*(Pm+Bm.transpose()*Sm);
+		state_matrix_t dSmdt = Qm + Am.transpose()*Sm + Sm.transpose()*Am - (Pm+Bm.transpose()*Sm).transpose()*inverseRm*(Pm+Bm.transpose()*Sm);
 		dSmdt = 0.5*(dSmdt+dSmdt.transpose()).eval();
-		dSvdt = Qv + Am.transpose()*Sv - (Pm+Bm.transpose()*Sm).transpose()*Rm.inverse()*(Rv+Bm.transpose()*Sv);
-		dsdt  = q - 0.5*alpha_*(2.0-alpha_)*(Rv+Bm.transpose()*Sv).transpose()*Rm.inverse()*(Rv+Bm.transpose()*Sv);
+		state_vector_t dSvdt = Qv + Am.transpose()*Sv - (Pm+Bm.transpose()*Sm).transpose()*inverseRm*(Rv+Bm.transpose()*Sv);
+		eigen_scalar_t dsdt  = q - 0.5*alpha_*(2.0-alpha_)*(Rv+Bm.transpose()*Sv).transpose()*inverseRm*(Rv+Bm.transpose()*Sv);
 		// Riccati equations for the equivalent system
-		dSmdz = (switchingTimeFinal_-switchingTimeStart_)*dSmdt;
-		dSvdz = (switchingTimeFinal_-switchingTimeStart_)*dSvdt;
-		dsdz  = (switchingTimeFinal_-switchingTimeStart_)*dsdt;
+		state_matrix_t dSmdz = (switchingTimeFinal_-switchingTimeStart_)*dSmdt;
+		state_vector_t dSvdz = (switchingTimeFinal_-switchingTimeStart_)*dSvdt;
+		eigen_scalar_t dsdz  = (switchingTimeFinal_-switchingTimeStart_)*dsdt;
 
-		for (size_t i=0; i<NUM_Subsystems-1; i++) {
+		// derivatives of Riccati equations
+		nabla_Sm_t nabla_dSmdz;
+		nabla_Sv_t nabla_dSvdz;
+		nabla_s_t nabla_dsdz;
 
+		for (size_t j=0; j<NUM_Subsystems-1; j++) {
+
+			// switching time gradient for the original system
+			state_matrix_t nabla_dSmdt;
+			state_vector_t nabla_dSvdt;
+			eigen_scalar_t nabla_dsdt;
+
+			nabla_dSmdt = Am.transpose()*nabla_Sm[j] + nabla_Sm[j].transpose()*Am - nabla_Sm[j].transpose()*Bm*inverseRm*(Pm+Bm.transpose()*Sm)
+					- (Pm+Bm.transpose()*Sm).transpose()*inverseRm*Bm.transpose()*nabla_Sm[j];
+			nabla_dSmdt = 0.5*(nabla_dSmdt+nabla_dSmdt.transpose()).eval();
+			nabla_dSvdt = nablaQv.col(j) + Am.transpose()*nabla_Sv[j] - nabla_Sm[j].transpose()*Bm*inverseRm*(Rv + Bm.transpose()*Sv)
+					- (Pm+Bm.transpose()*Sm).transpose()*inverseRm*(nablaRv.col(j) + Bm.transpose()*nabla_Sv[j]);
+			nabla_dsdt  = nablaq.col(j) - 0.5*alpha_*(2-alpha_)*(nablaRv.col(j) + Bm.transpose()*nabla_Sv[j]).transpose()*inverseRm*(Rv+Bm.transpose()*Sv)
+					- 0.5*alpha_*(2-alpha_)*(Rv+Bm.transpose()*Sv).transpose()*inverseRm*(nablaRv.col(j) + Bm.transpose()*nabla_Sv[j]);
+
+			// switching time gradient for the equvalent system
+			nabla_dSmdz[j] = (switchingTimeFinal_-switchingTimeStart_)*nabla_dSmdt;
+			nabla_dSvdz[j] = (switchingTimeFinal_-switchingTimeStart_)*nabla_dSvdt;
+			nabla_dsdz[j]  = (switchingTimeFinal_-switchingTimeStart_)*nabla_dsdt;
+
+			if (j==activeSubsystem_)  {
+				nabla_dSmdz[j] += dSmdt;
+				nabla_dSvdz[j] += dSvdt;
+				nabla_dsdz[j]  += dsdt;
+			}
+			if (j==activeSubsystem_-1) {
+				nabla_dSmdz[j] -= dSmdt;
+				nabla_dSvdz[j] -= dSvdt;
+				nabla_dsdz[j]  -= dsdt;
+			}
 
 		}
 
-		convert2Vector(dSmdz, dSvdz, dsdz, dnabla_Smdz, dnabla_Svdz, dnabla_sdz, derivatives);
+		convert2Vector(dSmdz, dSvdz, dsdz, nabla_dSmdz, nabla_dSvdz, nabla_dsdz, derivatives);
 	}
 
 

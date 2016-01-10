@@ -419,8 +419,11 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveFullSequentialRiccatiEquations(const scalar_t& learningRate)  {
 
 	// final value for the last Riccati equations
-	typename FullRiccatiEquations::s_vector_t allSsFinal;
-	FullRiccatiEquations::convert2Vector(QmFinal_, QvFinal_, qFinal_, allSsFinal);
+	typename FullRiccatiEquations::all_s_vector_t allSsFinal;
+	nabla_Sm_t nablaQmFinal;  nablaQmFinal.fill(state_matrix_t::Zero());
+	nabla_Sv_t nablaQvFinal;  nablaQvFinal.fill(state_vector_t::Zero());
+	nabla_s_t  nablaqFinal;   nablaqFinal.fill(eigen_scalar_t::Zero());
+	FullRiccatiEquations::convert2Vector(QmFinal_, QvFinal_, qFinal_, nablaQmFinal, nablaQvFinal, nablaqFinal, allSsFinal);
 
 	for (int i=NUM_Subsystems-1; i>=0; i--) {
 
@@ -436,9 +439,9 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveFullSequentialRiccatiEqua
 				&nablaQvTrajectoryStock_[i], &nablaRvTrajectoryStock_[i]);
 
 		// integrating the Riccati equations
-		ODE45<FullRiccatiEquations::S_DIM_> ode45(riccatiEquationsPtr);
+		ODE45<FullRiccatiEquations::S_DIM_*NUM_Subsystems> ode45(riccatiEquationsPtr);
 		std::vector<double> normalizedTimeTrajectory;
-		std::vector<typename FullRiccatiEquations::s_vector_t, Eigen::aligned_allocator<typename FullRiccatiEquations::s_vector_t> > allSsTrajectory;
+		std::vector<typename FullRiccatiEquations::all_s_vector_t, Eigen::aligned_allocator<typename FullRiccatiEquations::all_s_vector_t> > allSsTrajectory;
 		ode45.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory);
 
 		// denormalizing time and constructing 'Sm', 'Sv', and 's'
@@ -447,9 +450,14 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveFullSequentialRiccatiEqua
 		SmTrajectoryStock_[i].resize(N);
 		SvTrajectoryStock_[i].resize(N);
 		sTrajectoryStock_[i].resize(N);
+		nablaSmTrajectoryStock_[i].resize(N);
+		nablaSvTrajectoryStock_[i].resize(N);
+		nablasTrajectoryStock_[i].resize(N);
 		for (int k=0; k<normalizedTimeTrajectory.size(); k++) {
 
-			FullRiccatiEquations::convert2Matrix(allSsTrajectory[N-1-k], SmTrajectoryStock_[i][k], SvTrajectoryStock_[i][k], sTrajectoryStock_[i][k]);
+			FullRiccatiEquations::convert2Matrix(allSsTrajectory[N-1-k],
+					SmTrajectoryStock_[i][k], SvTrajectoryStock_[i][k], sTrajectoryStock_[i][k],
+					nablaSmTrajectoryStock_[i][k], nablaSvTrajectoryStock_[i][k], nablasTrajectoryStock_[i][k]);
 			SsTimeTrajectoryStock_[i][k] = (switchingTimes_[i]-switchingTimes_[i+1])*(normalizedTimeTrajectory[N-1-k]-i) + switchingTimes_[i+1];
 		}
 
@@ -604,7 +612,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& init
 
 	// solve Riccati equations
 	learningRateStar = 0.0;  // prevents the changes in the nominal trajectories and just update the gains
-	SolveSequentialRiccatiEquations(learningRateStar);
+	SolveFullSequentialRiccatiEquations(learningRateStar);
 	// calculate controller
 	calculatecontroller(learningRateStar);
 

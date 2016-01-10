@@ -662,7 +662,6 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& init
 	calculatecontroller(learningRateStar);
 
 	// transforme from local value funtion representation to global representation
-//	transformeLocalValueFuntion2Global();
 	transformeLocalValueFuntionDerivative2Global();
 
 }

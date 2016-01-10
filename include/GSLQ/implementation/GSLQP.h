@@ -322,7 +322,6 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::transformeLocalValueFuntion2Gl
 
 	for (int i=0; i<NUM_Subsystems; i++) {
 
-		nominalStateFunc.reset();
 		nominalStateFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
 		nominalStateFunc.setData(&nominalStateTrajectoriesStock_[i]);
 
@@ -331,9 +330,37 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::transformeLocalValueFuntion2Gl
 			state_vector_t nominalState;
 			nominalStateFunc.interpolate(SsTimeTrajectoryStock_[i][k], nominalState);
 
-			sTrajectoryStock_[i][k] = sTrajectoryStock_[i][k] - nominalState.transpose()*SvTrajectoryStock_[i][k] +
-					0.5*nominalState.transpose()*SmTrajectoryStock_[i][k]*nominalState;
-			SvTrajectoryStock_[i][k] = SvTrajectoryStock_[i][k] - SmTrajectoryStock_[i][k]*nominalState;
+			sTrajectoryStock_[i][k]  += - nominalState.transpose()*SvTrajectoryStock_[i][k] + 0.5*nominalState.transpose()*SmTrajectoryStock_[i][k]*nominalState;
+			SvTrajectoryStock_[i][k] += - SmTrajectoryStock_[i][k]*nominalState;
+		}  // end of k loop
+	}  // enf of i loop
+}
+
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::transformeLocalValueFuntionDerivative2Global() {
+
+	LinearInterpolation<state_vector_t,Eigen::aligned_allocator<state_vector_t> > nominalStateFunc;
+
+	for (int i=0; i<NUM_Subsystems; i++) {
+
+		nominalStateFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
+		nominalStateFunc.setData(&nominalStateTrajectoriesStock_[i]);
+
+		for (int k=0; k<SsTimeTrajectoryStock_[i].size(); k++) {
+
+			state_vector_t nominalState;
+			nominalStateFunc.interpolate(SsTimeTrajectoryStock_[i][k], nominalState);
+
+			for (int j=0; j<NUM_Subsystems-1; j++)  {
+
+				nablasTrajectoryStock_[i][k][j] += - nominalState.transpose()*nablaSvTrajectoryStock_[i][k][j] +
+						0.5*nominalState.transpose()*nablaSmTrajectoryStock_[i][k][j]*nominalState;
+				nablaSvTrajectoryStock_[i][k][j]+= - nablaSmTrajectoryStock_[i][k][j]*nominalState;
+			}  // end of j loop
 		}  // end of k loop
 	}  // enf of i loop
 }
@@ -363,6 +390,24 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getValueFuntion(const scalar_t
 	sFunc.interpolate(time, s);
 
 	valueFuntion = (s + state.transpose()*Sv + 0.5*state.transpose()*Sm*state).eval()(0);
+}
+
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getCostFuntionDerivative(const state_vector_t& initState, Eigen::Matrix<double,NUM_Subsystems-1,1>& costFuntionDerivative)  {
+
+
+	for (int j=0; j<NUM_Subsystems-1; j++)  {
+
+		state_matrix_t dSm = nablaSmTrajectoryStock_[0][0][j];
+		state_vector_t dSv = nablaSvTrajectoryStock_[0][0][j];
+		eigen_scalar_t ds  = nablasTrajectoryStock_[0][0][j];
+
+		costFuntionDerivative(j) = (ds + initState.transpose()*dSv + 0.5*initState.transpose()*dSm*initState).eval()(0);
+	}
 }
 
 
@@ -617,7 +662,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& init
 	calculatecontroller(learningRateStar);
 
 	// transforme from local value funtion representation to global representation
-	transformeLocalValueFuntion2Global();
+//	transformeLocalValueFuntion2Global();
+	transformeLocalValueFuntionDerivative2Global();
 
 }
 

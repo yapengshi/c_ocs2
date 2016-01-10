@@ -80,8 +80,6 @@ public:
 		: subsystemDynamicsPtrStock_(NUM_Subsystems),
 		  subsystemDerivativesPtrStock_(NUM_Subsystems),
 		  subsystemCostFunctionsPtrStock_(NUM_Subsystems),
-//		  stateOperatingPointsStock_(NUM_Subsystems),
-//		  inputOperatingPointsStock_(NUM_Subsystems),
 		  subsystemSimulatorsStockPtr_(NUM_Subsystems),
 		  nominalControllersStock_(initialControllersStock),
 		  nominalTimeTrajectoriesStock_(NUM_Subsystems),
@@ -117,10 +115,6 @@ public:
 			throw std::runtime_error("Number of subsystem derivaties is not equal to the number of subsystems.");
 		if (subsystemDynamicsPtr.size() != subsystemCostFunctionsPtr.size())
 			throw std::runtime_error("Number of cost functions is not equal to the number of subsystems.");
-//		if (subsystemDynamicsPtr.size() != stateOperatingPoints.size())
-//			throw std::runtime_error("Number of state operating points is not equal to the number of subsystems.");
-//		if (subsystemDynamicsPtr.size() != inputOperatingPoints.size())
-//			throw std::runtime_error("Number of input operating points is not equal to the number of subsystems.");
 		if (subsystemDynamicsPtr.size()-1 != *std::max_element(systemStockIndex.begin(), systemStockIndex.end()))
 			throw std::runtime_error("systemStockIndex points to non-existing subsystem");
 		if (initialControllersStock.size() != NUM_Subsystems)
@@ -133,9 +127,6 @@ public:
 			subsystemDynamicsPtrStock_[i] = subsystemDynamicsPtr[systemStockIndex[i]]->clone();
 			subsystemDerivativesPtrStock_[i] = subsystemDerivativesPtr[systemStockIndex[i]]->clone();
 			subsystemCostFunctionsPtrStock_[i] = subsystemCostFunctionsPtr[systemStockIndex[i]]->clone();
-
-//			stateOperatingPointsStock_[i] = stateOperatingPoints[systemStockIndex[i]];
-//			inputOperatingPointsStock_[i] = inputOperatingPoints[systemStockIndex[i]];
 
 			subsystemSimulatorsStockPtr_[i] = std::make_shared<ODE45<STATE_DIM> >(subsystemDynamicsPtrStock_[i]);
 		}
@@ -166,6 +157,8 @@ public:
 
 	void getValueFuntion(const scalar_t& time, const state_vector_t& state, scalar_t& valueFuntion);
 
+	void getCostFuntionDerivative(const state_vector_t& initState, Eigen::Matrix<double,NUM_Subsystems-1,1>& costFuntionDerivative);
+
 	void run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes);
 
 
@@ -183,15 +176,14 @@ protected:
 
 	void transformeLocalValueFuntion2Global();
 
+	void transformeLocalValueFuntionDerivative2Global();
+
 	void rolloutSensitivity2SwitchingTime();
 
 private:
 	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > > subsystemDynamicsPtrStock_;
 	std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > > subsystemDerivativesPtrStock_;
 	std::vector<std::shared_ptr<CostFunctionBase<STATE_DIM, INPUT_DIM> > > subsystemCostFunctionsPtrStock_;
-
-//	state_vector_array_t   stateOperatingPointsStock_;
-//	control_vector_array_t inputOperatingPointsStock_;
 
 	std::vector<std::shared_ptr<ODE45<STATE_DIM> > > subsystemSimulatorsStockPtr_;
 

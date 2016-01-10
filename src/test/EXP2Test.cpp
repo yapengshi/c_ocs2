@@ -95,6 +95,9 @@ int main (int argc, char* argv[])
 	double totalCost;
 	gslqp.getValueFuntion(0.0, initState, totalCost);
 
+	// value funtion derivative
+	Eigen::Matrix<double,1,1> costFuntionDerivative;
+	gslqp.getCostFuntionDerivative(initState, costFuntionDerivative);
 
 	/******************************************************************************************************/
 	/******************************************************************************************************/
@@ -107,6 +110,7 @@ int main (int argc, char* argv[])
 
 	std::cout << "The total cost: " << totalCost << std::endl;
 	std::cout << "The total cost in the test rollout: " << rolloutCost << std::endl;
+	std::cout << "The total cost derivative: " << costFuntionDerivative.transpose() << std::endl;
 
 	GSLQP<2,1,2>::eigen_scalar_array_t timeEigenTrajectory;
 	GSLQP<2,1,2>::state_vector_array_t stateTrajectory;

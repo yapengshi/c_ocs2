@@ -182,18 +182,29 @@ using IntegratorRK5Variable = Integrator<
 			>;
 
 
+//template <size_t STATE_DIM>
+//using ODE45 = Integrator<
+//			STATE_DIM,
+//			boost::numeric::odeint::controlled_runge_kutta <
+//				boost::numeric::odeint::runge_kutta_dopri5<
+//					Eigen::Matrix<double, STATE_DIM, 1>,
+//					double,
+//					Eigen::Matrix<double, STATE_DIM, 1>,
+//					double,
+//					boost::numeric::odeint::vector_space_algebra > >
+//			>;
+
 template <size_t STATE_DIM>
 using ODE45 = Integrator<
 			STATE_DIM,
 			boost::numeric::odeint::controlled_runge_kutta <
-				boost::numeric::odeint::runge_kutta_dopri5<
+				boost::numeric::odeint::runge_kutta_fehlberg78<
 					Eigen::Matrix<double, STATE_DIM, 1>,
 					double,
 					Eigen::Matrix<double, STATE_DIM, 1>,
 					double,
 					boost::numeric::odeint::vector_space_algebra > >
 			>;
-
 
 
 #endif /* INTEGRATOR_H_ */

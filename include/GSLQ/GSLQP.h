@@ -69,7 +69,7 @@ public:
     typedef std::vector<nabla_s_t>  nabla_s_array_t;
 
     struct Options {
-    	Options() : maxIteration_(10), minLearningRate_(0.1), dispay_(false) {}
+    	Options() : maxIteration_(10), minLearningRate_(0.05), dispay_(false) {}
     	size_t maxIteration_;
     	scalar_t minLearningRate_;
     	bool dispay_;

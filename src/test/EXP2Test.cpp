@@ -116,7 +116,7 @@ int main (int argc, char* argv[])
 	GSLQP<2,1,2>::state_vector_array_t stateTrajectory;
 	GSLQP<2,1,2>::control_vector_array_t inputTrajectory;
 
-	for (size_t i=0; i<2; i++)  {
+	for (size_t i=0; i<switchingTimes.size()-1; i++)  {
 
 		for (size_t k=0; k<timeTrajectoriesStock[i].size(); k++)  {
 
@@ -135,7 +135,7 @@ int main (int argc, char* argv[])
 
 	GSLQP<2,1,2>::eigen_scalar_array_t sensitivityTimeTrajectory;
 	GSLQP<2,1,2>::nabla_state_matrix_array_t sensitivityStateTrajectory;
-	for (size_t i=0; i<2; i++)  {
+	for (size_t i=0; i<switchingTimes.size()-1; i++)  {
 		for (size_t k=0; k<sensitivityTimeTrajectoriesStock[i].size(); k++)  {
 			sensitivityTimeTrajectory.push_back((Eigen::MatrixXd(1,1) << sensitivityTimeTrajectoriesStock[i][k]).finished());
 			sensitivityStateTrajectory.push_back(sensitivityStateTrajectoriesStock[i][k]);

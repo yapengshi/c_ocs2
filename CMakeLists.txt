@@ -110,6 +110,9 @@ add_executable(interpolation_test src/test/InterpolationTest.cpp)
 add_executable(integration_test src/test/IntegrationTest.cpp)
 
 ## Declare a cpp executable
+add_executable(exp1_test src/test/EXP1Test.cpp)
+
+## Declare a cpp executable
 add_executable(exp2_test src/test/EXP2Test.cpp)
 
 
@@ -124,6 +127,11 @@ target_link_libraries(interpolation_test
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(integration_test
+  ${catkin_LIBRARIES}
+)
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(exp1_test
   ${catkin_LIBRARIES}
 )
 

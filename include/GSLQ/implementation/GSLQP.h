@@ -521,7 +521,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::rolloutSensitivity2SwitchingTi
 
 	auto rolloutSensitivityEquationsPtr = std::make_shared<RolloutSensitivityEquations_t>();
 
-	nabla_state_matrix_t nabla_XmInit = nabla_state_matrix_t::Zero();
+	typename RolloutSensitivityEquations_t::nabla_state_vector_t nabla_XmInit;
+	RolloutSensitivityEquations_t::convert2Vector(nabla_state_matrix_t::Zero(), nabla_XmInit);
 
 	for (int i=0; i<NUM_Subsystems; i++) {
 

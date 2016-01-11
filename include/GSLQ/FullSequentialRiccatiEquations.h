@@ -59,14 +59,14 @@ public:
 			const nabla_Sm_t& nabla_Sm, const nabla_Sv_t& nabla_Sv, const nabla_s_t& nabla_s,
 			all_s_vector_t& allSs)  {
 
-		allSs.template head<S_DIM_>() = (s_vector_t() << Eigen::Map<const Eigen::VectorXd>(Sm.data(),STATE_DIM*STATE_DIM),
-														 Eigen::Map<const Eigen::VectorXd>(Sv.data(),STATE_DIM),
-														 s).finished();
+		allSs.template head<S_DIM_>() << Eigen::Map<const Eigen::VectorXd>(Sm.data(),STATE_DIM*STATE_DIM),
+										 Eigen::Map<const Eigen::VectorXd>(Sv.data(),STATE_DIM),
+										 s;
 
 		for (size_t j=0; j<NUM_Subsystems-1; j++)
-			allSs.template segment<S_DIM_>(S_DIM_+j*S_DIM_) = (s_vector_t() << Eigen::Map<const Eigen::VectorXd>(nabla_Sm[j].data(),STATE_DIM*STATE_DIM),
+			allSs.template segment<S_DIM_>(S_DIM_+j*S_DIM_) << Eigen::Map<const Eigen::VectorXd>(nabla_Sm[j].data(),STATE_DIM*STATE_DIM),
 					Eigen::Map<const Eigen::VectorXd>(nabla_Sv[j].data(),STATE_DIM),
-					nabla_s[j]).finished();
+					nabla_s[j];
 	}
 
 	static void convert2Matrix(const all_s_vector_t& allSs,

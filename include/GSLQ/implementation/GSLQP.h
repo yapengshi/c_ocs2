@@ -123,12 +123,17 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::approximateOptimalControlProbl
 			subsystemCostFunctionsPtrStock_[i]->controlDerivative(RvTrajectoryStock_[i][k]);
 			subsystemCostFunctionsPtrStock_[i]->controlSecondDerivative(RmTrajectoryStock_[i][k]);
 			subsystemCostFunctionsPtrStock_[i]->stateControlDerivative(PmTrajectoryStock_[i][k]);
+
+			// making sure that Qm is PSD
+			makePSD(QmTrajectoryStock_[i][k]);
 		}
 
 		if (i==NUM_Subsystems-1)  {
 			subsystemCostFunctionsPtrStock_[i]->terminalCost(qFinal_(0));
 			subsystemCostFunctionsPtrStock_[i]->terminalCostStateDerivative(QvFinal_);
 			subsystemCostFunctionsPtrStock_[i]->terminalCostStateSecondDerivative(QmFinal_);
+			// making sure that Qm is PSD
+			makePSD(QmFinal_);
 		}
 	}
 }
@@ -599,6 +604,34 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::rolloutSensitivity2SwitchingTi
 		}
 	}
 
+}
+
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+template <typename Derived>
+bool GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::makePSD(Eigen::MatrixBase<Derived>& squareMatrix) {
+
+	if (squareMatrix.rows() != squareMatrix.cols())  throw std::runtime_error("Not a square matrix: makePSD() method is for square matrix.");
+
+	Eigen::SelfAdjointEigenSolver<Derived> eig(squareMatrix);
+	Eigen::VectorXd lambda = eig.eigenvalues();
+
+	bool hasNegativeEigenValue = false;
+	for (size_t j=0; j<lambda.size() ; j++)
+		if (lambda(j) < 0.0) {
+			hasNegativeEigenValue = true;
+			lambda(j) = 0.0;
+		}
+
+	if (hasNegativeEigenValue)
+		squareMatrix = eig.eigenvectors() * lambda.asDiagonal() * eig.eigenvectors().inverse();
+//	else
+//		squareMatrix = 0.5*(squareMatrix+squareMatrix.transpose()).eval();
+
+	return hasNegativeEigenValue;
 }
 
 

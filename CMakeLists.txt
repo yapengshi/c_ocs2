@@ -5,6 +5,7 @@ project(c_ocs2)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS cmake_modules cereal) 
+find_package(Ceres REQUIRED)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wfatal-errors -march=native -fopenmp -pthread")
 set(CMAKE_BUILD_TYPE DEBUG)
@@ -85,7 +86,7 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
-###########
+########### 
 ## Build ##
 ###########
 
@@ -96,6 +97,7 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${EIGEN_INCLUDE_DIRS}
+  ${CERES_INCLUDE_DIRS}
 )
 
 ## Declare a cpp library
@@ -138,6 +140,7 @@ target_link_libraries(exp1_test
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp2_test
   ${catkin_LIBRARIES}
+##  ${CERES_LIBRARIES}
 )
 
 #############

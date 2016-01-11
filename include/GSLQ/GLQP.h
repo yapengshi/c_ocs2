@@ -133,6 +133,8 @@ protected:
 
 	void transformeLocalValueFuntion2Global();
 
+	template <typename Derived>
+	bool makePSD(Eigen::MatrixBase<Derived>& squareMatrix);
 
 private:
 	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > > subsystemDynamicsPtrStock;

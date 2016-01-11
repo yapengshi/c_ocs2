@@ -343,8 +343,6 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::transformeLocalValueFuntion2Gl
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::transformeLocalValueFuntionDerivative2Global() {
 
-	transformeLocalValueFuntion2Global();
-
 	LinearInterpolation<state_vector_t,Eigen::aligned_allocator<state_vector_t> > nominalStateFunc;
 
 	for (int i=0; i<NUM_Subsystems; i++) {

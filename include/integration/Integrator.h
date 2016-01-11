@@ -9,6 +9,7 @@
 #define INTEGRATOR_H_
 
 #include <functional>
+#include <cmath>
 
 #include <boost/numeric/odeint.hpp>
 #include "eigenIntegration.h"
@@ -74,9 +75,13 @@ public:
 		double dtInitial = 0.01
 		) override
 	 {
+		 const double AbsTol = 1e-9;
+		 const double RelTol = 1e-6;
+
 		 typename Base::State_T initialStateInternal = initialState;
 		 initialize(initialStateInternal, startTime, dtInitial);
-		 integrate_adaptive(stepper_, systemFunction_, initialStateInternal, startTime, finalTime, dtInitial, Base::observer_.observeWrap);
+		 integrate_adaptive(boost::numeric::odeint::make_controlled<Stepper>(AbsTol, RelTol),
+				 systemFunction_, initialStateInternal, startTime, finalTime, dtInitial, Base::observer_.observeWrap);
 		 Base::retrieveTrajectoriesFromObserver(stateTrajectory, timeTrajectory);
 		 return true;
 	 }
@@ -182,29 +187,18 @@ using IntegratorRK5Variable = Integrator<
 			>;
 
 
-//template <size_t STATE_DIM>
-//using ODE45 = Integrator<
-//			STATE_DIM,
-//			boost::numeric::odeint::controlled_runge_kutta <
-//				boost::numeric::odeint::runge_kutta_dopri5<
-//					Eigen::Matrix<double, STATE_DIM, 1>,
-//					double,
-//					Eigen::Matrix<double, STATE_DIM, 1>,
-//					double,
-//					boost::numeric::odeint::vector_space_algebra > >
-//			>;
-
 template <size_t STATE_DIM>
 using ODE45 = Integrator<
 			STATE_DIM,
-			boost::numeric::odeint::controlled_runge_kutta <
-				boost::numeric::odeint::runge_kutta_fehlberg78<
-					Eigen::Matrix<double, STATE_DIM, 1>,
-					double,
-					Eigen::Matrix<double, STATE_DIM, 1>,
-					double,
-					boost::numeric::odeint::vector_space_algebra > >
+			boost::numeric::odeint::runge_kutta_dopri5<
+				Eigen::Matrix<double, STATE_DIM, 1>,
+				double,
+				Eigen::Matrix<double, STATE_DIM, 1>,
+				double,
+				boost::numeric::odeint::vector_space_algebra
+				>
 			>;
+
 
 
 #endif /* INTEGRATOR_H_ */

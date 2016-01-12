@@ -1,7 +1,7 @@
 /*
- * EXP1Test.cpp
+ * EXP1GSLQPTest.cpp
  *
- *  Created on: Jan 11, 2016
+ *  Created on: Jan 12, 2016
  *      Author: farbod
  */
 
@@ -16,8 +16,6 @@
 
 #include "test/EXP1.h"
 #include "GSLQ/GLQP.h"
-
-#include "ocs2/OCS2.h"
 
 int main (int argc, char* argv[])
 {
@@ -75,8 +73,7 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	GSLQP<2,1,3>::Options gslqpOptions;
-	gslqpOptions.maxIteration_ = 50;
-//	gslqpOptions.dispay_ = 1;
+	gslqpOptions.dispay_ = 1;
 
 	// GSLQ
 	GSLQP<2,1,3> gslqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);
@@ -104,37 +101,25 @@ int main (int argc, char* argv[])
 	Eigen::Matrix<double,2,1> costFuntionDerivative;
 	gslqp.getCostFuntionDerivative(initState, costFuntionDerivative);
 
-
-	/******************************************************************************************************/
-	/******************************************************************************************************/
-	/******************************************************************************************************/
-
-	std::vector<double> initSwitchingTimes {0, 1.0, 2.0, 3};
-
-	OCS2<2,1,3> ocs2(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
-			stateOperatingPoints, inputOperatingPoints, systemStockIndex, initSwitchingTimes, initState, gslqpOptions);
-	ocs2.run();
-
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	std::cout << std::endl;
 
-	if (gslqpOptions.dispay_)  {
-		std::cout << "Switching times are: [" << switchingTimes[0] << ", ";
-		for (size_t i=1; i<switchingTimes.size()-1; i++)  std::cout << switchingTimes[i] << ", ";
-		std::cout << switchingTimes.back() << "]\n";
+	std::cout << "Switching times are: [" << switchingTimes[0] << ", ";
+	for (size_t i=1; i<switchingTimes.size()-1; i++)  std::cout << switchingTimes[i] << ", ";
+	std::cout << switchingTimes.back() << "]\n";
 
-		std::cout << "The total cost: " << totalCost << std::endl;
-		std::cout << "The total cost in the test rollout: " << rolloutCost << std::endl;
-		std::cout << "The total cost derivative: " << costFuntionDerivative.transpose() << std::endl;
-	}
-
+	std::cout << "The total cost: " << totalCost << std::endl;
+	std::cout << "The total cost in the test rollout: " << rolloutCost << std::endl;
+	std::cout << "The total cost derivative: " << costFuntionDerivative.transpose() << std::endl;
 
 	GSLQP<2,1,3>::eigen_scalar_array_t timeEigenTrajectory;
 	GSLQP<2,1,3>::state_vector_array_t stateTrajectory;
 	GSLQP<2,1,3>::control_vector_array_t inputTrajectory;
+
 	for (size_t i=0; i<switchingTimes.size()-1; i++)  {
+
 		for (size_t k=0; k<timeTrajectoriesStock[i].size(); k++)  {
 
 			timeEigenTrajectory.push_back((Eigen::MatrixXd(1,1) << timeTrajectoriesStock[i][k]).finished());

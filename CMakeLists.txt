@@ -112,11 +112,16 @@ add_executable(interpolation_test src/test/InterpolationTest.cpp)
 add_executable(integration_test src/test/IntegrationTest.cpp)
 
 ## Declare a cpp executable
+add_executable(exp1_gslqp_test src/test/EXP1GSLQPTest.cpp)
+
+## Declare a cpp executable
 add_executable(exp1_test src/test/EXP1Test.cpp)
 
 ## Declare a cpp executable
 add_executable(exp2_test src/test/EXP2Test.cpp)
 
+## Declare a cpp executable 
+add_executable(ceres_test src/test/CeresTest.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -133,14 +138,26 @@ target_link_libraries(integration_test
 )
 
 ## Specify libraries to link a library or executable target against
+target_link_libraries(exp1_gslqp_test
+  ${catkin_LIBRARIES}
+)
+
+## Specify libraries to link a library or executable target against
 target_link_libraries(exp1_test
   ${catkin_LIBRARIES}
+  ${CERES_LIBRARIES}
 )
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp2_test
   ${catkin_LIBRARIES}
 ##  ${CERES_LIBRARIES}
+)
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(ceres_test
+  ${catkin_LIBRARIES}
+  ${CERES_LIBRARIES}
 )
 
 #############

@@ -86,6 +86,25 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
+
+###################################
+## ipopot specific configuration ##
+###################################
+SET(IPOPT_SOURCE_DIR "/home/farbod/Programs/ct_ws/src/ipopt")
+
+link_directories(${IPOPT_SOURCE_DIR}/build/lib)
+set(IPOPT_LIBS
+    ipopt
+    lapack
+    dl
+    blas
+    gfortran
+    coinmumps
+    m
+    quadmath
+    coinmetis
+)
+
 ########### 
 ## Build ##
 ###########
@@ -98,6 +117,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${EIGEN_INCLUDE_DIRS}
   ${CERES_INCLUDE_DIRS}
+  "${IPOPT_SOURCE_DIR}/build/include/coin"
 )
 
 ## Declare a cpp library
@@ -145,13 +165,14 @@ target_link_libraries(exp1_gslqp_test
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp1_test
   ${catkin_LIBRARIES}
-  ${CERES_LIBRARIES}
+#  ${CERES_LIBRARIES}
+  ${IPOPT_LIBS}
 )
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp2_test
   ${catkin_LIBRARIES}
-##  ${CERES_LIBRARIES}
+#  ${CERES_LIBRARIES}
 )
 
 ## Specify libraries to link a library or executable target against

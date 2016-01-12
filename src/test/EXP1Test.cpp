@@ -17,7 +17,8 @@
 #include "test/EXP1.h"
 #include "GSLQ/GLQP.h"
 
-#include "ocs2/OCS2.h"
+//#include "ocs2/OCS2.h"
+#include "ocs2/OCS2Ipopt.h"
 
 int main (int argc, char* argv[])
 {
@@ -34,8 +35,8 @@ int main (int argc, char* argv[])
 	GSLQP<2,1,3>::control_vector_array_t inputOperatingPoints(3, GSLQP<2,1,3>::control_vector_t::Zero());
 	std::vector<size_t> systemStockIndex {0, 1, 2};
 
-//	std::vector<double> initSwitchingTimes {0, 1.0, 2.0, 3};
-	std::vector<double> initSwitchingTimes {0, 0.2262, 1.0176, 3};
+	std::vector<double> initSwitchingTimes {0, 1.0, 2.0, 3};
+//	std::vector<double> initSwitchingTimes {0, 0.2262, 1.0176, 3};
 	if (argc>1)  initSwitchingTimes[1] = std::atof(argv[1]);
 	if (argc>2)  initSwitchingTimes[2] = std::atof(argv[2]);
 
@@ -49,8 +50,12 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	/******************************************************************************************************/
-	OCS2<2,1,3> ocs2(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
+//	OCS2<2,1,3> ocs2(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
+//			stateOperatingPoints, inputOperatingPoints, systemStockIndex, initSwitchingTimes, initState, gslqpOptions);
+
+	OCS2Ipopt<2,1,3> ocs2 (subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
 			stateOperatingPoints, inputOperatingPoints, systemStockIndex, initSwitchingTimes, initState, gslqpOptions);
+
 	ocs2.run();
 
 	/******************************************************************************************************/

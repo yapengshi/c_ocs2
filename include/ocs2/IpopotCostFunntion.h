@@ -8,6 +8,9 @@
 #ifndef IPOPOTCOSTFUNNTION_H_
 #define IPOPOTCOSTFUNNTION_H_
 
+#include <algorithm>
+#include <iterator>
+
 #include "IpTNLP.hpp"
 
 #include "GSLQ/GLQP.h"
@@ -126,6 +129,8 @@ protected:
 	IpopotCostFunntion(const IpopotCostFunntion&);
 	IpopotCostFunntion& operator=(const IpopotCostFunntion&);
 
+	size_t findNearestController(const Number* x) const;
+
 	void solveGSLQP(const Number* x);
 
 private:
@@ -151,6 +156,8 @@ private:
 
 	size_t numFuntionCall_;
 
+	std::vector<Eigen::Matrix<double,NumParameters_,1>, Eigen::aligned_allocator<Eigen::Matrix<double,NumParameters_,1> > > parameterBag_;
+	std::vector<std::vector<controller_t> > controllersStockBag_;
 };
 
 #include "implementation/IpopotCostFunntion.h"

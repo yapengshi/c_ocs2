@@ -230,6 +230,29 @@ void IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::finalize_solution
 /******************************************************************************************************/
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+size_t IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::findNearestController(const Number* x) const  {
+
+	if (parameterBag_.size()==0)  throw  std::runtime_error("controllerStock bag is empty.");
+
+	Eigen::Matrix<double,NumParameters_,1> enquiry = Eigen::Map<const Eigen::Matrix<double,NumParameters_,1> >(x);
+
+	// evaluating distance
+	std::vector<double> distance(parameterBag_.size());
+	for (size_t i=0; i<parameterBag_.size(); i++)
+		distance[i] = (parameterBag_[i]-enquiry).squaredNorm();
+
+	// min index
+	auto it = std::min_element(distance.begin(), distance.end());
+	size_t index = std::distance(distance.begin(), it);
+
+	return index;
+}
+
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 void IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::solveGSLQP(const Number* x)  {
 
 	// switching time vector
@@ -237,14 +260,21 @@ void IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::solveGSLQP(const 
 	for (Index j=0; j<NumParameters_; j++)
 		switchingTimes[j+1] = x[j];
 
-	// GLQP initialization
-	GLQP_t glqp(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
-			stateOperatingPoints_, inputOperatingPoints_, systemStockIndex_);
-	glqp.run(switchingTimes);
-
-	// GLQP controller
 	std::vector<controller_t> controllersStock(NUM_Subsystems);
-	glqp.getController(controllersStock);
+	if (parameterBag_.size()==0 || options_.warmStart_==false) {
+		// GLQP initialization
+		GLQP_t glqp(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
+				stateOperatingPoints_, inputOperatingPoints_, systemStockIndex_);
+		glqp.run(switchingTimes);
+
+		// GLQP controller
+		glqp.getController(controllersStock);
+	}
+	else {
+		// find nearest controller
+		size_t index = findNearestController(x);
+		controllersStock = controllersStockBag_[index];
+	}
 
 	// GSLQP
 	GSLQP_t gslqp(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
@@ -258,5 +288,12 @@ void IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::solveGSLQP(const 
 	gslqp.getCostFuntionDerivative(initState_, currentCostFuntionDerivative_);
 
 	numFuntionCall_++;
+
+	// GSLQP controller
+	gslqp.getController(controllersStock);
+
+	// saving to bag
+	parameterBag_.push_back(Eigen::Map<const Eigen::Matrix<double,NumParameters_,1> >(x));
+	controllersStockBag_.push_back(controllersStock);
 
 }

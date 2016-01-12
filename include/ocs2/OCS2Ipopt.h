@@ -77,14 +77,13 @@ public:
 		// Change some options
 		ipoptApplication->Options()->SetStringValue("hessian_approximation", "limited-memory");  // BFGS method
 		ipoptApplication->Options()->SetNumericValue("tol", 1e-2);
-		ipoptApplication->Options()->SetNumericValue("acceptable_tol", 1e-2);
-		ipoptApplication->Options()->SetNumericValue("acceptable_obj_change_tol", 1e-02); //  This is useful for the quasi-Newton option, which has trouble to bring down the dual infeasibility.
+		ipoptApplication->Options()->SetNumericValue("acceptable_tol", 1e-01);
+		ipoptApplication->Options()->SetNumericValue("acceptable_obj_change_tol", 1e-01); //  This is useful for the quasi-Newton option, which has trouble to bring down the dual infeasibility.
 		ipoptApplication->Options()->SetIntegerValue("max_iter", 20);
-//		ipoptApplication->Options()->SetStringValue("mu_strategy", "adaptive");
-		ipoptApplication->Options()->SetStringValue("output_file", "ipopt.out");
+		ipoptApplication->Options()->SetIntegerValue("acceptable_iter", 2);
+		ipoptApplication->Options()->SetStringValue("mu_strategy", "adaptive");
+//		ipoptApplication->Options()->SetStringValue("output_file", "ipopt.out");
 		ipoptApplication->Options()->SetStringValue("print_user_options", "yes");
-		ipoptApplication->Options()->SetStringValue("print_options_documentation", "yes");
-
 
 		// Intialize the IpoptApplication and process the options
 		ApplicationReturnStatus status;

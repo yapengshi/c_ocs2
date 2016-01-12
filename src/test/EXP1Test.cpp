@@ -44,7 +44,8 @@ int main (int argc, char* argv[])
 
 	GSLQP<2,1,3>::Options gslqpOptions;
 	gslqpOptions.maxIteration_ = 50;
-//	gslqpOptions.dispay_ = 1;
+	gslqpOptions.warmStart_ = true;
+	gslqpOptions.dispay_ = 1;
 
 
 	/******************************************************************************************************/

@@ -69,10 +69,11 @@ public:
     typedef std::vector<nabla_s_t>  nabla_s_array_t;
 
     struct Options {
-    	Options() : maxIteration_(10), minLearningRate_(0.05), dispay_(false) {}
+    	Options() : maxIteration_(10), minLearningRate_(0.05), dispay_(false), warmStart_(false) {}
     	size_t maxIteration_;
     	scalar_t minLearningRate_;
     	bool dispay_;
+    	bool warmStart_;
     };
 
 	GSLQP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > >& subsystemDynamicsPtr,

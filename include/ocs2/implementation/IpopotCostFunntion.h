@@ -19,7 +19,7 @@ bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::get_nlp_info(Inde
 	// number of total equality ans inequality constraints
 	numConstraints = NumConstraints_;
 	// number of elements in constraint jacobian
-	nnz_jac_g = NumParameters_*NumConstraints_;
+	nnz_jac_g = 2*NumConstraints_;
 	// number of elements in constraint hessian, but we
 	// only need the lower left corner (since it is symmetric)
 	nnz_h_lag = 0.5*(NumParameters_*(NumParameters_+1));
@@ -44,14 +44,16 @@ bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::get_bounds_info(I
 
 	// parameters lower and upper bounds
 	for (Index j=0; j<NumParameters_; j++)  {
-		x_l[j] = initSwitchingTimes_.front();
-		x_u[j] = initSwitchingTimes_.back();
+		x_l[j] = -1e20;
+		x_u[j] = +1e20;
 	}
+	x_l[0] = initSwitchingTimes_.front();
+	x_u[NumParameters_-1] = initSwitchingTimes_.back();
 
 	// constraints lower and upper bounds
 	for (Index j=0; j<NumConstraints_; j++)  {
 		g_l[j] = 0.0;
-		g_u[j] = initSwitchingTimes_.back()-initSwitchingTimes_.front();
+		g_u[j] = +1e20;
 	}
 
 	return true;
@@ -90,27 +92,9 @@ bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_f(Index numP
 {
 	if (numParameters!=NumParameters_)  throw  std::runtime_error("numParameters is not correct.");
 
-	// switching time vector
-	scalar_array_t switchingTimes(initSwitchingTimes_);
-	for (Index j=0; j<NumParameters_; j++)
-		switchingTimes[j+1] = x[j];
+	if (new_x)  solveGSLQP(x);
 
-	// GLQP initialization
-	GLQP_t glqp(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
-			stateOperatingPoints_, inputOperatingPoints_, systemStockIndex_);
-	glqp.run(switchingTimes);
-
-	// GLQP controller
-	std::vector<controller_t> controllersStock(NUM_Subsystems);
-	glqp.getController(controllersStock);
-
-	// GSLQP
-	GSLQP_t gslqp(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
-			controllersStock, systemStockIndex_, options_);
-	gslqp.run(initState_, switchingTimes);
-
-	// cost funtion
-	gslqp.getValueFuntion(0.0, initState_, obj_value);
+	obj_value = currentTotalCost_;
 
 	return true;
 }
@@ -125,30 +109,10 @@ bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_grad_f(Index
 {
 	if (numParameters!=NumParameters_)  throw  std::runtime_error("numParameters is not correct.");
 
-	// switching time vector
-	scalar_array_t switchingTimes(initSwitchingTimes_);
-	for (Index j=0; j<NumParameters_; j++)
-		switchingTimes[j+1] = x[j];
+	if (new_x)  solveGSLQP(x);
 
-	// GLQP initialization
-	GLQP_t glqp(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
-			stateOperatingPoints_, inputOperatingPoints_, systemStockIndex_);
-	glqp.run(switchingTimes);
-
-	// GLQP controller
-	std::vector<controller_t> controllersStock(NUM_Subsystems);
-	glqp.getController(controllersStock);
-
-	// GSLQP
-	GSLQP_t gslqp(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
-			controllersStock, systemStockIndex_, options_);
-	gslqp.run(initState_, switchingTimes);
-
-	// cost funtion jacobian
-	Eigen::Matrix<double,NumParameters_,1> costFuntionDerivative;
-	gslqp.getCostFuntionDerivative(initState_, costFuntionDerivative);
 	for (size_t j=0; j<NumParameters_; j++)
-		grad_f[j] = costFuntionDerivative[j];
+		grad_f[j] = currentCostFuntionDerivative_[j];
 
 	return true;
 }
@@ -163,6 +127,8 @@ bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_g(Index numP
 {
 	if (numParameters!=NumParameters_)  throw  std::runtime_error("numParameters is not correct.");
 	if (numConstraints!=NumConstraints_) throw  std::runtime_error("numConstraints is not correct.");
+
+	if (new_x)  solveGSLQP(x);
 
 	// switching time vector
 	scalar_array_t switchingTimes(initSwitchingTimes_);
@@ -188,29 +154,27 @@ bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_jac_g(Index 
 	if (numParameters!=NumParameters_)  throw  std::runtime_error("numParameters is not correct.");
 	if (numConstraints!=NumConstraints_) throw  std::runtime_error("numConstraints is not correct.");
 
+	if (new_x)  solveGSLQP(x);
+
 	if (values == NULL) {
 		// return the structure of the jacobian: (i,j) element is dg_i/dx_j
 		size_t iterator = 0;
-		for (size_t i=0; i<NumConstraints_; i++)
-			for (size_t j=0; j<NumParameters_; j++) {
-				iRow[iterator] = i;
-				jCol[iterator] = j;
+		for (size_t i=0; i<NumConstraints_; i++) {
+				iRow[iterator] = i;  jCol[iterator] = i;
+				iterator++;
+				iRow[iterator] = i;  jCol[iterator] = i+1;
 				iterator++;
 			}
 	}
 	else {
 		// return the values of the jacobian of the constraints
 		size_t iterator = 0;
-		for (size_t i=0; i<NumConstraints_; i++)
-			for (size_t j=0; j<NumParameters_; j++) {
-				if (j==i)
-					values[iterator] = -1.0;
-				else if (j==i+1)
-					values[iterator] = 1.0;
-				else
-					values[iterator] = 0.0;
-				iterator++;
-			}
+		for (size_t i=0; i<NumConstraints_; i++) {
+			values[iterator] = -1.0;
+			iterator++;
+			values[iterator] = 1.0;
+			iterator++;
+		}
 	}
 
 	return true;
@@ -220,13 +184,15 @@ bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_jac_g(Index 
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-//return the structure or values of the hessian
+// return the structure or hessian of the lagrangian
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_h(Index numParameters, const Number* x, bool new_x,
-		Number obj_factor, Index numConstraints, const Number* lambda,
-		bool new_lambda, Index nele_hess, Index* iRow,
-		Index* jCol, Number* values)
-{
+bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_h(Index n, const Number* x, bool new_x,
+			Number obj_factor, Index m, const Number* lambda,
+			bool new_lambda, Index nele_hess, Index* iRow,
+			Index* jCol, Number* values)  {
+
+//		if (values != NULL && new_x)  solveGSLQP(x);
+
 	return false;
 }
 
@@ -255,6 +221,42 @@ void IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::finalize_solution
 	for (size_t i=0; i<NumParameters_; i++)
 		std::cout << optimizedSwitchingTimes_[i+1] << ", ";
 	std::cout << optimizedSwitchingTimes_.back() << "]" << std::endl;
+	std::cout << "Number of funtion call: " << numFuntionCall_ << std::endl;
 
 }
 
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::solveGSLQP(const Number* x)  {
+
+	// switching time vector
+	scalar_array_t switchingTimes(initSwitchingTimes_);
+	for (Index j=0; j<NumParameters_; j++)
+		switchingTimes[j+1] = x[j];
+
+	// GLQP initialization
+	GLQP_t glqp(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
+			stateOperatingPoints_, inputOperatingPoints_, systemStockIndex_);
+	glqp.run(switchingTimes);
+
+	// GLQP controller
+	std::vector<controller_t> controllersStock(NUM_Subsystems);
+	glqp.getController(controllersStock);
+
+	// GSLQP
+	GSLQP_t gslqp(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
+			controllersStock, systemStockIndex_, options_);
+	gslqp.run(initState_, switchingTimes);
+
+	// cost funtion
+	gslqp.getValueFuntion(0.0, initState_, currentTotalCost_);
+
+	// cost funtion jacobian
+	gslqp.getCostFuntionDerivative(initState_, currentCostFuntionDerivative_);
+
+	numFuntionCall_++;
+
+}

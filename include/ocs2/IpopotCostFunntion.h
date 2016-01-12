@@ -60,7 +60,8 @@ public:
 		  initSwitchingTimes_(initSwitchingTimes),
 		  initState_(initState),
 		  options_(options),
-		  optimizedSwitchingTimes_(NUM_Subsystems+1)
+		  optimizedSwitchingTimes_(NUM_Subsystems+1),
+		  numFuntionCall_(0)
 	{}
 
 	virtual ~IpopotCostFunntion() {}
@@ -125,6 +126,8 @@ protected:
 	IpopotCostFunntion(const IpopotCostFunntion&);
 	IpopotCostFunntion& operator=(const IpopotCostFunntion&);
 
+	void solveGSLQP(const Number* x);
+
 private:
 	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > > subsystemDynamicsPtr_;
 	std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > > subsystemDerivativesPtr_;
@@ -140,8 +143,13 @@ private:
 
 	typename GSLQP_t::Options options_;
 
-	scalar_array_t optimizedSwitchingTimes_;
 	scalar_t optimizedTotalCost_;
+	scalar_array_t optimizedSwitchingTimes_;
+
+	scalar_t currentTotalCost_;
+	Eigen::Matrix<double,NumParameters_,1> currentCostFuntionDerivative_;
+
+	size_t numFuntionCall_;
 
 };
 

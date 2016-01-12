@@ -76,35 +76,25 @@ public:
 
 		// Change some options
 		ipoptApplication->Options()->SetStringValue("hessian_approximation", "limited-memory");  // BFGS method
-		ipoptApplication->Options()->SetNumericValue("tol", 1e-3);
-		ipoptApplication->Options()->SetNumericValue("max_iter", 20);
-		ipoptApplication->Options()->SetStringValue("mu_strategy", "adaptive");
+		ipoptApplication->Options()->SetNumericValue("tol", 1e-2);
+		ipoptApplication->Options()->SetNumericValue("acceptable_tol", 1e-2);
+		ipoptApplication->Options()->SetNumericValue("acceptable_obj_change_tol", 1e-02); //  This is useful for the quasi-Newton option, which has trouble to bring down the dual infeasibility.
+		ipoptApplication->Options()->SetIntegerValue("max_iter", 20);
+//		ipoptApplication->Options()->SetStringValue("mu_strategy", "adaptive");
 		ipoptApplication->Options()->SetStringValue("output_file", "ipopt.out");
+		ipoptApplication->Options()->SetStringValue("print_user_options", "yes");
+		ipoptApplication->Options()->SetStringValue("print_options_documentation", "yes");
 
 
 		// Intialize the IpoptApplication and process the options
 		ApplicationReturnStatus status;
 		status = ipoptApplication->Initialize();
-		if (status != Solve_Succeeded) {
-			printf("\n\n*** Error during initialization!\n");
-			return (int) status;
-		}
+		if (status != Solve_Succeeded)  throw std::runtime_error("ipopt applicatiom initialization was not successful.");
 
 		// Ask Ipopt to solve the problem
 		status = ipoptApplication->OptimizeTNLP(ocs2Nlp);
 
-		if (status == Solve_Succeeded) {
-			printf("\n\n*** The problem solved!\n");
-		}
-		else {
-			printf("\n\n*** The problem FAILED!\n");
-		}
-
-		// As the SmartPtrs go out of scope, the reference count
-		// will be decremented and the objects will automatically
-		// be deleted.
-
-		return (int) status;
+		return (int)status;
 
 	}
 

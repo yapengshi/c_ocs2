@@ -235,13 +235,13 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::calculatecontroller(scalar_t& 
 		}  // end of k loop
 
 		// display
-		if (options_.dispay_)  maxDeltaUffStock[i] = *std::max_element(deltaUffStock[i].begin(), deltaUffStock[i].end(),
+		if (options_.dispayGSLQP_)  maxDeltaUffStock[i] = *std::max_element(deltaUffStock[i].begin(), deltaUffStock[i].end(),
 				[] (const control_vector_t& u1, const control_vector_t& u2){ return u1.norm() < u2.norm(); });
 
 	}  // end of i loop
 
 	// display
-	if (options_.dispay_)  {
+	if (options_.dispayGSLQP_)  {
 		control_vector_t maxDeltaUff = *std::max_element(maxDeltaUffStock.begin(), maxDeltaUffStock.end(),
 				[] (const control_vector_t& u1, const control_vector_t& u2){ return u1.norm() < u2.norm(); });
 		std::cout << "max delta_uff norm: " << maxDeltaUff.norm() << std::endl;
@@ -277,7 +277,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::lineSearch(const std::vector<c
 	std::vector<state_vector_array_t> lsStateTrajectoriesStock(NUM_Subsystems);
 	std::vector<control_vector_array_t> lsInputTrajectoriesStock(NUM_Subsystems);
 
-	while (learningRate > options_.minLearningRate_)  {
+	while (learningRate > options_.minLearningRateGSLQP_)  {
 		// modifying uff by the local increamant
 		lsControllersStock = controllersStock;
 		for (int i=0; i<NUM_Subsystems; i++)
@@ -289,7 +289,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::lineSearch(const std::vector<c
 		// calculate rollout cost
 		rolloutCost(lsTimeTrajectoriesStock, lsStateTrajectoriesStock, lsInputTrajectoriesStock, lsTotalCost);
 
-		if (options_.dispay_)  std::cout << "\t learningRate " << learningRate << " cost: " << nominalTotalCost_ << std::endl;
+		if (options_.dispayGSLQP_)  std::cout << "\t learningRate " << learningRate << " cost: " << nominalTotalCost_ << std::endl;
 
 		// break condition 1: it exits with largest learningRate that its cost is smaller than nominal cost.
 		if (lsTotalCost < nominalTotalCost_*(1-1e-3*learningRate))  {
@@ -307,13 +307,13 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::lineSearch(const std::vector<c
 
 	}  // end of while
 
-	if (learningRate <= options_.minLearningRate_) {
+	if (learningRate <= options_.minLearningRateGSLQP_) {
 		nominalRolloutIsUpdated_ = true;  // since the open loop input will not change, the nominal trajectories will be constatnt (no disturbance effect has been assumed)
 		learningRateStar = 0.0;
 	}
 
 	// display
-	if (options_.dispay_)  std::cout << "The chosen learningRate is: " << learningRateStar << std::endl;
+	if (options_.dispayGSLQP_)  std::cout << "The chosen learningRate is: " << learningRateStar << std::endl;
 }
 
 
@@ -641,6 +641,8 @@ bool GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::makePSD(Eigen::MatrixBase<Deri
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes)  {
 
+	if (options_.dispayGSLQP_)  std::cout << "#### GSLQP solver starts ..." << std::endl << std::endl;
+
 	if (switchingTimes.size() != NUM_Subsystems+1)
 		throw std::runtime_error("Number of switching times should be one plus the number of subsystems.");
 	switchingTimes_ = switchingTimes;
@@ -648,7 +650,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& init
 
 	scalar_t learningRateStar = 1.0;  // resetting learningRateStar
 	size_t iteration = 0;
-	while (iteration<options_.maxIteration_ && learningRateStar>0)  {
+	while (iteration<options_.maxIterationGSLQP_ && learningRateStar>0)  {
 
 		// do a rollout if nominalRolloutIsUpdated_ is fale.
 		if (nominalRolloutIsUpdated_==false)  {
@@ -657,11 +659,11 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& init
 			rolloutCost(nominalTimeTrajectoriesStock_, nominalStateTrajectoriesStock_, nominalInputTrajectoriesStock_,
 					nominalTotalCost_);
 			// display
-			if (options_.dispay_ && iteration==0)  std::cout << "\n#### Initial controller: \ncost: " << nominalTotalCost_ << std::endl;
+			if (options_.dispayGSLQP_ && iteration==0)  std::cout << "\n#### Initial controller: \ncost: " << nominalTotalCost_ << std::endl;
 		}
 
 		// display
-		if (options_.dispay_)  std::cout << "\n#### Iteration " <<  iteration << std::endl;
+		if (options_.dispayGSLQP_)  std::cout << "\n#### Iteration " <<  iteration << std::endl;
 
 		// linearizing the dynamics and quadratizing the cost funtion along nominal trajectories
 		approximateOptimalControlProblem();
@@ -675,14 +677,14 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& init
 		calculatecontroller(learningRateStar);
 
 		// display
-		if (options_.dispay_)  std::cout << "cost: " << nominalTotalCost_ << std::endl;
+		if (options_.dispayGSLQP_)  std::cout << "cost: " << nominalTotalCost_ << std::endl;
 
 		iteration++;
 
 	}  // end of j loop
 
 	// display
-	if (options_.dispay_)  std::cout << "\n#### Final iteration" << std::endl;
+	if (options_.dispayGSLQP_)  std::cout << "\n#### Final iteration" << std::endl;
 
 	// linearizing the dynamics and quadratizing the cost funtion along nominal trajectories
 	approximateOptimalControlProblem();
@@ -698,5 +700,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& init
  	// transforme from local value funtion and local derivatives to global representation
 	transformeLocalValueFuntion2Global();
 	transformeLocalValueFuntionDerivative2Global();
+
+	if (options_.dispayGSLQP_)  std::cout << "\n#### GSLQP solver ends." << std::endl << std::endl;
 }
 

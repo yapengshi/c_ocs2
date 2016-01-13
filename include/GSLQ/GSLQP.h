@@ -36,6 +36,7 @@ public:
 
 	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
+	typedef typename DIMENSIONS::Options Options_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
 	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
 	typedef typename DIMENSIONS::eigen_scalar_t       eigen_scalar_t;
@@ -68,20 +69,13 @@ public:
 	typedef std::vector<nabla_Sv_t> nabla_Sv_array_t;
     typedef std::vector<nabla_s_t>  nabla_s_array_t;
 
-    struct Options {
-    	Options() : maxIteration_(10), minLearningRate_(0.05), dispay_(false), warmStart_(false) {}
-    	size_t maxIteration_;
-    	scalar_t minLearningRate_;
-    	bool dispay_;
-    	bool warmStart_;
-    };
 
 	GSLQP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > >& subsystemDynamicsPtr,
 			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > >& subsystemDerivativesPtr,
 			const std::vector<std::shared_ptr<CostFunctionBase<STATE_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
 			const std::vector<controller_t>& initialControllersStock,
 			const std::vector<size_t>& systemStockIndex,
-			const Options& options = Options())
+			const Options_t& options = Options_t::Options())
 		: subsystemDynamicsPtrStock_(NUM_Subsystems),
 		  subsystemDerivativesPtrStock_(NUM_Subsystems),
 		  subsystemCostFunctionsPtrStock_(NUM_Subsystems),
@@ -235,7 +229,7 @@ private:
 
 	bool nominalRolloutIsUpdated_;
 
-	Options options_;
+	Options_t options_;
 };
 
 #include "implementation/GSLQP.h"

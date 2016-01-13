@@ -50,6 +50,29 @@ public:
 		control_feedback_array_t k_;
 	};
 
+	struct Options {
+		Options() :
+			maxIterationGSLQP_(10),
+			minLearningRateGSLQP_(0.05),
+			dispayGSLQP_(false),
+			warmStartGSLQP_(false),
+			displayIPOPT_(true),
+			tolIPOPT_(1e-2),
+			acceptableTolIPOPT_(1e-1),
+			maxIterationIPOPT_(20)
+		{}
+
+		size_t maxIterationGSLQP_;
+		scalar_t minLearningRateGSLQP_;
+		bool dispayGSLQP_;
+		bool warmStartGSLQP_;
+
+		bool displayIPOPT_;
+		double tolIPOPT_;
+		double acceptableTolIPOPT_;
+		size_t maxIterationIPOPT_;
+	};
+
 	enum DIMS {
 		STATE_DIM_ = STATE_DIM,
 		INPUT_DIM_ = INPUT_DIM

@@ -191,8 +191,6 @@ bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_h(Index n, c
 			bool new_lambda, Index nele_hess, Index* iRow,
 			Index* jCol, Number* values)  {
 
-//		if (values != NULL && new_x)  solveGSLQP(x);
-
 	return false;
 }
 
@@ -216,12 +214,15 @@ void IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::finalize_solution
 
 	optimizedTotalCost_ = optimizedTotalCost;
 
-	std::cout << "\n## Optimal cost: " << optimizedTotalCost_ << std::endl;
-	std::cout << "Switching times are: [" << optimizedSwitchingTimes_[0] << ", ";
-	for (size_t i=0; i<NumParameters_; i++)
-		std::cout << optimizedSwitchingTimes_[i+1] << ", ";
-	std::cout << optimizedSwitchingTimes_.back() << "]" << std::endl;
-	std::cout << "Number of funtion call: " << numFuntionCall_ << std::endl;
+	if (options_.displayIPOPT_) {
+		std::cout << "\n## Optimal cost: " << optimizedTotalCost_ << std::endl;
+		std::cout << "Number of funtion call: " << numFuntionCall_ << std::endl;
+
+		std::cout << "Switching times are: [" << optimizedSwitchingTimes_[0] << ", ";
+		for (size_t i=0; i<NumParameters_; i++)
+			std::cout << optimizedSwitchingTimes_[i+1] << ", ";
+		std::cout << optimizedSwitchingTimes_.back() << "]" << std::endl;
+	}
 
 }
 
@@ -261,7 +262,7 @@ void IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::solveGSLQP(const 
 		switchingTimes[j+1] = x[j];
 
 	std::vector<controller_t> controllersStock(NUM_Subsystems);
-	if (parameterBag_.size()==0 || options_.warmStart_==false) {
+	if (parameterBag_.size()==0 || options_.warmStartGSLQP_==false) {
 		// GLQP initialization
 		GLQP_t glqp(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
 				stateOperatingPoints_, inputOperatingPoints_, systemStockIndex_);

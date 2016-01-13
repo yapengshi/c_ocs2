@@ -138,6 +138,9 @@ add_executable(exp1_gslqp_test src/test/EXP1GSLQPTest.cpp)
 add_executable(exp1_test src/test/EXP1Test.cpp)
 
 ## Declare a cpp executable
+add_executable(exp2_gslqp_test src/test/EXP2GSLQPTest.cpp)
+
+## Declare a cpp executable
 add_executable(exp2_test src/test/EXP2Test.cpp)
 
 ## Declare a cpp executable 
@@ -165,14 +168,18 @@ target_link_libraries(exp1_gslqp_test
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp1_test
   ${catkin_LIBRARIES}
-#  ${CERES_LIBRARIES}
   ${IPOPT_LIBS}
+)
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(exp2_gslqp_test
+  ${catkin_LIBRARIES}
 )
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp2_test
   ${catkin_LIBRARIES}
-#  ${CERES_LIBRARIES}
+  ${IPOPT_LIBS}
 )
 
 ## Specify libraries to link a library or executable target against

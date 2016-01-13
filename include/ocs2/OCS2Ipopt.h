@@ -21,6 +21,7 @@ public:
 	typedef GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems> GSLQP_t;
 
 	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
+	typedef typename DIMENSIONS::Options Options_t;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
 	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
@@ -47,7 +48,7 @@ public:
 			const std::vector<size_t>& systemStockIndex,
 			const scalar_array_t& initSwitchingTimes,
 			const state_vector_t& initState,
-			const typename GSLQP_t::Options& options = GSLQP_t::Options() )
+			const Options_t& options = Options_t::Options() )
 		: subsystemDynamicsPtr_(subsystemDynamicsPtr),
 		  subsystemDerivativesPtr_(subsystemDerivativesPtr),
 		  subsystemCostFunctionsPtr_(subsystemCostFunctionsPtr),
@@ -76,14 +77,16 @@ public:
 
 		// Change some options
 		ipoptApplication->Options()->SetStringValue("hessian_approximation", "limited-memory");  // BFGS method
-		ipoptApplication->Options()->SetNumericValue("tol", 1e-2);
-		ipoptApplication->Options()->SetNumericValue("acceptable_tol", 1e-01);
-		ipoptApplication->Options()->SetNumericValue("acceptable_obj_change_tol", 1e-01); //  This is useful for the quasi-Newton option, which has trouble to bring down the dual infeasibility.
-		ipoptApplication->Options()->SetIntegerValue("max_iter", 20);
+		ipoptApplication->Options()->SetNumericValue("tol", options_.tolIPOPT_);
+		ipoptApplication->Options()->SetNumericValue("acceptable_tol", options_.acceptableTolIPOPT_);
+		ipoptApplication->Options()->SetNumericValue("acceptable_obj_change_tol", options_.acceptableTolIPOPT_); //  This is useful for the quasi-Newton option, which has trouble to bring down the dual infeasibility.
+		ipoptApplication->Options()->SetIntegerValue("max_iter", options_.maxIterationIPOPT_);
 		ipoptApplication->Options()->SetIntegerValue("acceptable_iter", 2);
 		ipoptApplication->Options()->SetStringValue("mu_strategy", "adaptive");
-//		ipoptApplication->Options()->SetStringValue("output_file", "ipopt.out");
-		ipoptApplication->Options()->SetStringValue("print_user_options", "yes");
+		if (options_.displayIPOPT_)
+			ipoptApplication->Options()->SetStringValue("print_user_options", "yes");
+		else
+			ipoptApplication->Options()->SetIntegerValue("print_level", 0);
 
 		// Intialize the IpoptApplication and process the options
 		ApplicationReturnStatus status;
@@ -111,7 +114,7 @@ private:
 	scalar_array_t initSwitchingTimes_;
 	state_vector_t initState_;
 
-	typename GSLQP_t::Options options_;
+	Options_t options_;
 
 };
 

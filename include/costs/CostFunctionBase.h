@@ -15,10 +15,13 @@ class CostFunctionBase
 {
 public:
 	typedef Dimensions<STATE_DIM, CONTROL_DIM> DIMENSIONS;
-	typedef typename DIMENSIONS::scalar_t scalar_t;
-	typedef typename DIMENSIONS::state_vector_t state_vector_t;
+	typedef typename DIMENSIONS::scalar_t       scalar_t;
+	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
+	typedef typename DIMENSIONS::state_vector_t       state_vector_t;
+	typedef typename DIMENSIONS::state_vector_array_t state_vector_array_t;
 	typedef typename DIMENSIONS::state_matrix_t state_matrix_t;
-	typedef typename DIMENSIONS::control_vector_t control_vector_t;
+	typedef typename DIMENSIONS::control_vector_t       control_vector_t;
+	typedef typename DIMENSIONS::control_vector_array_t control_vector_array_t;
 	typedef typename DIMENSIONS::control_matrix_t control_matrix_t;
 	typedef typename DIMENSIONS::control_feedback_t control_feedback_t;
 

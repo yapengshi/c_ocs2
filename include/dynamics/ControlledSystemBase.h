@@ -83,7 +83,7 @@ public:
 			const control_vector_t& u,
 			state_vector_t& dxdt) = 0;
 
-private:
+protected:
 	controller_t controller_;
 
 	LinearInterpolation<control_vector_t, Eigen::aligned_allocator<control_vector_t> > linInterpolateUff_;

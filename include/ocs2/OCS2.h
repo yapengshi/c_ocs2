@@ -21,6 +21,7 @@ public:
 
 	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
+	typedef typename DIMENSIONS::Options Options_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
 	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
 	typedef typename DIMENSIONS::eigen_scalar_t       eigen_scalar_t;
@@ -46,7 +47,7 @@ public:
 			const std::vector<size_t>& systemStockIndex,
 			const scalar_array_t& initSwitchingTimes,
 			const state_vector_t& initState,
-			const typename GSLQP_t::Options& options = GSLQP_t::Options() )
+			const Options_t& options = Options_t::Options() )
 		: subsystemDynamicsPtr_(subsystemDynamicsPtr),
 		  subsystemDerivativesPtr_(subsystemDerivativesPtr),
 		  subsystemCostFunctionsPtr_(subsystemCostFunctionsPtr),
@@ -109,7 +110,7 @@ private:
 	scalar_array_t initSwitchingTimes_;
 	state_vector_t initState_;
 
-	typename GSLQP_t::Options options_;
+	Options_t options_;
 
 };
 

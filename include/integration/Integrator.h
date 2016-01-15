@@ -5,8 +5,8 @@
  *      Author: neunertm
  */
 
-#ifndef INTEGRATOR_H_
-#define INTEGRATOR_H_
+#ifndef OCS2INTEGRATOR_H_
+#define OCS2INTEGRATOR_H_
 
 #include <functional>
 #include <cmath>
@@ -201,4 +201,4 @@ using ODE45 = Integrator<
 
 
 
-#endif /* INTEGRATOR_H_ */
+#endif /* OCS2INTEGRATOR_H_ */

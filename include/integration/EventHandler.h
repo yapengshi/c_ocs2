@@ -5,8 +5,8 @@
  *      Author: neunertm
  */
 
-#ifndef EVENTHANDLER_H_
-#define EVENTHANDLER_H_
+#ifndef OCS2EVENTHANDLER_H_
+#define OCS2EVENTHANDLER_H_
 
 
 template <size_t STATE_DIM>
@@ -26,4 +26,4 @@ private:
 };
 
 
-#endif /* EVENTHANDLER_H_ */
+#endif /* OCS2EVENTHANDLER_H_ */

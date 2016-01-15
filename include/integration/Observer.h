@@ -5,8 +5,8 @@
  *      Author: neunertm
  */
 
-#ifndef OBSERVER_H_
-#define OBSERVER_H_
+#ifndef OCS2OBSERVER_H_
+#define OCS2OBSERVER_H_
 
 #include "EventHandler.h"
 
@@ -58,4 +58,4 @@ private:
 
 
 
-#endif /* OBSERVER_H_ */
+#endif /* OCS2OBSERVER_H_ */

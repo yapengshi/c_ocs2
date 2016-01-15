@@ -137,8 +137,9 @@ void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::calculatecontroller(const scala
 		controllersStock[i].uff_.resize(timeTrajectoryStock_[i].size());
 		for (int k=0; k<timeTrajectoryStock_[i].size(); k++) {
 
-			controllersStock[i].k_[k]    = -RmStock_[i].inverse() * (PmStock_[i] + BmStock_[i].transpose()*SmTrajectoryStock_[i][k]);
-			controllersStock[i].uff_[k]  = -learningRate * RmStock_[i].inverse() * (RvStock_[i]  + BmStock_[i].transpose()*SvTrajectoryStock_[i][k])
+			control_matrix_t RmInverse = RmStock_[i].inverse();
+			controllersStock[i].k_[k]    = -RmInverse * (PmStock_[i] + BmStock_[i].transpose()*SmTrajectoryStock_[i][k]);
+			controllersStock[i].uff_[k]  = -learningRate * RmInverse * (RvStock_[i]  + BmStock_[i].transpose()*SvTrajectoryStock_[i][k])
 								+ inputOperatingPointsStock_[i] - controllersStock[i].k_[k]*stateOperatingPointsStock_[i];
 		}
 	}

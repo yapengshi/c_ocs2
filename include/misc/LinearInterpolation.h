@@ -19,23 +19,23 @@ class LinearInterpolation
 {
 public:
 	LinearInterpolation()
-		: index_(0) {}
+		: index_(0)
+	{}
 
-	LinearInterpolation(std::vector<double>* const timeStampPtr,
-			std::vector<Data_T,Alloc>* const dataPtr)
+	LinearInterpolation(std::vector<double> const *timeStampPtr, std::vector<Data_T,Alloc> const *dataPtr)
 		: index_(0),
 		  timeStampPtr_(timeStampPtr),
 		  dataPtr_(dataPtr)
 	{}
 
 
-	void setData(std::vector<Data_T,Alloc>* const dataPtr)	{
+	void setData(std::vector<Data_T,Alloc> const *dataPtr)	{
 
 		dataPtr_ = dataPtr;
 		reset();
 	}
 
-	void setTimeStamp(std::vector<double>* const timeStampPtr)	{
+	void setTimeStamp(std::vector<double> const *timeStampPtr)	{
 
 		timeStampPtr_ = timeStampPtr;
 		reset();
@@ -44,6 +44,14 @@ public:
 	void reset()	{index_=0;}
 
 	void interpolate(const double& enquiryTime, Data_T& enquiryData) {
+
+		if (timeStampPtr_->size()==0)  throw std::runtime_error("LinearInterpolation is not initialized.");
+		if (timeStampPtr_->size()!=dataPtr_->size())  throw std::runtime_error("The size of timeStamp vector is not equal to the size of data vector.");
+
+		if (timeStampPtr_->size()==1)  {
+			enquiryData = dataPtr_->front();
+			return;
+		}
 
 //		std::cout << "INDEX: " << index_;
 		size_t ind = find(enquiryTime);
@@ -65,7 +73,7 @@ public:
 		enquiryData = alpha*dataPtr_->at(ind) + (1-alpha)*dataPtr_->at(ind+1);
 	}
 
-//protected:
+protected:
 	size_t find(const double& enquiryTime) {
 
 		size_t index;

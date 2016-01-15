@@ -158,45 +158,42 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::calculatecontroller(scalar_t& 
 	LinearInterpolation<control_feedback_t,Eigen::aligned_allocator<control_feedback_t> > PmFunc;
 
 	LinearInterpolation<state_vector_t,Eigen::aligned_allocator<state_vector_t> > nominalStateFunc;
-	LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> > nominalInputFunc;
+	LinearInterpolation<control_vector_t,Eigen::aligned_allocator<control_vector_t> > nominalInputFunc;
 
 	std::vector<control_vector_array_t> deltaUffStock(NUM_Subsystems);
 	std::vector<control_vector_t> maxDeltaUffStock(NUM_Subsystems);
 
 	for (int i=0; i<NUM_Subsystems; i++) {
 
-		AmFunc.reset();
-		AmFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
-		AmFunc.setData(&AmTrajectoryStock_[i]);
-		BmFunc.reset();
-		BmFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
-		BmFunc.setData(&BmTrajectoryStock_[i]);
+		AmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		AmFunc.setData( &(AmTrajectoryStock_[i]) );
 
-		qFunc.reset();
-		qFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
-		qFunc.setData(&qTrajectoryStock_[i]);
-		QvFunc.reset();
-		QvFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
-		QvFunc.setData(&QvTrajectoryStock_[i]);
-		QmFunc.reset();
-		QmFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
-		QmFunc.setData(&QmTrajectoryStock_[i]);
-		RvFunc.reset();
-		RvFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
-		RvFunc.setData(&RvTrajectoryStock_[i]);
-		RmFunc.reset();
-		RmFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
-		RmFunc.setData(&RmTrajectoryStock_[i]);
-		PmFunc.reset();
-		PmFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
-		PmFunc.setData(&PmTrajectoryStock_[i]);
+		BmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		BmFunc.setData( &(BmTrajectoryStock_[i]) );
 
-		nominalStateFunc.reset();
-		nominalStateFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
-		nominalStateFunc.setData(&nominalStateTrajectoriesStock_[i]);
-		nominalInputFunc.reset();
-		nominalInputFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
-		nominalInputFunc.setData(&nominalInputTrajectoriesStock_[i]);
+		qFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		qFunc.setData( &(qTrajectoryStock_[i]) );
+
+		QvFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		QvFunc.setData( &(QvTrajectoryStock_[i]) );
+
+		QmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		QmFunc.setData( &(QmTrajectoryStock_[i]) );
+
+		RvFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		RvFunc.setData( &(RvTrajectoryStock_[i]) );
+
+		RmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		RmFunc.setData( &(RmTrajectoryStock_[i]) );
+
+		PmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		PmFunc.setData( &(PmTrajectoryStock_[i]) );
+
+		nominalStateFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		nominalStateFunc.setData( &(nominalStateTrajectoriesStock_[i]) );
+
+		nominalInputFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		nominalInputFunc.setData( &(nominalInputTrajectoriesStock_[i]) );
 
 
 		int N = SsTimeTrajectoryStock_[i].size();
@@ -221,17 +218,18 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::calculatecontroller(scalar_t& 
 			RvFunc.interpolate(SsTimeTrajectoryStock_[i][k], Rv);
 			control_matrix_t Rm;
 			RmFunc.interpolate(SsTimeTrajectoryStock_[i][k], Rm);
+			control_matrix_t RmInverse = Rm.inverse();
 			control_feedback_t Pm;
 			PmFunc.interpolate(SsTimeTrajectoryStock_[i][k], Pm);
 
 			state_vector_t nominalState;
 			nominalStateFunc.interpolate(SsTimeTrajectoryStock_[i][k], nominalState);
-			control_matrix_t nominalInput;
+			control_vector_t nominalInput;
 			nominalInputFunc.interpolate(SsTimeTrajectoryStock_[i][k], nominalInput);
 
-			controllersStock[i].k_[k]   = -Rm.inverse() * (Pm + Bm.transpose()*SmTrajectoryStock_[i][k]);
+			controllersStock[i].k_[k]   = -RmInverse * (Pm + Bm.transpose()*SmTrajectoryStock_[i][k]);
 			controllersStock[i].uff_[k] = nominalInput - controllersStock[i].k_[k]*nominalState;
-			deltaUffStock[i][k] = -Rm.inverse() * (Rv + Bm.transpose()*SvTrajectoryStock_[i][k]);
+			deltaUffStock[i][k] = -RmInverse * (Rv + Bm.transpose()*SvTrajectoryStock_[i][k]);
 		}  // end of k loop
 
 		// display
@@ -327,8 +325,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::transformeLocalValueFuntion2Gl
 
 	for (int i=0; i<NUM_Subsystems; i++) {
 
-		nominalStateFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
-		nominalStateFunc.setData(&nominalStateTrajectoriesStock_[i]);
+		nominalStateFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		nominalStateFunc.setData( &(nominalStateTrajectoriesStock_[i]) );
 
 		for (int k=0; k<SsTimeTrajectoryStock_[i].size(); k++) {
 
@@ -352,8 +350,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::transformeLocalValueFuntionDer
 
 	for (int i=0; i<NUM_Subsystems; i++) {
 
-		nominalStateFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
-		nominalStateFunc.setData(&nominalStateTrajectoriesStock_[i]);
+		nominalStateFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		nominalStateFunc.setData( &(nominalStateTrajectoriesStock_[i]) );
 
 		for (int k=0; k<SsTimeTrajectoryStock_[i].size(); k++) {
 
@@ -569,16 +567,16 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::rolloutSensitivity2SwitchingTi
 
 	for (int i=0; i<NUM_Subsystems; i++) {
 
-		QvFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
-		QvFunc.setData(&QvTrajectoryStock_[i]);
-		QmFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
-		QmFunc.setData(&QmTrajectoryStock_[i]);
-		RvFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
-		RvFunc.setData(&RvTrajectoryStock_[i]);
-		RmFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
-		RmFunc.setData(&RmTrajectoryStock_[i]);
-		PmFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
-		PmFunc.setData(&PmTrajectoryStock_[i]);
+		QvFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		QvFunc.setData( &(QvTrajectoryStock_[i]) );
+		QmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		QmFunc.setData( &(QmTrajectoryStock_[i]) );
+		RvFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		RvFunc.setData( &(RvTrajectoryStock_[i]) );
+		RmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		RmFunc.setData( &(RmTrajectoryStock_[i]) );
+		PmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		PmFunc.setData( &(PmTrajectoryStock_[i]) );
 
 		int N = sensitivityTimeTrajectoryStock_[i].size();
 		nablaqTrajectoryStock_[i].resize(N);

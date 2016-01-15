@@ -41,8 +41,9 @@ int main (int argc, char* argv[])
 	Eigen::Vector2d initState(0.0, 2.0);
 
 	OCS2Ipopt<2,1,2>::Options_t gslqpOptions;
+	gslqpOptions.maxIterationIPOPT_ = 5;
 	gslqpOptions.warmStartGSLQP_ = true;
-//	gslqpOptions.dispayGSLQP_ = false;
+//	gslqpOptions.dispayGSLQP_ = true;
 //	gslqpOptions.displayIPOPT_ = false;
 
 

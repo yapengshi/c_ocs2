@@ -71,23 +71,6 @@ set(CMAKE_BUILD_TYPE DEBUG)
 # )
 
 ###################################
-## catkin specific configuration ##
-###################################
-## The catkin_package macro generates cmake config files for your package
-## Declare things to be passed to dependent projects
-## INCLUDE_DIRS: uncomment this if you package contains header files
-## LIBRARIES: libraries you create in this project that dependent projects also need
-## CATKIN_DEPENDS: catkin_packages dependent projects also need
-## DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package(
-  INCLUDE_DIRS include
-#  LIBRARIES c_ocs2
-#  CATKIN_DEPENDS c_ilqg/
-#  DEPENDS system_lib
-)
-
-
-###################################
 ## ipopot specific configuration ##
 ###################################
 SET(IPOPT_SOURCE_DIR "/home/farbod/Programs/ct_ws/src/ipopt")
@@ -104,6 +87,26 @@ set(IPOPT_LIBS
     quadmath
     coinmetis
 )
+
+###################################
+## catkin specific configuration ##
+###################################
+## The catkin_package macro generates cmake config files for your package
+## Declare things to be passed to dependent projects
+## INCLUDE_DIRS: uncomment this if you package contains header files
+## LIBRARIES: libraries you create in this project that dependent projects also need
+## CATKIN_DEPENDS: catkin_packages dependent projects also need
+## DEPENDS: system dependencies of this project that dependent projects also need
+catkin_package(
+  INCLUDE_DIRS  include 
+      ${EIGEN_INCLUDE_DIRS}
+      "${IPOPT_SOURCE_DIR}/build/include/coin"
+      ${CERES_INCLUDE_DIRS}
+#  LIBRARIES c_ocs2
+  CATKIN_DEPENDS cereal  
+  DEPENDS ${IPOPT_LIBS}
+)
+
 
 ########### 
 ## Build ##
@@ -146,6 +149,9 @@ add_executable(exp2_test src/test/EXP2Test.cpp)
 ## Declare a cpp executable 
 add_executable(ceres_test src/test/CeresTest.cpp)
 
+## Declare a cpp executable 
+add_executable(numerical_derivative_test src/test/SystemDynamicsDerivativeTest.cpp)
+
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(c_ocs2_node c_ocs2_generate_messages_cpp)
@@ -186,6 +192,11 @@ target_link_libraries(exp2_test
 target_link_libraries(ceres_test
   ${catkin_LIBRARIES}
   ${CERES_LIBRARIES}
+)
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(numerical_derivative_test
+  ${catkin_LIBRARIES}
 )
 
 #############

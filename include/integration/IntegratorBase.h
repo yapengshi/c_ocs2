@@ -5,8 +5,8 @@
  *      Author: farbodf
  */
 
-#ifndef INTEGRATORBASE_H_
-#define INTEGRATORBASE_H_
+#ifndef OCS2INTEGRATORBASE_H_
+#define OCS2INTEGRATORBASE_H_
 
 #include "dynamics/SystemBase.h"
 #include "Observer.h"
@@ -92,4 +92,4 @@ protected:
 
 
 
-#endif /* INTEGRATORBASE_H_ */
+#endif /* OCS2INTEGRATORBASE_H_ */

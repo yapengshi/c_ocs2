@@ -40,6 +40,18 @@ public:
 		  isSecondOrderSystem_(isSecondOrderSystem)
 	{}
 
+	SystemDynamicsLinearizer(const SystemDynamicsLinearizer& other)
+
+		: nonlinearSystem_(other.nonlinearSystem_->clone()),
+		  doubleSidedDerivative_(other.doubleSidedDerivative_),
+		  isSecondOrderSystem_(other.isSecondOrderSystem_)
+	{}
+
+	SystemDynamicsLinearizer& operator=(const SystemDynamicsLinearizer&other)  {
+		nonlinearSystem_ = other.nonlinearSystem_->clone();
+		doubleSidedDerivative_ = other.doubleSidedDerivative_;
+		isSecondOrderSystem_ = other.isSecondOrderSystem_;
+	}
 
 	virtual ~SystemDynamicsLinearizer(){}
 
@@ -154,7 +166,7 @@ public:
 
 
 private:
-	const double eps_= 1e-6;//sqrt(Eigen::NumTraits<double>::epsilon());
+	const double eps_= sqrt(Eigen::NumTraits<double>::epsilon());
 
 	std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > nonlinearSystem_;
 	bool doubleSidedDerivative_;

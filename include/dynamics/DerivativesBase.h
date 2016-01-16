@@ -8,6 +8,8 @@
 #ifndef DERIVATIVESBASE_H_
 #define DERIVATIVESBASE_H_
 
+#include <cstring>
+
 #include "Dimensions.h"
 
 template <size_t STATE_DIM, size_t INPUT_DIM>
@@ -30,7 +32,8 @@ public:
 		u_ = u;
 	}
 
-	virtual void initializeModel(const scalar_t& initTime, const state_vector_t& initState, const scalar_t& finalTime=0)
+	virtual void initializeModel(const scalar_t& initTime, const state_vector_t& initState,
+			const scalar_t& finalTime=0, const char* algorithmName=NULL)
 	{}
 
 	virtual void getDerivativeState(state_matrix_t& A) = 0;

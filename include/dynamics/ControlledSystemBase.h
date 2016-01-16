@@ -8,6 +8,7 @@
 #ifndef CONTROLLEDSYSTEMBASE_H_
 #define CONTROLLEDSYSTEMBASE_H_
 
+#include <cstring>
 #include <vector>
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
@@ -79,7 +80,8 @@ public:
 		computeDerivative(t, x, u, dxdt);
 	}
 
-	virtual void initializeModel(const scalar_t& initTime, const state_vector_t& initState, const scalar_t& finalTime=0)
+	virtual void initializeModel(const scalar_t& initTime, const state_vector_t& initState,
+			const scalar_t& finalTime=0, const char* algorithmName=NULL)
 	{}
 
 	virtual std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > clone() const = 0;

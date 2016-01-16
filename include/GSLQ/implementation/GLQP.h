@@ -31,7 +31,7 @@ void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::rollout(const state_vector_t& i
 		controlTrajectoriesStock[i].clear();
 
 		// initialize subsystem i
-		subsystemDynamicsPtrStock[i]->initializeModel(switchingTimes_[i], x0, switchingTimes_[i+1]);
+		subsystemDynamicsPtrStock[i]->initializeModel(switchingTimes_[i], x0, switchingTimes_[i+1], "GLQP");
 		// set controller for subsystem i
 		subsystemDynamicsPtrStock[i]->setController(controllersStock[i]);
 		// simulate subsystem i
@@ -99,7 +99,7 @@ void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::approximateOptimalControlProble
 
 	for (int i=0; i<NUM_Subsystems; i++) {
 
-		subsystemDerivativesPtrStock_[i]->initializeModel(switchingTimes_[i], stateOperatingPointsStock_.at(i), switchingTimes_[i+1]);
+		subsystemDerivativesPtrStock_[i]->initializeModel(switchingTimes_[i], stateOperatingPointsStock_.at(i), switchingTimes_[i+1], "GLQP");
 		subsystemDerivativesPtrStock_[i]->setCurrentStateAndControl(0, stateOperatingPointsStock_.at(i), inputOperatingPointsStock_.at(i));
 		subsystemDerivativesPtrStock_[i]->getDerivativeState(AmStock_.at(i));
 		subsystemDerivativesPtrStock_[i]->getDerivativesControl(BmStock_.at(i));

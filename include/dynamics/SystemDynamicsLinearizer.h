@@ -34,6 +34,7 @@ public:
 
 	SystemDynamicsLinearizer(const std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> >& nonlinearSystem,
 			bool doubleSidedDerivative=true, bool isSecondOrderSystem=false)
+
 		: nonlinearSystem_(nonlinearSystem),
 		  doubleSidedDerivative_(doubleSidedDerivative),
 		  isSecondOrderSystem_(isSecondOrderSystem)
@@ -99,6 +100,8 @@ public:
 
 		for (size_t i=0; i<INPUT_DIM; i++) {
 
+//			std::cin.get();
+
 			// inspired from http://en.wikipedia.org/wiki/Numerical_differentiation#Practical_considerations_using_floating_point_arithmetic
 			double h = eps_ * std::max(fabs(Base::u_(i)), 1.0);
 
@@ -121,8 +124,15 @@ public:
 					B.template topRows<STATE_DIM/2>().setZero();
 					B.template block<STATE_DIM/2,1>(STATE_DIM/2,i) = (fPlusPerturbed.template tail<STATE_DIM/2>() - fMinusPerturbed.template tail<STATE_DIM/2>()) / (2.0*h);
 				}
-				else
+				else {
 					B.col(i) = (fPlusPerturbed - fMinusPerturbed) / (2.0*h);
+
+//					std::cout << ">>>> The " << i << " element out of " << INPUT_DIM << std::endl;
+//					std::cout << "u+ :" << uPlusPerturbed.transpose() << std::endl;
+//					std::cout << "f+ :" << fPlusPerturbed.transpose() << std::endl;
+//					std::cout << "u- :" << uMinusPerturbed.transpose() << std::endl;
+//					std::cout << "f- :" << fMinusPerturbed.transpose() << std::endl << std::endl;
+				}
 			}
 			else {
 				if(isSecondOrderSystem_)  {
@@ -132,6 +142,10 @@ public:
 				else
 					B.col(i) = (fPlusPerturbed - f_) / h;
 			}
+
+
+
+
 		}  // end of i loop
 	}
 
@@ -140,7 +154,7 @@ public:
 
 
 private:
-	const double eps_=sqrt(Eigen::NumTraits<double>::epsilon());
+	const double eps_= 1e-6;//sqrt(Eigen::NumTraits<double>::epsilon());
 
 	std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > nonlinearSystem_;
 	bool doubleSidedDerivative_;

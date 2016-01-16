@@ -30,7 +30,9 @@ public:
 	typedef typename DIMENSIONS::control_feedback_array_t control_feedback_array_t;
 	typedef typename DIMENSIONS::controller_t controller_t;
 
-	ControlledSystemBase() {}
+	ControlledSystemBase()
+		: modelUpdated_(true)
+	{}
 	virtual ~ControlledSystemBase() {}
 
 	void setController(const controller_t& controller) {
@@ -42,6 +44,8 @@ public:
 
 		linInterpolateK_.setTimeStamp(&controller_.time_);
 		linInterpolateK_.setData(&controller_.k_);
+
+		modelUpdated_ = true;
 	}
 
 	void setController(const scalar_array_t& controllerTime,
@@ -75,6 +79,9 @@ public:
 		computeDerivative(t, x, u, dxdt);
 	}
 
+	virtual void initializeModel(const scalar_t& initTime, const state_vector_t& initState, const scalar_t& finalTime=0)
+	{}
+
 	virtual std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > clone() const = 0;
 
 	virtual void computeDerivative(
@@ -85,6 +92,8 @@ public:
 
 protected:
 	controller_t controller_;
+
+	bool modelUpdated_;
 
 	LinearInterpolation<control_vector_t, Eigen::aligned_allocator<control_vector_t> > linInterpolateUff_;
 	LinearInterpolation<control_feedback_t, Eigen::aligned_allocator<control_feedback_t> > linInterpolateK_;

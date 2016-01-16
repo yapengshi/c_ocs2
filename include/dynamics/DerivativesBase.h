@@ -30,6 +30,9 @@ public:
 		u_ = u;
 	}
 
+	virtual void initializeModel(const scalar_t& initTime, const state_vector_t& initState, const scalar_t& finalTime=0)
+	{}
+
 	virtual void getDerivativeState(state_matrix_t& A) = 0;
 	virtual void getDerivativesControl(control_gain_matrix_t& B) = 0;
 

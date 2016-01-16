@@ -49,6 +49,8 @@ public:
 
 	virtual std::shared_ptr<CostFunctionBase<STATE_DIM, CONTROL_DIM> > clone() const = 0;
 
+	virtual void introduceCostFuntion() {}
+
 protected:
 	scalar_t t_;
 	state_vector_t x_;

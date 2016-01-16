@@ -30,6 +30,8 @@ void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::rollout(const state_vector_t& i
 		stateTrajectoriesStock[i].clear();
 		controlTrajectoriesStock[i].clear();
 
+		// initialize subsystem i
+		subsystemDynamicsPtrStock[i]->initializeModel(switchingTimes_[i], x0, switchingTimes_[i+1]);
 		// set controller for subsystem i
 		subsystemDynamicsPtrStock[i]->setController(controllersStock[i]);
 		// simulate subsystem i
@@ -97,17 +99,31 @@ void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::approximateOptimalControlProble
 
 	for (int i=0; i<NUM_Subsystems; i++) {
 
-		subsystemDerivativesPtrStock_[i]->setCurrentStateAndControl(0, stateOperatingPointsStock_[i], inputOperatingPointsStock_[i]);
-		subsystemDerivativesPtrStock_[i]->getDerivativeState(AmStock_[i]);
-		subsystemDerivativesPtrStock_[i]->getDerivativesControl(BmStock_[i]);
+		subsystemDerivativesPtrStock_[i]->initializeModel(switchingTimes_[i], stateOperatingPointsStock_.at(i), switchingTimes_[i+1]);
+		subsystemDerivativesPtrStock_[i]->setCurrentStateAndControl(0, stateOperatingPointsStock_.at(i), inputOperatingPointsStock_.at(i));
+		subsystemDerivativesPtrStock_[i]->getDerivativeState(AmStock_.at(i));
+		subsystemDerivativesPtrStock_[i]->getDerivativesControl(BmStock_.at(i));
 
-		subsystemCostFunctionsPtrStock_[i]->setCurrentStateAndControl(0, stateOperatingPointsStock_[i], inputOperatingPointsStock_[i]);
-		subsystemCostFunctionsPtrStock_[i]->evaluate(qStock_[i](0));
-		subsystemCostFunctionsPtrStock_[i]->stateDerivative(QvStock_[i]);
-		subsystemCostFunctionsPtrStock_[i]->stateSecondDerivative(QmStock_[i]);
-		subsystemCostFunctionsPtrStock_[i]->controlDerivative(RvStock_[i]);
-		subsystemCostFunctionsPtrStock_[i]->controlSecondDerivative(RmStock_[i]);
-		subsystemCostFunctionsPtrStock_[i]->stateControlDerivative(PmStock_[i]);
+		subsystemCostFunctionsPtrStock_[i]->setCurrentStateAndControl(0, stateOperatingPointsStock_.at(i), inputOperatingPointsStock_.at(i));
+		subsystemCostFunctionsPtrStock_[i]->evaluate(qStock_.at(i)(0));
+		subsystemCostFunctionsPtrStock_[i]->stateDerivative(QvStock_.at(i));
+		subsystemCostFunctionsPtrStock_[i]->stateSecondDerivative(QmStock_.at(i));
+		subsystemCostFunctionsPtrStock_[i]->controlDerivative(RvStock_.at(i));
+		subsystemCostFunctionsPtrStock_[i]->controlSecondDerivative(RmStock_.at(i));
+		subsystemCostFunctionsPtrStock_[i]->stateControlDerivative(PmStock_.at(i));
+
+		if (INFO_ON_) {
+			std::cout<< "stateOperatingPoint[" << i << "]: \n" << stateOperatingPointsStock_[i].transpose() << std::endl;
+			std::cout<< "inputOperatingPoint[" << i << "]: \n" << inputOperatingPointsStock_[i].transpose() << std::endl;
+			std::cout<< "A[" << i << "]: \n" << AmStock_[i] << std::endl;
+			std::cout<< "B[" << i << "]: \n" << BmStock_[i] << std::endl;
+			std::cout<< "q[" << i << "]: \t" << qStock_[i] << std::endl;
+			std::cout<< "Qv[" << i << "]: \n" << QvStock_[i].transpose() << std::endl;
+			std::cout<< "Qm[" << i << "]: \n" << QmStock_[i] << std::endl;
+			std::cout<< "Rv[" << i << "]: \n" << RvStock_[i].transpose() << std::endl;
+			std::cout<< "Rm[" << i << "]: \n" << RmStock_[i] << std::endl;
+			std::cout<< "Pm[" << i << "]: \n" << PmStock_[i] << std::endl;
+		}
 
 		// making sure that Qm is PSD
 		makePSD(QmStock_[i]);
@@ -118,6 +134,12 @@ void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::approximateOptimalControlProble
 			subsystemCostFunctionsPtrStock_[i]->terminalCostStateSecondDerivative(QmFinal_);
 			// making sure that Qm is PSD
 			makePSD(QmFinal_);
+
+			if (INFO_ON_) {
+				std::cout<< "qFinal[" << i << "]: \t" << qFinal_ << std::endl;
+				std::cout<< "QvFinal[" << i << "]: \n" << QvFinal_.transpose() << std::endl;
+				std::cout<< "QmFinal[" << i << "]: \n" << QmFinal_ << std::endl;
+			}
 		}
 	}
 }

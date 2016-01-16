@@ -29,6 +29,7 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 class GLQP
 {
 public:
+	const bool INFO_ON_ = false;
 	typedef PartialRiccatiEquations<STATE_DIM, INPUT_DIM, NUM_Subsystems> RiccatiEquations;
 	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
@@ -101,6 +102,8 @@ public:
 			inputOperatingPointsStock_[i] = inputOperatingPoints[systemStockIndex[i]];
 
 			subsystemSimulatorsStockPtr_[i] = std::make_shared<ODE45<STATE_DIM> >(subsystemDynamicsPtrStock[i]);
+
+//			subsystemCostFunctionsPtrStock_[i]->introduceCostFuntion();
 		}
 	}
 

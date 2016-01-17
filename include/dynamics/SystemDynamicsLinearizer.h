@@ -32,23 +32,23 @@ public:
 	typedef typename Base::control_gain_matrix_t control_gain_matrix_t;
 
 
-	SystemDynamicsLinearizer(const std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> >& nonlinearSystem,
+	SystemDynamicsLinearizer(const std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> >& nonlinearSystemPtr_,
 			bool doubleSidedDerivative=true, bool isSecondOrderSystem=false)
 
-		: nonlinearSystem_(nonlinearSystem),
+		: nonlinearSystemPtr_(nonlinearSystemPtr_),
 		  doubleSidedDerivative_(doubleSidedDerivative),
 		  isSecondOrderSystem_(isSecondOrderSystem)
 	{}
 
 	SystemDynamicsLinearizer(const SystemDynamicsLinearizer& other)
 
-		: nonlinearSystem_(other.nonlinearSystem_->clone()),
+		: nonlinearSystemPtr_(other.nonlinearSystemPtr_->clone()),
 		  doubleSidedDerivative_(other.doubleSidedDerivative_),
 		  isSecondOrderSystem_(other.isSecondOrderSystem_)
 	{}
 
 	SystemDynamicsLinearizer& operator=(const SystemDynamicsLinearizer&other)  {
-		nonlinearSystem_ = other.nonlinearSystem_->clone();
+		nonlinearSystemPtr_ = other.nonlinearSystemPtr_->clone();
 		doubleSidedDerivative_ = other.doubleSidedDerivative_;
 		isSecondOrderSystem_ = other.isSecondOrderSystem_;
 	}
@@ -61,7 +61,7 @@ public:
 		Base::setCurrentStateAndControl(t, x, u);
 
 		if (doubleSidedDerivative_==false)
-			nonlinearSystem_->computeDerivative(Base::t_, Base::x_, Base::u_, f_);
+			nonlinearSystemPtr_->computeDerivative(Base::t_, Base::x_, Base::u_, f_);
 	}
 
 	virtual void getDerivativeState(state_matrix_t& A) override {
@@ -76,7 +76,7 @@ public:
 
 			// get evaluation of f(x,u)
 			state_vector_t fPlusPerturbed;
-			nonlinearSystem_->computeDerivative(Base::t_, xPlusPerturbed, Base::u_, fPlusPerturbed);
+			nonlinearSystemPtr_->computeDerivative(Base::t_, xPlusPerturbed, Base::u_, fPlusPerturbed);
 
 			if (doubleSidedDerivative_)  {
 
@@ -84,7 +84,7 @@ public:
 				xMinusPerturbed(i) -= h;
 
 				state_vector_t fMinusPerturbed;
-				nonlinearSystem_->computeDerivative(Base::t_, xMinusPerturbed, Base::u_, fMinusPerturbed);
+				nonlinearSystemPtr_->computeDerivative(Base::t_, xMinusPerturbed, Base::u_, fMinusPerturbed);
 
 				if(isSecondOrderSystem_)  {
 					A.template topLeftCorner<STATE_DIM/2, STATE_DIM/2>().setZero();
@@ -122,7 +122,7 @@ public:
 
 			// get evaluation of f(x,u)
 			state_vector_t fPlusPerturbed;
-			nonlinearSystem_->computeDerivative(Base::t_, Base::x_, uPlusPerturbed, fPlusPerturbed);
+			nonlinearSystemPtr_->computeDerivative(Base::t_, Base::x_, uPlusPerturbed, fPlusPerturbed);
 
 			if (doubleSidedDerivative_)  {
 
@@ -130,7 +130,7 @@ public:
 				uMinusPerturbed(i) -= h;
 
 				state_vector_t fMinusPerturbed;
-				nonlinearSystem_->computeDerivative(Base::t_, Base::x_, uMinusPerturbed, fMinusPerturbed);
+				nonlinearSystemPtr_->computeDerivative(Base::t_, Base::x_, uMinusPerturbed, fMinusPerturbed);
 
 				if(isSecondOrderSystem_)  {
 					B.template topRows<STATE_DIM/2>().setZero();
@@ -168,7 +168,7 @@ public:
 private:
 	const double eps_= sqrt(Eigen::NumTraits<double>::epsilon());
 
-	std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > nonlinearSystem_;
+	std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > nonlinearSystemPtr_;
 	bool doubleSidedDerivative_;
 	bool isSecondOrderSystem_;
 

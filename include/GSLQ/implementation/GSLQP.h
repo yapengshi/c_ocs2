@@ -29,6 +29,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::rollout(const state_vector_t& 
 		stateTrajectoriesStock[i].clear();
 		inputTrajectoriesStock[i].clear();
 
+		// initialize subsystem i
+		subsystemDynamicsPtrStock_[i]->initializeModel(switchingTimes_[i], x0, switchingTimes_[i+1], "GSLQP");
 		// set controller for subsystem i
 		subsystemDynamicsPtrStock_[i]->setController(controllersStock[i]);
 		// simulate subsystem i
@@ -98,6 +100,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::approximateOptimalControlProbl
 	for (int i=0; i<NUM_Subsystems; i++) {
 
 		int N = nominalTimeTrajectoriesStock_[i].size();
+
 		AmTrajectoryStock_[i].resize(N);
 		BmTrajectoryStock_[i].resize(N);
 
@@ -107,6 +110,10 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::approximateOptimalControlProbl
 		RvTrajectoryStock_[i].resize(N);
 		RmTrajectoryStock_[i].resize(N);
 		PmTrajectoryStock_[i].resize(N);
+
+		// initialize subsystem i
+		subsystemDerivativesPtrStock_[i]->initializeModel(nominalTimeTrajectoriesStock_[i].front(),
+				nominalStateTrajectoriesStock_[i].front(), nominalTimeTrajectoriesStock_[i].back(), "GSLQP");
 
 		for (int k=0; k<N; k++) {
 
@@ -528,6 +535,10 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::rolloutSensitivity2SwitchingTi
 	RolloutSensitivityEquations_t::convert2Vector(nabla_state_matrix_t::Zero(), nabla_XmInit);
 
 	for (int i=0; i<NUM_Subsystems; i++) {
+
+		// initialize subsystem i
+		subsystemDynamicsPtrStock_[i]->initializeModel(nominalTimeTrajectoriesStock_[i].front(),
+				nominalStateTrajectoriesStock_[i].front(), nominalTimeTrajectoriesStock_[i].back(), "GSLQP");
 
 		rolloutSensitivityEquationsPtr->setData(i, switchingTimes_, subsystemDynamicsPtrStock_[i], &nominalControllersStock_[i],
 				&nominalTimeTrajectoriesStock_[i], &nominalStateTrajectoriesStock_[i], &nominalInputTrajectoriesStock_[i],

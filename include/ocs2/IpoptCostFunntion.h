@@ -1,12 +1,12 @@
 /*
- * IpopotCostFunntion.h
+ * IpoptCostFunntion.h
  *
  *  Created on: Jan 12, 2016
  *      Author: farbod
  */
 
-#ifndef IPOPOTCOSTFUNNTION_H_
-#define IPOPOTCOSTFUNNTION_H_
+#ifndef IPOPTCOSTFUNNTION_H_
+#define IPOPTCOSTFUNNTION_H_
 
 #include <algorithm>
 #include <iterator>
@@ -19,7 +19,7 @@
 using namespace Ipopt;
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-class IpopotCostFunntion : public TNLP
+class IpoptCostFunntion : public TNLP
 {
 public:
 	enum {NumParameters_=NUM_Subsystems-1, NumConstraints_=NUM_Subsystems-2};
@@ -46,7 +46,7 @@ public:
 	typedef typename DIMENSIONS::control_gain_matrix_t 		 control_gain_matrix_t;
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
 
-	IpopotCostFunntion(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > >& subsystemDynamicsPtr,
+	IpoptCostFunntion(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > >& subsystemDynamicsPtr,
 			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > >& subsystemDerivativesPtr,
 			const std::vector<std::shared_ptr<CostFunctionBase<STATE_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
 			const state_vector_array_t&   stateOperatingPoints,
@@ -65,10 +65,11 @@ public:
 		  initState_(initState),
 		  options_(options),
 		  optimizedSwitchingTimes_(NUM_Subsystems+1),
+		  optimizedControllersStock_(NUM_Subsystems),
 		  numFuntionCall_(0)
 	{}
 
-	virtual ~IpopotCostFunntion() {}
+	virtual ~IpoptCostFunntion() {}
 
 	/**@name Overloaded from TNLP */
 	//@{
@@ -125,10 +126,15 @@ public:
 			IpoptCalculatedQuantities* ip_cq);
 	//@}
 
+
+	void getSolution(scalar_t& optimizedTotalCost, scalar_array_t& optimizedSwitchingTimes,
+			std::vector<controller_t>& optimizedControllersStock)  const;
+
+
 protected:
-	IpopotCostFunntion();
-	IpopotCostFunntion(const IpopotCostFunntion&);
-	IpopotCostFunntion& operator=(const IpopotCostFunntion&);
+	IpoptCostFunntion();
+	IpoptCostFunntion(const IpoptCostFunntion&);
+	IpoptCostFunntion& operator=(const IpoptCostFunntion&);
 
 	size_t findNearestController(const Number* x) const;
 
@@ -149,8 +155,11 @@ private:
 
 	Options_t options_;
 
+	// optimized solution variables
 	scalar_t optimizedTotalCost_;
 	scalar_array_t optimizedSwitchingTimes_;
+	std::vector<controller_t> optimizedControllersStock_;
+
 
 	scalar_t currentTotalCost_;
 	Eigen::Matrix<double,NumParameters_,1> currentCostFuntionDerivative_;
@@ -161,6 +170,6 @@ private:
 	std::vector<std::vector<controller_t> > controllersStockBag_;
 };
 
-#include "implementation/IpopotCostFunntion.h"
+#include "implementation/IpoptCostFunntion.h"
 
-#endif /* IPOPOTCOSTFUNNTION_H_ */
+#endif /* IPOPTCOSTFUNNTION_H_ */

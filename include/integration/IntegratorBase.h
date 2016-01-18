@@ -61,7 +61,9 @@ public:
 		const double& finalTime,
 		StateTrajectory_T& stateTrajectory,
 		TimeTrajectory_T& timeTrajectory,
-		double dtInitial = 0.01
+		double dtInitial = 0.01,
+		double AbsTol = 1e-6,
+		double RelTol = 1e-3
 	) = 0;
 
 	// Output integration based on a given time trajectory

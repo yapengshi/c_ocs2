@@ -19,7 +19,9 @@ class LinearInterpolation
 {
 public:
 	LinearInterpolation()
-		: index_(0)
+		: index_(0),
+		  timeStampPtr_(NULL),
+		  dataPtr_(NULL)
 	{}
 
 	LinearInterpolation(std::vector<double>* const timeStampPtr, std::vector<Data_T,Alloc>* const dataPtr)
@@ -45,7 +47,10 @@ public:
 
 	void interpolate(const double& enquiryTime, Data_T& enquiryData) {
 
-		if (timeStampPtr_->size()==0)  throw std::runtime_error("LinearInterpolation is not initialized.");
+		if (timeStampPtr_==NULL)  throw std::runtime_error("timeStampPtr is not initialized.");
+		if (dataPtr_==NULL)       throw std::runtime_error("dataPtr is not initialized.");
+
+		if (timeStampPtr_->size()==0)  				  throw std::runtime_error("LinearInterpolation is not initialized.");
 		if (timeStampPtr_->size()!=dataPtr_->size())  throw std::runtime_error("The size of timeStamp vector is not equal to the size of data vector.");
 
 		if (timeStampPtr_->size()==1)  {

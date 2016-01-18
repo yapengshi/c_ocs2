@@ -1,0 +1,90 @@
+/*
+ * GSLQPSolver.h
+ *
+ *  Created on: Jan 18, 2016
+ *      Author: farbod
+ */
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+size_t GSLQPSolver<STATE_DIM, INPUT_DIM, NUM_Subsystems>::findNearestController(const Eigen::Matrix<double, NUM_Subsystems-1, 1>& enquiry) const  {
+
+	if (parametersBag_.size()==0)  throw  std::runtime_error("controllerStock bag is empty.");
+
+	// evaluating distance
+	std::vector<double> distance(parametersBag_.size());
+	for (size_t i=0; i<parametersBag_.size(); i++)
+		distance[i] = (parametersBag_[i]-enquiry).squaredNorm();
+
+	// min index
+	auto it = std::min_element(distance.begin(), distance.end());
+	size_t index = std::distance(distance.begin(), it);
+
+	return index;
+}
+
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void GSLQPSolver<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes)  {
+
+	// defining the parameter vector which is the switching times
+	Eigen::Matrix<double, NUM_Subsystems-1, 1> parameters = Eigen::VectorXd::Map(switchingTimes.data()+1, NUM_Subsystems-1);
+	std::cout << "parameters: " << parameters.transpose() << std::endl;
+
+	std::vector<controller_t> controllersStock(NUM_Subsystems);
+	if (parametersBag_.size()==0 || options_.warmStartGSLQP_==false) {
+
+		// GLQP initialization
+		GLQP_t glqp(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
+				stateOperatingPoints_, inputOperatingPoints_, systemStockIndex_);
+
+		glqp.run(switchingTimes);
+
+		// GLQP controller
+		glqp.getController(controllersStock);
+
+		////
+		std::vector<scalar_array_t> timeTrajectoriesStock;
+		std::vector<state_vector_array_t> stateTrajectoriesStock;
+		std::vector<control_vector_array_t> inputTrajectoriesStock;
+
+		// rollout
+		glqp.rollout(initState, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock);
+
+		// compute test rollout cost
+		double rolloutCost;
+		glqp.rolloutCost(timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock, rolloutCost);
+		std::cout << "GLQP rollout cost: " << rolloutCost << std::endl;
+	}
+	else {
+		std::cout << ">>> Memorization information is used\n";
+
+		// find nearest controller
+		size_t index = findNearestController(parameters);
+		controllersStock = controllersStockBag_.at(index);
+	}
+
+	// GSLQP
+	GSLQP_t gslqp(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
+			controllersStock, systemStockIndex_, options_);
+	gslqp.run(initState, switchingTimes);
+
+	// cost funtion
+	gslqp.getValueFuntion(0.0, initState, cost_);
+
+	// cost funtion jacobian
+	gslqp.getCostFuntionDerivative(initState, costDerivative_);
+
+	// GSLQP controller
+	gslqp.getController(controllersStock);
+
+	// saving to bag
+	parametersBag_.push_back(parameters);
+	controllersStockBag_.push_back(controllersStock);
+
+}

@@ -1,5 +1,5 @@
 /*
- * Implementation of IpopotCostFunntion.h
+ * Implementation of IpoptCostFunntion.h
  *
  *  Created on: Jan 12, 2016
  *      Author: farbod
@@ -10,7 +10,7 @@
 /******************************************************************************************************/
 // returns the size of the problem
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::get_nlp_info(Index& numParameters, Index& numConstraints,
+bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::get_nlp_info(Index& numParameters, Index& numConstraints,
 		Index& nnz_jac_g, Index& nnz_h_lag,
 		IndexStyleEnum& index_style)
 {
@@ -35,7 +35,7 @@ bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::get_nlp_info(Inde
 /******************************************************************************************************/
 // returns the variable bounds
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::get_bounds_info(Index numParameters, Number* x_l, Number* x_u,
+bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::get_bounds_info(Index numParameters, Number* x_l, Number* x_u,
 		Index numConstraints, Number* g_l, Number* g_u)
 {
 	// here, the numParameters and numConstraints we gave IPOPT in get_nlp_info are passed back to us.
@@ -65,7 +65,7 @@ bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::get_bounds_info(I
 /******************************************************************************************************/
 // returns the initial point for the problem
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::get_starting_point(Index numParameters, bool init_x, Number* x,
+bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::get_starting_point(Index numParameters, bool init_x, Number* x,
 		bool init_z, Number* z_L, Number* z_U,
 		Index m, bool init_lambda,
 		Number* lambda)
@@ -88,7 +88,7 @@ bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::get_starting_poin
 /******************************************************************************************************/
 // returns the value of the objective function
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_f(Index numParameters, const Number* x, bool new_x, Number& obj_value)
+bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_f(Index numParameters, const Number* x, bool new_x, Number& obj_value)
 {
 	if (numParameters!=NumParameters_)  throw  std::runtime_error("numParameters is not correct.");
 
@@ -105,7 +105,7 @@ bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_f(Index numP
 /******************************************************************************************************/
 // return the gradient of the objective function grad_{x} f(x)
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_grad_f(Index numParameters, const Number* x, bool new_x, Number* grad_f)
+bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_grad_f(Index numParameters, const Number* x, bool new_x, Number* grad_f)
 {
 	if (numParameters!=NumParameters_)  throw  std::runtime_error("numParameters is not correct.");
 
@@ -123,7 +123,7 @@ bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_grad_f(Index
 /******************************************************************************************************/
 // return the value of the constraints: g(x)
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_g(Index numParameters, const Number* x, bool new_x, Index numConstraints, Number* g)
+bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_g(Index numParameters, const Number* x, bool new_x, Index numConstraints, Number* g)
 {
 	if (numParameters!=NumParameters_)  throw  std::runtime_error("numParameters is not correct.");
 	if (numConstraints!=NumConstraints_) throw  std::runtime_error("numConstraints is not correct.");
@@ -147,7 +147,7 @@ bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_g(Index numP
 /******************************************************************************************************/
 // return the structure or values of the jacobian
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_jac_g(Index numParameters, const Number* x, bool new_x,
+bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_jac_g(Index numParameters, const Number* x, bool new_x,
 		Index numConstraints, Index nele_jac, Index* iRow, Index *jCol,
 		Number* values)
 {
@@ -186,10 +186,12 @@ bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_jac_g(Index 
 /******************************************************************************************************/
 // return the structure or hessian of the lagrangian
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_h(Index n, const Number* x, bool new_x,
+bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_h(Index n, const Number* x, bool new_x,
 			Number obj_factor, Index m, const Number* lambda,
 			bool new_lambda, Index nele_hess, Index* iRow,
 			Index* jCol, Number* values)  {
+
+	if (new_x)  solveGSLQP(x);
 
 	return false;
 }
@@ -199,20 +201,27 @@ bool IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_h(Index n, c
 /******************************************************************************************************/
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-void IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::finalize_solution(SolverReturn status,
+void IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::finalize_solution(SolverReturn status,
 		Index numParameters, const Number* x, const Number* z_L, const Number* z_U,
 		Index numConstraints, const Number* g, const Number* lambda,
 		Number optimizedTotalCost,
 		const IpoptData* ip_data,
 		IpoptCalculatedQuantities* ip_cq)
 {
+
+	// cost funtion
+	optimizedTotalCost_ = optimizedTotalCost;
+
+	// switching times
 	optimizedSwitchingTimes_.front() = initSwitchingTimes_.front();
 	optimizedSwitchingTimes_.back()  = initSwitchingTimes_.back();
-
 	for (Index j=0; j<NumParameters_; j++)
 		optimizedSwitchingTimes_[j+1] = x[j];
 
-	optimizedTotalCost_ = optimizedTotalCost;
+	// controller
+	size_t index = findNearestController(x);
+	optimizedControllersStock_ = controllersStockBag_[index];
+
 
 	if (options_.displayIPOPT_) {
 		std::cout << "\n## Optimal cost: " << optimizedTotalCost_ << std::endl;
@@ -231,7 +240,20 @@ void IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::finalize_solution
 /******************************************************************************************************/
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-size_t IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::findNearestController(const Number* x) const  {
+void IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getSolution(scalar_t& optimizedTotalCost,
+		scalar_array_t& optimizedSwitchingTimes, std::vector<controller_t>& optimizedControllersStock)  const  {
+
+	optimizedTotalCost = optimizedTotalCost_;
+	optimizedSwitchingTimes = optimizedSwitchingTimes_;
+	optimizedControllersStock = optimizedControllersStock_;
+}
+
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+size_t IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::findNearestController(const Number* x) const  {
 
 	if (parameterBag_.size()==0)  throw  std::runtime_error("controllerStock bag is empty.");
 
@@ -254,15 +276,23 @@ size_t IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::findNearestCont
 /******************************************************************************************************/
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-void IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::solveGSLQP(const Number* x)  {
+void IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::solveGSLQP(const Number* x)  {
 
 	// switching time vector
 	scalar_array_t switchingTimes(initSwitchingTimes_);
 	for (Index j=0; j<NumParameters_; j++)
 		switchingTimes[j+1] = x[j];
 
+//	std::cout << "switching time: ";
+//	for (Index j=0; j<switchingTimes.size(); j++)
+//		std::cout << switchingTimes[j] << ", ";
+//	std::cout << std::endl;
+
 	std::vector<controller_t> controllersStock(NUM_Subsystems);
 	if (parameterBag_.size()==0 || options_.warmStartGSLQP_==false) {
+
+		std::cout << "==> IPOPT cost funtion call WITHOUT Memorization" << std::endl;
+
 		// GLQP initialization
 		GLQP_t glqp(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
 				stateOperatingPoints_, inputOperatingPoints_, systemStockIndex_);
@@ -270,8 +300,23 @@ void IpopotCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::solveGSLQP(const 
 
 		// GLQP controller
 		glqp.getController(controllersStock);
+
+//		////
+//		std::vector<scalar_array_t> timeTrajectoriesStock;
+//		std::vector<state_vector_array_t> stateTrajectoriesStock;
+//		std::vector<control_vector_array_t> inputTrajectoriesStock;
+//
+//		// rollout
+//		glqp.rollout(initState_, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock);
+//
+//		// compute test rollout cost
+//		double rolloutCost;
+//		glqp.rolloutCost(timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock, rolloutCost);
+//		std::cout << "GLQP rollout cost: " << rolloutCost << std::endl;
 	}
 	else {
+		std::cout << "==> IPOPT cost funtion call WITH memorization" << std::endl;
+
 		// find nearest controller
 		size_t index = findNearestController(x);
 		controllersStock = controllersStockBag_[index];

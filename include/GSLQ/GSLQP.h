@@ -158,6 +158,10 @@ public:
 
 	void getCostFuntionDerivative(const state_vector_t& initState, Eigen::Matrix<double,NUM_Subsystems-1,1>& costFuntionDerivative);
 
+	void getNominalTrajectories(std::vector<scalar_array_t>& nominalTimeTrajectoriesStock,
+			std::vector<state_vector_array_t>& nominalStateTrajectoriesStock,
+			std::vector<control_vector_array_t>& nominalInputTrajectoriesStock);
+
 	void run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes);
 
 

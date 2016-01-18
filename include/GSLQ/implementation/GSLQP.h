@@ -34,7 +34,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::rollout(const state_vector_t& 
 		// set controller for subsystem i
 		subsystemDynamicsPtrStock_[i]->setController(controllersStock[i]);
 		// simulate subsystem i
-		subsystemSimulatorsStockPtr_[i]->integrate(x0, switchingTimes_[i], switchingTimes_[i+1], stateTrajectoriesStock[i], timeTrajectoriesStock[i], 1e-3);
+		subsystemSimulatorsStockPtr_[i]->integrate(x0, switchingTimes_[i], switchingTimes_[i+1], stateTrajectoriesStock[i], timeTrajectoriesStock[i],
+				1e-3, options_.AbsTolODE_, options_.RelTolODE_);
 
 		// compute control trajectory for subsystem i
 		inputTrajectoriesStock[i].resize(timeTrajectoriesStock[i].size());
@@ -421,6 +422,21 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getCostFuntionDerivative(const
 }
 
 
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getNominalTrajectories(std::vector<scalar_array_t>& nominalTimeTrajectoriesStock,
+			std::vector<state_vector_array_t>& nominalStateTrajectoriesStock,
+			std::vector<control_vector_array_t>& nominalInputTrajectoriesStock)   {
+
+	nominalTimeTrajectoriesStock = nominalTimeTrajectoriesStock_;
+	nominalStateTrajectoriesStock = nominalStateTrajectoriesStock_;
+	nominalInputTrajectoriesStock = nominalInputTrajectoriesStock_;
+}
+
+
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
@@ -446,7 +462,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveSequentialRiccatiEquation
 		ODE45<RiccatiEquations::S_DIM_> ode45(riccatiEquationsPtr);
 		std::vector<double> normalizedTimeTrajectory;
 		std::vector<typename RiccatiEquations::s_vector_t, Eigen::aligned_allocator<typename RiccatiEquations::s_vector_t> > allSsTrajectory;
-		ode45.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory);
+		ode45.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory,
+				1e-3, options_.AbsTolODE_, options_.RelTolODE_);
 
 		// denormalizing time and constructing 'Sm', 'Sv', and 's'
 		int N = normalizedTimeTrajectory.size();
@@ -497,7 +514,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveFullSequentialRiccatiEqua
 		ODE45<FullRiccatiEquations::S_DIM_*NUM_Subsystems> ode45(riccatiEquationsPtr);
 		std::vector<double> normalizedTimeTrajectory;
 		std::vector<typename FullRiccatiEquations::all_s_vector_t, Eigen::aligned_allocator<typename FullRiccatiEquations::all_s_vector_t> > allSsTrajectory;
-		ode45.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory);
+		ode45.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory,
+				1e-3, options_.AbsTolODE_, options_.RelTolODE_);
 
 		// denormalizing time and constructing 'Sm', 'Sv', and 's'
 		int N = normalizedTimeTrajectory.size();
@@ -550,7 +568,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::rolloutSensitivity2SwitchingTi
 
 		// integrating
 		ODE45<(NUM_Subsystems-1)*STATE_DIM> ode45(rolloutSensitivityEquationsPtr);
-		ode45.integrate(nabla_XmInit, i, i+1, sensitivityStateTrajectory, normalizedSensitivityTimeTrajectory);
+		ode45.integrate(nabla_XmInit, i, i+1, sensitivityStateTrajectory, normalizedSensitivityTimeTrajectory,
+				1e-3, options_.AbsTolODE_, options_.RelTolODE_);
 
 		// denormalizing time and constructing SensitivityStateTrajectory and computing control trajectory sensitivity for subsystem i
 		int N = sensitivityStateTrajectory.size();
@@ -650,7 +669,7 @@ bool GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::makePSD(Eigen::MatrixBase<Deri
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes)  {
 
-	if (options_.dispayGSLQP_)  std::cout << "#### GSLQP solver starts ..." << std::endl << std::endl;
+	if (options_.dispayGSLQP_)  std::cout << "\n#### GSLQP solver starts ..." << std::endl << std::endl;
 
 	if (switchingTimes.size() != NUM_Subsystems+1)
 		throw std::runtime_error("Number of switching times should be one plus the number of subsystems.");
@@ -710,6 +729,6 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& init
 	transformeLocalValueFuntion2Global();
 	transformeLocalValueFuntionDerivative2Global();
 
-	if (options_.dispayGSLQP_)  std::cout << "\n#### GSLQP solver ends." << std::endl << std::endl;
+	if (options_.dispayGSLQP_)  std::cout << "\n#### GSLQP solver ends." << std::endl;
 }
 

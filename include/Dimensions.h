@@ -56,6 +56,10 @@ public:
 			minLearningRateGSLQP_(0.05),
 			dispayGSLQP_(false),
 			warmStartGSLQP_(false),
+
+			AbsTolODE_(1e-9),
+			RelTolODE_(1e-6),
+
 			displayIPOPT_(true),
 			tolIPOPT_(1e-2),
 			acceptableTolIPOPT_(1e-1),
@@ -66,6 +70,9 @@ public:
 		scalar_t minLearningRateGSLQP_;
 		bool dispayGSLQP_;
 		bool warmStartGSLQP_;
+
+		double AbsTolODE_;
+		double RelTolODE_;
 
 		bool displayIPOPT_;
 		double tolIPOPT_;

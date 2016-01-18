@@ -288,6 +288,8 @@ void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveRiccatiEquations()  {
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const std::vector<scalar_t>& switchingTimes)  {
 
+//	std::cout << "\n#### GLQP solver starts ..." << std::endl << std::endl;
+
 	if (switchingTimes.size() != NUM_Subsystems+1)
 		throw std::runtime_error("Number of switching times should be one plus the number of subsystems.");
 	switchingTimes_ = switchingTimes;
@@ -303,6 +305,8 @@ void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const std::vector<scalar_t>
 
 	// transforme the local value funtion to the global representation
 	transformeLocalValueFuntion2Global();
+
+//	std::cout << "\n#### GLQP solver ends." << std::endl;
 }
 
 

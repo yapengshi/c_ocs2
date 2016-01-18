@@ -72,11 +72,9 @@ public:
 		const double& finalTime,
 		typename Base::StateTrajectory_T& stateTrajectory,
 		typename Base::TimeTrajectory_T& timeTrajectory,
-		double dtInitial = 0.01
-		) override
-	 {
-		 const double AbsTol = 1e-9;
-		 const double RelTol = 1e-6;
+		double dtInitial = 0.01,
+		double AbsTol = 1e-9,
+		double RelTol = 1e-6) override  {
 
 		 typename Base::State_T initialStateInternal = initialState;
 		 initialize(initialStateInternal, startTime, dtInitial);

@@ -152,6 +152,9 @@ add_executable(ceres_test src/test/CeresTest.cpp)
 ## Declare a cpp executable 
 add_executable(numerical_derivative_test src/test/SystemDynamicsDerivativeTest.cpp)
 
+## Declare a cpp executable 
+add_executable(exp1_cost_derivative_test src/test/EXP1DerivativesCheck.cpp)
+
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(c_ocs2_node c_ocs2_generate_messages_cpp)
@@ -198,6 +201,12 @@ target_link_libraries(ceres_test
 target_link_libraries(numerical_derivative_test
   ${catkin_LIBRARIES}
 )
+
+target_link_libraries(exp1_cost_derivative_test
+  ${catkin_LIBRARIES}
+  ${IPOPT_LIBS}
+)
+
 
 #############
 ## Install ##

@@ -26,8 +26,9 @@ bool OCS2Ipopt<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run ()  {
 	ipoptApplication->Options()->SetIntegerValue("max_iter", options_.maxIterationIPOPT_);
 	ipoptApplication->Options()->SetIntegerValue("acceptable_iter", 2);
 	ipoptApplication->Options()->SetStringValue("mu_strategy", "adaptive");
-	ipoptApplication->Options()->SetStringValue("derivative_test", "first-order");
+	ipoptApplication->Options()->SetStringValue("derivative_test", "none");
 	ipoptApplication->Options()->SetNumericValue("derivative_test_tol", 1e-6);
+	ipoptApplication->Options()->SetStringValue("jac_d_constant", "yes");  // Indicates that all inequality constraints are linear
 	if (options_.displayIPOPT_)
 		ipoptApplication->Options()->SetStringValue("print_user_options", "yes");
 	else
@@ -43,6 +44,7 @@ bool OCS2Ipopt<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run ()  {
 
 	// extract solutions
 	rolloutSolution();
+
 
 	return (int)status;
 }
@@ -67,7 +69,7 @@ void OCS2Ipopt<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getCost(scalar_t& optimize
 /******************************************************************************************************/
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-void OCS2Ipopt<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getController(scalar_array_t optimizedSwitchingTimes,
+void OCS2Ipopt<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getController(scalar_array_t& optimizedSwitchingTimes,
 		std::vector<controller_t>& optimizedControllersStock)  const  {
 
 	optimizedSwitchingTimes = ipoptOptimizedSwitchingTimes_;
@@ -97,7 +99,7 @@ void OCS2Ipopt<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getTrajectories(
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 void OCS2Ipopt<STATE_DIM, INPUT_DIM, NUM_Subsystems>::rolloutSolution()  {
 
-	static_cast<IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>*>(GetRawPtr(ocs2Nlp_))->getSolution(
+	dynamic_cast<IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>*>(GetRawPtr(ocs2Nlp_))->getSolution(
 			ipoptOptimizedTotalCost_, ipoptOptimizedSwitchingTimes_, ipoptOptimizedControllersStock_);
 
 	// GSLQP

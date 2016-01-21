@@ -283,41 +283,21 @@ void IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::solveGSLQP(const N
 	for (Index j=0; j<NumParameters_; j++)
 		switchingTimes[j+1] = x[j];
 
-//	std::cout << "switching time: ";
-//	for (Index j=0; j<switchingTimes.size(); j++)
-//		std::cout << switchingTimes[j] << ", ";
-//	std::cout << std::endl;
-
+	// get the initial controller either through GLQP or memorized solutions in the solution bag
 	std::vector<controller_t> controllersStock(NUM_Subsystems);
-	if (parameterBag_.size()==0 || options_.warmStartGSLQP_==false) {
-
-		std::cout << "==> IPOPT cost funtion call WITHOUT Memorization" << std::endl;
+	if (options_.warmStartGSLQP_==false || parameterBag_.size()==0) {
 
 		// GLQP initialization
 		GLQP_t glqp(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
 				stateOperatingPoints_, inputOperatingPoints_, systemStockIndex_);
-		glqp.run(switchingTimes);
+		glqp.run(switchingTimes, 0.0);
 
 		// GLQP controller
 		glqp.getController(controllersStock);
 
-//		////
-//		std::vector<scalar_array_t> timeTrajectoriesStock;
-//		std::vector<state_vector_array_t> stateTrajectoriesStock;
-//		std::vector<control_vector_array_t> inputTrajectoriesStock;
-//
-//		// rollout
-//		glqp.rollout(initState_, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock);
-//
-//		// compute test rollout cost
-//		double rolloutCost;
-//		glqp.rolloutCost(timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock, rolloutCost);
-//		std::cout << "GLQP rollout cost: " << rolloutCost << std::endl;
 	}
 	else {
-		std::cout << "==> IPOPT cost funtion call WITH memorization" << std::endl;
-
-		// find nearest controller
+		// find most similar controller
 		size_t index = findNearestController(x);
 		controllersStock = controllersStockBag_[index];
 	}
@@ -338,7 +318,7 @@ void IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::solveGSLQP(const N
 	// GSLQP controller
 	gslqp.getController(controllersStock);
 
-	// saving to bag
+	// saving solution in the bag
 	parameterBag_.push_back(Eigen::Map<const Eigen::Matrix<double,NumParameters_,1> >(x));
 	controllersStockBag_.push_back(controllersStock);
 

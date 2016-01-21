@@ -76,45 +76,46 @@ public:
 			const std::vector<controller_t>& initialControllersStock,
 			const std::vector<size_t>& systemStockIndex,
 			const Options_t& options = Options_t::Options())
-		: subsystemDynamicsPtrStock_(NUM_Subsystems),
-		  subsystemDerivativesPtrStock_(NUM_Subsystems),
-		  subsystemCostFunctionsPtrStock_(NUM_Subsystems),
-		  subsystemSimulatorsStockPtr_(NUM_Subsystems),
-		  nominalControllersStock_(initialControllersStock),
-		  nominalTimeTrajectoriesStock_(NUM_Subsystems),
-		  nominalStateTrajectoriesStock_(NUM_Subsystems),
-		  nominalInputTrajectoriesStock_(NUM_Subsystems),
-		  sensitivityTimeTrajectoryStock_(NUM_Subsystems),
-		  nablaStateTrajectoryStock_(NUM_Subsystems),
-		  nablaInputTrajectoryStock_(NUM_Subsystems),
-		  nablaqTrajectoryStock_(NUM_Subsystems),
-		  nablaQvTrajectoryStock_(NUM_Subsystems),
-		  nablaRvTrajectoryStock_(NUM_Subsystems),
-		  AmTrajectoryStock_(NUM_Subsystems),
-		  BmTrajectoryStock_(NUM_Subsystems),
-		  qTrajectoryStock_(NUM_Subsystems),
-		  QvTrajectoryStock_(NUM_Subsystems),
-		  QmTrajectoryStock_(NUM_Subsystems),
-		  RvTrajectoryStock_(NUM_Subsystems),
-		  RmTrajectoryStock_(NUM_Subsystems),
-		  PmTrajectoryStock_(NUM_Subsystems),
-		  SsTimeTrajectoryStock_(NUM_Subsystems),
-		  sTrajectoryStock_(NUM_Subsystems),
-		  SvTrajectoryStock_(NUM_Subsystems),
-		  SmTrajectoryStock_(NUM_Subsystems),
-		  nablasTrajectoryStock_(NUM_Subsystems),
-		  nablaSvTrajectoryStock_(NUM_Subsystems),
-		  nablaSmTrajectoryStock_(NUM_Subsystems),
-		  switchingTimes_(NUM_Subsystems+1),
-		  nominalRolloutIsUpdated_(false),
-		  options_(options)
+
+    : subsystemDynamicsPtrStock_(NUM_Subsystems),
+      subsystemDerivativesPtrStock_(NUM_Subsystems),
+      subsystemCostFunctionsPtrStock_(NUM_Subsystems),
+      subsystemSimulatorsStockPtr_(NUM_Subsystems),
+      nominalControllersStock_(initialControllersStock),
+      nominalTimeTrajectoriesStock_(NUM_Subsystems),
+      nominalStateTrajectoriesStock_(NUM_Subsystems),
+      nominalInputTrajectoriesStock_(NUM_Subsystems),
+      sensitivityTimeTrajectoryStock_(NUM_Subsystems),
+      nablaStateTrajectoryStock_(NUM_Subsystems),
+      nablaInputTrajectoryStock_(NUM_Subsystems),
+      nablaqTrajectoryStock_(NUM_Subsystems),
+      nablaQvTrajectoryStock_(NUM_Subsystems),
+      nablaRvTrajectoryStock_(NUM_Subsystems),
+      AmTrajectoryStock_(NUM_Subsystems),
+      BmTrajectoryStock_(NUM_Subsystems),
+      qTrajectoryStock_(NUM_Subsystems),
+      QvTrajectoryStock_(NUM_Subsystems),
+      QmTrajectoryStock_(NUM_Subsystems),
+      RvTrajectoryStock_(NUM_Subsystems),
+      RmTrajectoryStock_(NUM_Subsystems),
+      PmTrajectoryStock_(NUM_Subsystems),
+      SsTimeTrajectoryStock_(NUM_Subsystems),
+      sTrajectoryStock_(NUM_Subsystems),
+      SvTrajectoryStock_(NUM_Subsystems),
+      SmTrajectoryStock_(NUM_Subsystems),
+      nablasTrajectoryStock_(NUM_Subsystems),
+      nablaSvTrajectoryStock_(NUM_Subsystems),
+      nablaSmTrajectoryStock_(NUM_Subsystems),
+      switchingTimes_(NUM_Subsystems+1),
+      nominalRolloutIsUpdated_(false),
+      options_(options)
 	{
 
 		if (subsystemDynamicsPtr.size() != subsystemDerivativesPtr.size())
 			throw std::runtime_error("Number of subsystem derivaties is not equal to the number of subsystems.");
 		if (subsystemDynamicsPtr.size() != subsystemCostFunctionsPtr.size())
 			throw std::runtime_error("Number of cost functions is not equal to the number of subsystems.");
-		if (subsystemDynamicsPtr.size()-1 != *std::max_element(systemStockIndex.begin(), systemStockIndex.end()))
+		if (subsystemDynamicsPtr.size()-1 < *std::max_element(systemStockIndex.begin(), systemStockIndex.end()))
 			throw std::runtime_error("systemStockIndex points to non-existing subsystem");
 		if (initialControllersStock.size() != NUM_Subsystems)
 			throw std::runtime_error("initialControllersStock has less controllers then the number of subsystems");
@@ -146,11 +147,7 @@ public:
 
 	void getRolloutSensitivity2SwitchingTime(std::vector<scalar_array_t>& sensitivityTimeTrajectoriesStock,
 		std::vector<nabla_state_matrix_array_t>& sensitivityStateTrajectoriesStock,
-		std::vector<nabla_input_matrix_array_t>& sensitivityInputTrajectoriesStock) {
-		sensitivityTimeTrajectoriesStock = sensitivityTimeTrajectoryStock_;
-		sensitivityStateTrajectoriesStock = nablaStateTrajectoryStock_;
-		sensitivityInputTrajectoriesStock = nablaInputTrajectoryStock_;
-	}
+		std::vector<nabla_input_matrix_array_t>& sensitivityInputTrajectoriesStock);
 
 	void getController(std::vector<controller_t>& controllersStock) { controllersStock = nominalControllersStock_;}
 
@@ -203,6 +200,7 @@ private:
 	std::vector<scalar_array_t> sensitivityTimeTrajectoryStock_;
 	std::vector<nabla_state_matrix_array_t> nablaStateTrajectoryStock_;
 	std::vector<nabla_input_matrix_array_t> nablaInputTrajectoryStock_;
+	//
 	std::vector<nabla_scalar_rowvector_array_t> nablaqTrajectoryStock_;
 	std::vector<nabla_state_matrix_array_t> nablaQvTrajectoryStock_;
 	std::vector<nabla_input_matrix_array_t> nablaRvTrajectoryStock_;

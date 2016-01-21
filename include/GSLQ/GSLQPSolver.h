@@ -55,16 +55,26 @@ public:
 	  stateOperatingPoints_(stateOperatingPoints),
 	  inputOperatingPoints_(inputOperatingPoints),
 	  systemStockIndex_(systemStockIndex),
-	  options_(options)
+	  options_(options),
+	  controllersStock_(NUM_Subsystems)
 	{}
 
 	virtual ~GSLQPSolver() {}
 
-	void run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes);
-
 	scalar_t cost()  { return cost_; }
 
 	parameters_t costDerivative()  {return costDerivative_;}
+
+	void controller(std::vector<controller_t>& controllersStock)  { controllersStock = controllersStock_; }
+
+	void reset()  {
+		controllersStockBag_.clear();
+		parametersBag_.clear();
+	}
+
+	Options_t& options()  { return options_; }
+
+	void run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes);
 
 
 protected:
@@ -88,6 +98,7 @@ private:
 
 	scalar_t cost_;
 	parameters_t costDerivative_;
+	std::vector<controller_t> controllersStock_;
 
 };
 

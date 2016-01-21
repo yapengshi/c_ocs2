@@ -34,7 +34,6 @@ void GSLQPSolver<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t
 
 	// defining the parameter vector which is the switching times
 	Eigen::Matrix<double, NUM_Subsystems-1, 1> parameters = Eigen::VectorXd::Map(switchingTimes.data()+1, NUM_Subsystems-1);
-	std::cout << "parameters: " << parameters.transpose() << std::endl;
 
 	std::vector<controller_t> controllersStock(NUM_Subsystems);
 	if (parametersBag_.size()==0 || options_.warmStartGSLQP_==false) {
@@ -47,23 +46,8 @@ void GSLQPSolver<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t
 
 		// GLQP controller
 		glqp.getController(controllersStock);
-
-		////
-		std::vector<scalar_array_t> timeTrajectoriesStock;
-		std::vector<state_vector_array_t> stateTrajectoriesStock;
-		std::vector<control_vector_array_t> inputTrajectoriesStock;
-
-		// rollout
-		glqp.rollout(initState, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock);
-
-		// compute test rollout cost
-		double rolloutCost;
-		glqp.rolloutCost(timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock, rolloutCost);
-		std::cout << "GLQP rollout cost: " << rolloutCost << std::endl;
 	}
 	else {
-		std::cout << ">>> Memorization information is used\n";
-
 		// find nearest controller
 		size_t index = findNearestController(parameters);
 		controllersStock = controllersStockBag_.at(index);
@@ -81,10 +65,10 @@ void GSLQPSolver<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t
 	gslqp.getCostFuntionDerivative(initState, costDerivative_);
 
 	// GSLQP controller
-	gslqp.getController(controllersStock);
+	gslqp.getController(controllersStock_);
 
 	// saving to bag
 	parametersBag_.push_back(parameters);
-	controllersStockBag_.push_back(controllersStock);
+	controllersStockBag_.push_back(controllersStock_);
 
 }

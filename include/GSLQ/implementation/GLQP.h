@@ -286,7 +286,7 @@ void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::SolveRiccatiEquations()  {
 /******************************************************************************************************/
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const std::vector<scalar_t>& switchingTimes)  {
+void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const std::vector<scalar_t>& switchingTimes, const scalar_t& learningRate)  {
 
 //	std::cout << "\n#### GLQP solver starts ..." << std::endl << std::endl;
 
@@ -301,7 +301,7 @@ void GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const std::vector<scalar_t>
 	SolveRiccatiEquations();
 
 	// calculate controller
-	calculatecontroller(1.0, controllersStock_);
+	calculatecontroller(learningRate, controllersStock_);
 
 	// transforme the local value funtion to the global representation
 	transformeLocalValueFuntion2Global();

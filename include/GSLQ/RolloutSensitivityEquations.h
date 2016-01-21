@@ -63,7 +63,7 @@ public:
 		activeSubsystem_ = activeSubsystem;
 		switchingTimes_ = switchingTimes;
 
-		systemFunction_ = [subsystemDynamicsPtr](const scalar_t& t, const state_vector_t& x, const control_vector_t& u, state_vector_t& dxdt) {
+		systemFunction_ = [&subsystemDynamicsPtr](const scalar_t& t, const state_vector_t& x, const control_vector_t& u, state_vector_t& dxdt) {
 			subsystemDynamicsPtr->computeDerivative(t, x, u, dxdt); };
 
 		KmFunc_.setTimeStamp(&(controllerPtr->time_));

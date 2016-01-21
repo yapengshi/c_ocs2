@@ -78,7 +78,7 @@ public:
 			scalar_t& ipoptOptimizedTotalCost=0)  const;
 
 
-	void getController(scalar_array_t optimizedSwitchingTimes,
+	void getController(scalar_array_t& optimizedSwitchingTimes,
 			std::vector<controller_t>& optimizedControllersStock) const;
 
 

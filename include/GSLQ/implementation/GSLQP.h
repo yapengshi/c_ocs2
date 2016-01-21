@@ -377,6 +377,22 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::transformeLocalValueFuntionDer
 }
 
 
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getRolloutSensitivity2SwitchingTime(
+		std::vector<scalar_array_t>& sensitivityTimeTrajectoriesStock,
+		std::vector<nabla_state_matrix_array_t>& sensitivityStateTrajectoriesStock,
+		std::vector<nabla_input_matrix_array_t>& sensitivityInputTrajectoriesStock)  {
+
+	sensitivityTimeTrajectoriesStock = sensitivityTimeTrajectoryStock_;
+	sensitivityStateTrajectoriesStock = nablaStateTrajectoryStock_;
+	sensitivityInputTrajectoriesStock = nablaInputTrajectoryStock_;
+}
+
+
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
@@ -408,7 +424,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getValueFuntion(const scalar_t
 /******************************************************************************************************/
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getCostFuntionDerivative(const state_vector_t& initState, Eigen::Matrix<double,NUM_Subsystems-1,1>& costFuntionDerivative)  {
+void GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getCostFuntionDerivative(const state_vector_t& initState,
+		Eigen::Matrix<double,NUM_Subsystems-1,1>& costFuntionDerivative)  {
 
 
 	for (int j=0; j<NUM_Subsystems-1; j++)  {

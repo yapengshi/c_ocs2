@@ -87,7 +87,7 @@ public:
 			throw std::runtime_error("Number of state operating points is not equal to the number of subsystems.");
 		if (subsystemDynamicsPtr.size() != inputOperatingPoints.size())
 			throw std::runtime_error("Number of input operating points is not equal to the number of subsystems.");
-		if (subsystemDynamicsPtr.size()-1 != *std::max_element(systemStockIndex.begin(), systemStockIndex.end()))
+		if (subsystemDynamicsPtr.size()-1 < *std::max_element(systemStockIndex.begin(), systemStockIndex.end()))
 			throw std::runtime_error("systemStockIndex points to non-existing subsystem");
 		if (systemStockIndex.size() != NUM_Subsystems)
 			throw std::runtime_error("systemStockIndex has less elements then the number of subsystems");
@@ -124,7 +124,7 @@ public:
 
 	void getValueFuntion(const scalar_t& time, const state_vector_t& state, scalar_t& valueFuntion);
 
-	void run(const std::vector<scalar_t>& switchingTimes);
+	void run(const std::vector<scalar_t>& switchingTimes, const scalar_t& learningRate=1.0);
 
 
 protected:

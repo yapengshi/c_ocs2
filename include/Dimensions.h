@@ -89,6 +89,6 @@ private:
 
 };
 
-
+using HyQDimensions = Dimensions<36,12>;
 
 #endif /* DIMENSIONS_H_ */

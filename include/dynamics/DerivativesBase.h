@@ -8,6 +8,7 @@
 #ifndef DERIVATIVESBASE_H_
 #define DERIVATIVESBASE_H_
 
+#include <memory>
 #include <cstring>
 
 #include "Dimensions.h"

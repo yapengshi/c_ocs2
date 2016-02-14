@@ -72,8 +72,8 @@ public:
 			return;
 		}
 
-		if (dataPtr_->size() <= ind+1)
-			std::cout << " --> " << ind << std::endl;
+//		if (dataPtr_->size() <= ind+1)
+//			std::cout << " --> " << ind << std::endl;
 		double alpha = (enquiryTime-timeStampPtr_->at(ind+1)) / (timeStampPtr_->at(ind)-timeStampPtr_->at(ind+1));
 		enquiryData = alpha*dataPtr_->at(ind) + (1-alpha)*dataPtr_->at(ind+1);
 	}

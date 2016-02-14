@@ -29,6 +29,7 @@ bool OCS2Ipopt<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run ()  {
 	ipoptApplication->Options()->SetStringValue("derivative_test", "none");
 	ipoptApplication->Options()->SetNumericValue("derivative_test_tol", 1e-6);
 	ipoptApplication->Options()->SetStringValue("jac_d_constant", "yes");  // Indicates that all inequality constraints are linear
+	ipoptApplication->Options()->SetStringValue("output_file", "/home/farbod/Programs/ct_ws/src/fbcc_hyq_controller/config/CoMOptimization/result/ipopt_info.txt");
 	if (options_.displayIPOPT_)
 		ipoptApplication->Options()->SetStringValue("print_user_options", "yes");
 	else

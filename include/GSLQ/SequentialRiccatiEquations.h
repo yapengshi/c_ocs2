@@ -134,6 +134,30 @@ public:
 		convert2Vector(dSmdz, dSvdz, dsdz, derivatives);
 	}
 
+protected:
+	template <typename Derived>
+	bool makePSD(Eigen::MatrixBase<Derived>& squareMatrix) {
+
+		if (squareMatrix.rows() != squareMatrix.cols())  throw std::runtime_error("Not a square matrix: makePSD() method is for square matrix.");
+
+		Eigen::SelfAdjointEigenSolver<Derived> eig(squareMatrix);
+		Eigen::VectorXd lambda = eig.eigenvalues();
+
+		bool hasNegativeEigenValue = false;
+		for (size_t j=0; j<lambda.size() ; j++)
+			if (lambda(j) < 0.0) {
+				hasNegativeEigenValue = true;
+				lambda(j) = 0.0;
+			}
+
+		if (hasNegativeEigenValue)
+			squareMatrix = eig.eigenvectors() * lambda.asDiagonal() * eig.eigenvectors().inverse();
+		//	else
+		//		squareMatrix = 0.5*(squareMatrix+squareMatrix.transpose()).eval();
+
+		return hasNegativeEigenValue;
+	}
+
 
 private:
 	scalar_t alpha_;

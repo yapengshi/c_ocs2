@@ -30,8 +30,8 @@ int main (int argc, char* argv[])
 	// subsystem cost functions
 	std::vector<std::shared_ptr<CostFunctionBase<2,1> > > subsystemCostFunctionsPtr {std::make_shared<EXP2_CostFunction1>(), std::make_shared<EXP2_CostFunction2>()};
 
-	GSLQP<2,1,2>::state_vector_array_t   stateOperatingPoints(2, GSLQP<2,1,2>::state_vector_t::Zero());
-	GSLQP<2,1,2>::control_vector_array_t inputOperatingPoints(2, GSLQP<2,1,2>::control_vector_t::Zero());
+	GSLQP<2,1,2,2>::state_vector_array_t   stateOperatingPoints(2, GSLQP<2,1,2,2>::state_vector_t::Zero());
+	GSLQP<2,1,2,2>::control_vector_array_t inputOperatingPoints(2, GSLQP<2,1,2,2>::control_vector_t::Zero());
 	std::vector<size_t> systemStockIndex {0, 1};
 
 //	std::vector<double> initSwitchingTimes {0, 0.184, 2};
@@ -40,7 +40,7 @@ int main (int argc, char* argv[])
 
 	Eigen::Vector2d initState(0.0, 2.0);
 
-	OCS2Ipopt<2,1,2>::Options_t gslqpOptions;
+	OCS2Ipopt<2,1,2,2>::Options_t gslqpOptions;
 	gslqpOptions.maxIterationIPOPT_ = 5;
 	gslqpOptions.warmStartGSLQP_ = true;
 //	gslqpOptions.dispayGSLQP_ = true;
@@ -50,7 +50,7 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	/******************************************************************************************************/
-	OCS2Ipopt<2,1,2> ocs2 (subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
+	OCS2Ipopt<2,1,2,2> ocs2 (subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
 			stateOperatingPoints, inputOperatingPoints, systemStockIndex, initSwitchingTimes, initState, gslqpOptions);
 
 	ocs2.run();

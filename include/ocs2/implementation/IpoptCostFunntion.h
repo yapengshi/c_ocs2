@@ -9,8 +9,8 @@
 /******************************************************************************************************/
 /******************************************************************************************************/
 // returns the size of the problem
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::get_nlp_info(Index& numParameters, Index& numConstraints,
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
+bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::get_nlp_info(Index& numParameters, Index& numConstraints,
 		Index& nnz_jac_g, Index& nnz_h_lag,
 		IndexStyleEnum& index_style)
 {
@@ -34,8 +34,8 @@ bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::get_nlp_info(Index
 /******************************************************************************************************/
 /******************************************************************************************************/
 // returns the variable bounds
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::get_bounds_info(Index numParameters, Number* x_l, Number* x_u,
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
+bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::get_bounds_info(Index numParameters, Number* x_l, Number* x_u,
 		Index numConstraints, Number* g_l, Number* g_u)
 {
 	// here, the numParameters and numConstraints we gave IPOPT in get_nlp_info are passed back to us.
@@ -64,8 +64,8 @@ bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::get_bounds_info(In
 /******************************************************************************************************/
 /******************************************************************************************************/
 // returns the initial point for the problem
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::get_starting_point(Index numParameters, bool init_x, Number* x,
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
+bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::get_starting_point(Index numParameters, bool init_x, Number* x,
 		bool init_z, Number* z_L, Number* z_U,
 		Index m, bool init_lambda,
 		Number* lambda)
@@ -87,8 +87,8 @@ bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::get_starting_point
 /******************************************************************************************************/
 /******************************************************************************************************/
 // returns the value of the objective function
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_f(Index numParameters, const Number* x, bool new_x, Number& obj_value)
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
+bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::eval_f(Index numParameters, const Number* x, bool new_x, Number& obj_value)
 {
 	if (numParameters!=NumParameters_)  throw  std::runtime_error("numParameters is not correct.");
 
@@ -104,8 +104,8 @@ bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_f(Index numPa
 /******************************************************************************************************/
 /******************************************************************************************************/
 // return the gradient of the objective function grad_{x} f(x)
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_grad_f(Index numParameters, const Number* x, bool new_x, Number* grad_f)
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
+bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::eval_grad_f(Index numParameters, const Number* x, bool new_x, Number* grad_f)
 {
 	if (numParameters!=NumParameters_)  throw  std::runtime_error("numParameters is not correct.");
 
@@ -122,8 +122,8 @@ bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_grad_f(Index 
 /******************************************************************************************************/
 /******************************************************************************************************/
 // return the value of the constraints: g(x)
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_g(Index numParameters, const Number* x, bool new_x, Index numConstraints, Number* g)
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
+bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::eval_g(Index numParameters, const Number* x, bool new_x, Index numConstraints, Number* g)
 {
 	if (numParameters!=NumParameters_)  throw  std::runtime_error("numParameters is not correct.");
 	if (numConstraints!=NumConstraints_) throw  std::runtime_error("numConstraints is not correct.");
@@ -146,8 +146,8 @@ bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_g(Index numPa
 /******************************************************************************************************/
 /******************************************************************************************************/
 // return the structure or values of the jacobian
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_jac_g(Index numParameters, const Number* x, bool new_x,
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
+bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::eval_jac_g(Index numParameters, const Number* x, bool new_x,
 		Index numConstraints, Index nele_jac, Index* iRow, Index *jCol,
 		Number* values)
 {
@@ -185,8 +185,8 @@ bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_jac_g(Index n
 /******************************************************************************************************/
 /******************************************************************************************************/
 // return the structure or hessian of the lagrangian
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_h(Index n, const Number* x, bool new_x,
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
+bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::eval_h(Index n, const Number* x, bool new_x,
 			Number obj_factor, Index m, const Number* lambda,
 			bool new_lambda, Index nele_hess, Index* iRow,
 			Index* jCol, Number* values)  {
@@ -200,8 +200,8 @@ bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::eval_h(Index n, co
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-void IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::finalize_solution(SolverReturn status,
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
+void IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::finalize_solution(SolverReturn status,
 		Index numParameters, const Number* x, const Number* z_L, const Number* z_U,
 		Index numConstraints, const Number* g, const Number* lambda,
 		Number optimizedTotalCost,
@@ -239,8 +239,8 @@ void IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::finalize_solution(
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-void IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getSolution(scalar_t& optimizedTotalCost,
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
+void IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::getSolution(scalar_t& optimizedTotalCost,
 		scalar_array_t& optimizedSwitchingTimes, std::vector<controller_t>& optimizedControllersStock)  const  {
 
 	optimizedTotalCost = optimizedTotalCost_;
@@ -252,8 +252,8 @@ void IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::getSolution(scalar
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-size_t IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::findNearestController(const Number* x) const  {
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
+size_t IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::findNearestController(const Number* x) const  {
 
 	if (parameterBag_.size()==0)  throw  std::runtime_error("controllerStock bag is empty.");
 
@@ -275,8 +275,8 @@ size_t IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::findNearestContr
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-void IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::solveGSLQP(const Number* x)  {
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
+void IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::solveGSLQP(const Number* x)  {
 
 	// switching time vector
 	scalar_array_t switchingTimes(initSwitchingTimes_);
@@ -290,7 +290,7 @@ void IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>::solveGSLQP(const N
 		// GLQP initialization
 		GLQP_t glqp(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
 				stateOperatingPoints_, inputOperatingPoints_, systemStockIndex_);
-		glqp.run(switchingTimes, 0.0);
+		glqp.run(switchingTimes, 0.0 /*learning rate*/);  // since learning rate is zero, the feedforward input is zero
 
 		// GLQP controller
 		glqp.getController(controllersStock);

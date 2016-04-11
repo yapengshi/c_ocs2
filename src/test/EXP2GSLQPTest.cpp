@@ -31,8 +31,8 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	/******************************************************************************************************/
-	GLQP<2,1,2>::state_vector_array_t   stateOperatingPoints(2, GLQP<2,1,2>::state_vector_t::Zero());
-	GLQP<2,1,2>::control_vector_array_t inputOperatingPoints(2, GLQP<2,1,2>::control_vector_t::Zero());
+	GLQP<2,1,2,2>::state_vector_array_t   stateOperatingPoints(2, GLQP<2,1,2,2>::state_vector_t::Zero());
+	GLQP<2,1,2,2>::control_vector_array_t inputOperatingPoints(2, GLQP<2,1,2,2>::control_vector_t::Zero());
 	std::vector<size_t> systemStockIndex {0, 1};
 
 	Eigen::Vector2d initState(0.0, 2.0);
@@ -44,18 +44,18 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	// GLQP
-	GLQP<2,1,2> glqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, stateOperatingPoints, inputOperatingPoints, systemStockIndex);
+	GLQP<2,1,2,2> glqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, stateOperatingPoints, inputOperatingPoints, systemStockIndex);
 
 	glqp.run(switchingTimes);
 
 	// get controller
-	std::vector<GLQP<2,1,2>::controller_t> controllersStock(2);
+	std::vector<GLQP<2,1,2,2>::controller_t> controllersStock(2);
 	glqp.getController(controllersStock);
 
 //	// rollout
-//	std::vector<GLQP<2,1,2>::scalar_array_t> timeTrajectoriesStock;
-//	std::vector<GLQP<2,1,2>::state_vector_array_t> stateTrajectoriesStock;
-//	std::vector<GLQP<2,1,2>::control_vector_array_t> controlTrajectoriesStock;
+//	std::vector<GLQP<2,1,2,2>::scalar_array_t> timeTrajectoriesStock;
+//	std::vector<GLQP<2,1,2,2>::state_vector_array_t> stateTrajectoriesStock;
+//	std::vector<GLQP<2,1,2,2>::control_vector_array_t> controlTrajectoriesStock;
 //	glqp.rollout(initState, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
 //
 //	// compute cost
@@ -70,11 +70,11 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	/******************************************************************************************************/
-	GSLQP<2,1,2>::Options_t gslqpOptions;
+	GSLQP<2,1,2,2>::Options_t gslqpOptions;
 	gslqpOptions.dispayGSLQP_ = 1;
 
 	// GSLQ
-	GSLQP<2,1,2> gslqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);
+	GSLQP<2,1,2,2> gslqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);
 
 	gslqp.run(initState, switchingTimes);
 
@@ -82,9 +82,9 @@ int main (int argc, char* argv[])
 	gslqp.getController(controllersStock);
 
 	// rollout
-	std::vector<GSLQP<2,1,2>::scalar_array_t> timeTrajectoriesStock;
-	std::vector<GSLQP<2,1,2>::state_vector_array_t> stateTrajectoriesStock;
-	std::vector<GSLQP<2,1,2>::control_vector_array_t> controlTrajectoriesStock;
+	std::vector<GSLQP<2,1,2,2>::scalar_array_t> timeTrajectoriesStock;
+	std::vector<GSLQP<2,1,2,2>::state_vector_array_t> stateTrajectoriesStock;
+	std::vector<GSLQP<2,1,2,2>::control_vector_array_t> controlTrajectoriesStock;
 	gslqp.rollout(initState, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
 
 	// compute cost
@@ -112,9 +112,9 @@ int main (int argc, char* argv[])
 	std::cout << "The total cost in the test rollout: " << rolloutCost << std::endl;
 	std::cout << "The total cost derivative: " << costFuntionDerivative.transpose() << std::endl;
 
-	GSLQP<2,1,2>::eigen_scalar_array_t timeEigenTrajectory;
-	GSLQP<2,1,2>::state_vector_array_t stateTrajectory;
-	GSLQP<2,1,2>::control_vector_array_t inputTrajectory;
+	GSLQP<2,1,2,2>::eigen_scalar_array_t timeEigenTrajectory;
+	GSLQP<2,1,2,2>::state_vector_array_t stateTrajectory;
+	GSLQP<2,1,2,2>::control_vector_array_t inputTrajectory;
 
 	for (size_t i=0; i<switchingTimes.size()-1; i++)  {
 
@@ -128,13 +128,13 @@ int main (int argc, char* argv[])
 
 
 	// Sensitivity2SwitchingTime
-	std::vector<GSLQP<2,1,2>::scalar_array_t> sensitivityTimeTrajectoriesStock;
-	std::vector<GSLQP<2,1,2>::nabla_state_matrix_array_t> sensitivityStateTrajectoriesStock;
-	std::vector<GSLQP<2,1,2>::nabla_input_matrix_array_t> sensitivityInputTrajectoriesStock;
+	std::vector<GSLQP<2,1,2,2>::scalar_array_t> sensitivityTimeTrajectoriesStock;
+	std::vector<GSLQP<2,1,2,2>::nabla_output_matrix_array_t> sensitivityStateTrajectoriesStock;
+	std::vector<GSLQP<2,1,2,2>::nabla_input_matrix_array_t> sensitivityInputTrajectoriesStock;
 	gslqp.getRolloutSensitivity2SwitchingTime(sensitivityTimeTrajectoriesStock, sensitivityStateTrajectoriesStock, sensitivityInputTrajectoriesStock);
 
-	GSLQP<2,1,2>::eigen_scalar_array_t sensitivityTimeTrajectory;
-	GSLQP<2,1,2>::nabla_state_matrix_array_t sensitivityStateTrajectory;
+	GSLQP<2,1,2,2>::eigen_scalar_array_t sensitivityTimeTrajectory;
+	GSLQP<2,1,2,2>::nabla_output_matrix_array_t sensitivityStateTrajectory;
 	for (size_t i=0; i<switchingTimes.size()-1; i++)  {
 		for (size_t k=0; k<sensitivityTimeTrajectoriesStock[i].size(); k++)  {
 			sensitivityTimeTrajectory.push_back((Eigen::MatrixXd(1,1) << sensitivityTimeTrajectoriesStock[i][k]).finished());

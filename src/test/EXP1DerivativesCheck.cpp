@@ -21,8 +21,8 @@ int main (int argc, char* argv[])
 	// subsystem cost functions
 	std::vector<std::shared_ptr<CostFunctionBase<2,1> > > subsystemCostFunctionsPtr {std::make_shared<EXP1_CostFunction1>(), std::make_shared<EXP1_CostFunction2>(), std::make_shared<EXP1_CostFunction3>()};
 
-	GSLQP<2,1,3>::state_vector_array_t   stateOperatingPoints(3, GSLQP<2,1,3>::state_vector_t::Zero());
-	GSLQP<2,1,3>::control_vector_array_t inputOperatingPoints(3, GSLQP<2,1,3>::control_vector_t::Zero());
+	GSLQP<2,1,2,3>::state_vector_array_t   stateOperatingPoints(3, GSLQP<2,1,2,3>::state_vector_t::Zero());
+	GSLQP<2,1,2,3>::control_vector_array_t inputOperatingPoints(3, GSLQP<2,1,2,3>::control_vector_t::Zero());
 	std::vector<size_t> systemStockIndex {0, 1, 2};
 
 //	std::vector<double> initSwitchingTimes {0, 1.0, 2.0, 3};
@@ -36,7 +36,7 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	/******************************************************************************************************/
-	OCS2DerivativesCheck<2,1,3> derivativesCheck(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
+	OCS2DerivativesCheck<2,1,2,3> derivativesCheck(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
 				stateOperatingPoints, inputOperatingPoints, systemStockIndex);
 
 	derivativesCheck.check(initState, initSwitchingTimes);

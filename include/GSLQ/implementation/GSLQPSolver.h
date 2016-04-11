@@ -8,8 +8,8 @@
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-size_t GSLQPSolver<STATE_DIM, INPUT_DIM, NUM_Subsystems>::findNearestController(const Eigen::Matrix<double, NUM_Subsystems-1, 1>& enquiry) const  {
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
+size_t GSLQPSolver<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::findNearestController(const Eigen::Matrix<double, NUM_Subsystems-1, 1>& enquiry) const  {
 
 	if (parametersBag_.size()==0)  throw  std::runtime_error("controllerStock bag is empty.");
 
@@ -29,8 +29,8 @@ size_t GSLQPSolver<STATE_DIM, INPUT_DIM, NUM_Subsystems>::findNearestController(
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
-void GSLQPSolver<STATE_DIM, INPUT_DIM, NUM_Subsystems>::run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes)  {
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
+void GSLQPSolver<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes)  {
 
 	// defining the parameter vector which is the switching times
 	Eigen::Matrix<double, NUM_Subsystems-1, 1> parameters = Eigen::VectorXd::Map(switchingTimes.data()+1, NUM_Subsystems-1);

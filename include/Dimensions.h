@@ -13,7 +13,7 @@
 #include <Eigen/StdVector>
 
 
-template <size_t STATE_DIM, size_t INPUT_DIM>
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM=STATE_DIM>
 class Dimensions
 {
 
@@ -21,13 +21,16 @@ public:
 	typedef Eigen::Matrix<double, STATE_DIM, 1> state_vector_t;
 	typedef std::vector<state_vector_t, Eigen::aligned_allocator<state_vector_t> > state_vector_array_t;
 
-	typedef Eigen::Matrix<double, STATE_DIM, STATE_DIM> state_matrix_t;
+	typedef Eigen::Matrix<double, OUTPUT_DIM, 1> output_vector_t;
+	typedef std::vector<output_vector_t, Eigen::aligned_allocator<output_vector_t> > output_vector_array_t;
+
+	typedef Eigen::Matrix<double, OUTPUT_DIM, OUTPUT_DIM> state_matrix_t;
 	typedef std::vector<state_matrix_t, Eigen::aligned_allocator<state_matrix_t> > state_matrix_array_t;
 
-	typedef Eigen::Matrix<double, STATE_DIM, INPUT_DIM> control_gain_matrix_t;
+	typedef Eigen::Matrix<double, OUTPUT_DIM, INPUT_DIM> control_gain_matrix_t;
 	typedef std::vector<control_gain_matrix_t, Eigen::aligned_allocator<control_gain_matrix_t> > control_gain_matrix_array_t;
 
-	typedef Eigen::Matrix<double, INPUT_DIM, STATE_DIM> control_feedback_t;
+	typedef Eigen::Matrix<double, INPUT_DIM, OUTPUT_DIM> control_feedback_t;
 	typedef std::vector<control_feedback_t, Eigen::aligned_allocator<control_feedback_t> > control_feedback_array_t;
 
 	typedef Eigen::Matrix<double, INPUT_DIM, 1> control_vector_t;
@@ -36,7 +39,7 @@ public:
 	typedef Eigen::Matrix<double, INPUT_DIM, INPUT_DIM> control_matrix_t;
 	typedef std::vector<control_matrix_t, Eigen::aligned_allocator<control_matrix_t> > control_matrix_array_t;
 
-    typedef Eigen::Matrix<double, STATE_DIM*STATE_DIM , 1 > state_matrix_vectorized_t;
+    typedef Eigen::Matrix<double, OUTPUT_DIM*OUTPUT_DIM , 1 > state_matrix_vectorized_t;
 
 	typedef double scalar_t;
 	typedef std::vector<scalar_t> scalar_array_t;
@@ -63,7 +66,8 @@ public:
 			displayIPOPT_(true),
 			tolIPOPT_(1e-2),
 			acceptableTolIPOPT_(1e-1),
-			maxIterationIPOPT_(20)
+			maxIterationIPOPT_(20),
+			minAcceptedSwitchingTimeDifference_(0.0)
 		{}
 
 		size_t maxIterationGSLQP_;
@@ -78,11 +82,13 @@ public:
 		double tolIPOPT_;
 		double acceptableTolIPOPT_;
 		size_t maxIterationIPOPT_;
+		double minAcceptedSwitchingTimeDifference_;
 	};
 
 	enum DIMS {
-		STATE_DIM_ = STATE_DIM,
-		INPUT_DIM_ = INPUT_DIM
+		STATE_DIM_  = STATE_DIM,
+		INPUT_DIM_  = INPUT_DIM,
+		OUTPUT_DIM_ = OUTPUT_DIM
 	};
 
 private:

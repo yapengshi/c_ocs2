@@ -11,14 +11,14 @@
 
 #include "GSLQ/GSLQPSolver.h"
 
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
 class OCS2DerivativesCheck
 {
 public:
-	typedef GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems> GLQP_t;
-	typedef GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems> GSLQP_t;
+	typedef GLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems> GLQP_t;
+	typedef GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems> GSLQP_t;
 
-	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
+	typedef Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::Options Options_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
@@ -111,7 +111,7 @@ private:
 	parameters_t gslqpCostDerivative_;
 	parameters_t fdCostDerivative_;
 
-	GSLQPSolver<STATE_DIM, INPUT_DIM, NUM_Subsystems> gslqpSolver_;
+	GSLQPSolver<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems> gslqpSolver_;
 
 };
 

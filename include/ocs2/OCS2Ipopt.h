@@ -14,13 +14,13 @@
 
 using namespace Ipopt;
 
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
 class OCS2Ipopt
 {
 public:
-	typedef GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems> GSLQP_t;
+	typedef GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems> GSLQP_t;
 
-	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
+	typedef Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::Options Options_t;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
@@ -31,6 +31,8 @@ public:
 	typedef typename DIMENSIONS::state_vector_array_t state_vector_array_t;
 	typedef typename DIMENSIONS::control_vector_t 		control_vector_t;
 	typedef typename DIMENSIONS::control_vector_array_t control_vector_array_t;
+	typedef typename DIMENSIONS::output_vector_t 	  output_vector_t;
+	typedef typename DIMENSIONS::output_vector_array_t output_vector_array_t;
 	typedef typename DIMENSIONS::control_feedback_t 	  control_feedback_t;
 	typedef typename DIMENSIONS::control_feedback_array_t control_feedback_array_t;
 	typedef typename DIMENSIONS::state_matrix_t 	  state_matrix_t;
@@ -62,7 +64,7 @@ public:
 	{
 		// Create a new instance of your nlp
 		//  (use a SmartPtr, not raw)
-		ocs2Nlp_ = new IpoptCostFunntion<STATE_DIM, INPUT_DIM, NUM_Subsystems>(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
+		ocs2Nlp_ = new IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
 				stateOperatingPoints_, inputOperatingPoints_, systemStockIndex_, initSwitchingTimes_, initState_, options_);
 	}
 
@@ -84,8 +86,12 @@ public:
 
 	void getTrajectories(std::vector<scalar_array_t>& optimizedTimeTrajectoriesStock,
 			std::vector<state_vector_array_t>& optimizedStateTrajectoriesStock,
-			std::vector<control_vector_array_t>& optimizedInputTrajectoriesStock)  const;
+			std::vector<control_vector_array_t>& optimizedInputTrajectoriesStock,
+			std::vector<output_vector_array_t>& optimizedOutputTrajectoriesStock)  const;
 
+	void getTrajectories(std::vector<scalar_array_t>& optimizedTimeTrajectoriesStock,
+			std::vector<state_vector_array_t>& optimizedStateTrajectoriesStock,
+			std::vector<control_vector_array_t>& optimizedInputTrajectoriesStock)  const;
 
 
 protected:
@@ -107,6 +113,7 @@ private:
 
 	Options_t options_;
 
+	// NLP
 	SmartPtr<TNLP> ocs2Nlp_;
 
 	// IPOPT optimized solution
@@ -115,10 +122,13 @@ private:
 	scalar_array_t ipoptOptimizedSwitchingTimes_;
 	// Simulated results
 	scalar_t optimizedTotalCost_;
+	//
 	Eigen::Matrix<double,NUM_Subsystems-1,1> optimizedTotalCostDerivative_;
+	//
 	std::vector<scalar_array_t> optimizedTimeTrajectoriesStock_;
-	std::vector<state_vector_array_t> optimizedStateTrajectoriesStock_;
-	std::vector<control_vector_array_t> optimizedInputTrajectoriesStock_;
+	std::vector<state_vector_array_t>    optimizedStateTrajectoriesStock_;
+	std::vector<control_vector_array_t>  optimizedInputTrajectoriesStock_;
+	std::vector<output_vector_array_t>   optimizedOutputTrajectoriesStock_;
 
 };
 

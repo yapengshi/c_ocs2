@@ -17,15 +17,16 @@
 #include "SystemBase.h"
 #include "misc/LinearInterpolation.h"
 
-template <size_t STATE_DIM, size_t INPUT_DIM>
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM=STATE_DIM>
 class ControlledSystemBase : public SystemBase<STATE_DIM>
 {
 public:
-	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
+	typedef Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::scalar_t scalar_t;
 	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
 	typedef typename DIMENSIONS::state_vector_t state_vector_t;
 	typedef typename DIMENSIONS::control_vector_t control_vector_t;
+	typedef typename DIMENSIONS::output_vector_t output_vector_t;
 	typedef typename DIMENSIONS::control_vector_array_t control_vector_array_t;
 	typedef typename DIMENSIONS::control_feedback_t control_feedback_t;
 	typedef typename DIMENSIONS::control_feedback_array_t control_feedback_array_t;
@@ -61,7 +62,7 @@ public:
 	}
 
 
-	void computeInput(const scalar_t& t, const state_vector_t& x, control_vector_t& u)
+	void computeInput(const scalar_t& t, const output_vector_t& y, control_vector_t& u)
 	{
 		control_vector_t uff;
 		control_feedback_t k;
@@ -69,14 +70,17 @@ public:
 		linInterpolateUff_.interpolate(t, uff);
 		linInterpolateK_.interpolate(t, k);
 
-		u = uff + k*x;
+		u = uff + k*y;
 	}
 
 
 	void computeDerivative(const scalar_t& t, const state_vector_t& x, state_vector_t& dxdt)  {
 
+		output_vector_t y;
 		control_vector_t u;
-		computeInput(t, x, u);
+
+		computeOutput(t, x, y);
+		computeInput(t, y, u);
 		computeDerivative(t, x, u, dxdt);
 	}
 
@@ -84,7 +88,17 @@ public:
 			const scalar_t& finalTime=0, const char* algorithmName=NULL)
 	{}
 
-	virtual std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > clone() const = 0;
+	virtual void computeOutput(const scalar_t& t, const state_vector_t& x, output_vector_t& y)
+	{
+		y = x.template head<OUTPUT_DIM>();
+	}
+
+	virtual Eigen::Matrix<double, OUTPUT_DIM, STATE_DIM> computeOutputStateDerivative(
+			const scalar_t& t, const state_vector_t& x, const control_vector_t& u)  {
+		return Eigen::MatrixXd::Identity(OUTPUT_DIM, STATE_DIM);
+	}
+
+	virtual std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > clone() const = 0;
 
 	virtual void computeDerivative(
 			const scalar_t& t,

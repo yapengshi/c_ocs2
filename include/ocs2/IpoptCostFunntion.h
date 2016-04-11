@@ -18,15 +18,16 @@
 
 using namespace Ipopt;
 
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
 class IpoptCostFunntion : public TNLP
 {
 public:
 	enum {NumParameters_=NUM_Subsystems-1, NumConstraints_=NUM_Subsystems-2};
-	typedef GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems> GLQP_t;
-	typedef GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems> GSLQP_t;
 
-	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
+	typedef GLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems> GLQP_t;
+	typedef GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems> GSLQP_t;
+
+	typedef Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::Options Options_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
@@ -46,8 +47,8 @@ public:
 	typedef typename DIMENSIONS::control_gain_matrix_t 		 control_gain_matrix_t;
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
 
-	IpoptCostFunntion(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > >& subsystemDynamicsPtr,
-			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > >& subsystemDerivativesPtr,
+	IpoptCostFunntion(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDynamicsPtr,
+			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDerivativesPtr,
 			const std::vector<std::shared_ptr<CostFunctionBase<STATE_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
 			const state_vector_array_t&   stateOperatingPoints,
 			const control_vector_array_t& inputOperatingPoints,
@@ -55,6 +56,7 @@ public:
 			const scalar_array_t& initSwitchingTimes,
 			const state_vector_t& initState,
 			const Options_t& options = Options_t::Options() )
+
 		: subsystemDynamicsPtr_(subsystemDynamicsPtr),
 		  subsystemDerivativesPtr_(subsystemDerivativesPtr),
 		  subsystemCostFunctionsPtr_(subsystemCostFunctionsPtr),
@@ -141,8 +143,8 @@ protected:
 	void solveGSLQP(const Number* x);
 
 private:
-	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > > subsystemDynamicsPtr_;
-	std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > > subsystemDerivativesPtr_;
+	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > > subsystemDynamicsPtr_;
+	std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > > subsystemDerivativesPtr_;
 	std::vector<std::shared_ptr<CostFunctionBase<STATE_DIM, INPUT_DIM> > > subsystemCostFunctionsPtr_;
 
 	state_vector_array_t   stateOperatingPoints_;
@@ -159,7 +161,6 @@ private:
 	scalar_t optimizedTotalCost_;
 	scalar_array_t optimizedSwitchingTimes_;
 	std::vector<controller_t> optimizedControllersStock_;
-
 
 	scalar_t currentTotalCost_;
 	Eigen::Matrix<double,NumParameters_,1> currentCostFuntionDerivative_;

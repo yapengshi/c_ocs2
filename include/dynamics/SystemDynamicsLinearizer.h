@@ -20,11 +20,11 @@
 #include "dynamics/DerivativesBase.h"
 
 
-template <size_t STATE_DIM, size_t INPUT_DIM>
-class SystemDynamicsLinearizer : public DerivativesBase<STATE_DIM, INPUT_DIM>
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM=STATE_DIM>
+class SystemDynamicsLinearizer : public DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM>
 {
 public:
-	typedef DerivativesBase<STATE_DIM, INPUT_DIM> Base;
+	typedef DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> Base;
 	typedef typename Base::scalar_t scalar_t;
 	typedef typename Base::state_vector_t state_vector_t;
 	typedef typename Base::state_matrix_t state_matrix_t;
@@ -32,7 +32,7 @@ public:
 	typedef typename Base::control_gain_matrix_t control_gain_matrix_t;
 
 
-	SystemDynamicsLinearizer(const std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> >& nonlinearSystemPtr_,
+	SystemDynamicsLinearizer(const std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> >& nonlinearSystemPtr_,
 			bool doubleSidedDerivative=true, bool isSecondOrderSystem=false)
 
 		: nonlinearSystemPtr_(nonlinearSystemPtr_),
@@ -66,6 +66,8 @@ public:
 
 	virtual void getDerivativeState(state_matrix_t& A) override {
 
+		Eigen::Matrix<double, STATE_DIM, STATE_DIM> tempA;
+
 		for (size_t i=0; i<STATE_DIM; i++)  {
 
 			// inspired from http://en.wikipedia.org/wiki/Numerical_differentiation#Practical_considerations_using_floating_point_arithmetic
@@ -87,28 +89,33 @@ public:
 				nonlinearSystemPtr_->computeDerivative(Base::t_, xMinusPerturbed, Base::u_, fMinusPerturbed);
 
 				if(isSecondOrderSystem_)  {
-					A.template topLeftCorner<STATE_DIM/2, STATE_DIM/2>().setZero();
-					A.template topRightCorner<STATE_DIM/2, STATE_DIM/2>().setIdentity();
-					A.template block<STATE_DIM/2,1>(STATE_DIM/2,i) = (fPlusPerturbed.template tail<STATE_DIM/2>() - fMinusPerturbed.template tail<STATE_DIM/2>()) / (2.0*h);
+					tempA.template topLeftCorner<STATE_DIM/2, STATE_DIM/2>().setZero();
+					tempA.template topRightCorner<STATE_DIM/2, STATE_DIM/2>().setIdentity();
+					tempA.template block<STATE_DIM/2,1>(STATE_DIM/2,i) = (fPlusPerturbed.template tail<STATE_DIM/2>() - fMinusPerturbed.template tail<STATE_DIM/2>()) / (2.0*h);
 				}
 				else
-					A.col(i) = (fPlusPerturbed - fMinusPerturbed) / (2.0*h);
+					tempA.col(i) = (fPlusPerturbed - fMinusPerturbed) / (2.0*h);
 			}
 			else  {
 				if(isSecondOrderSystem_)  {
-					A.template topLeftCorner<STATE_DIM/2, STATE_DIM/2>().setZero();
-					A.template topRightCorner<STATE_DIM/2, STATE_DIM/2>().setIdentity();
-					A.template block<STATE_DIM/2,1>(STATE_DIM/2,i) = (fPlusPerturbed.template tail<STATE_DIM/2>() - f_.template tail<STATE_DIM/2>()) / h;
+					tempA.template topLeftCorner<STATE_DIM/2, STATE_DIM/2>().setZero();
+					tempA.template topRightCorner<STATE_DIM/2, STATE_DIM/2>().setIdentity();
+					tempA.template block<STATE_DIM/2,1>(STATE_DIM/2,i) = (fPlusPerturbed.template tail<STATE_DIM/2>() - f_.template tail<STATE_DIM/2>()) / h;
 				}
 				else
-					A.col(i) = (fPlusPerturbed - f_) / h;
+					tempA.col(i) = (fPlusPerturbed - f_) / h;
 			}
 		}  // end of i loop
+
+		Eigen::Matrix<double, OUTPUT_DIM, STATE_DIM> C = nonlinearSystemPtr_->computeOutputStateDerivative(Base::t_, Base::x_, Base::u_);
+		A = C * tempA * C.transpose();
 
 	}
 
 
 	virtual void getDerivativesControl(control_gain_matrix_t& B) override  {
+
+		Eigen::Matrix<double, STATE_DIM, INPUT_DIM> tempB;
 
 		for (size_t i=0; i<INPUT_DIM; i++) {
 
@@ -133,11 +140,11 @@ public:
 				nonlinearSystemPtr_->computeDerivative(Base::t_, Base::x_, uMinusPerturbed, fMinusPerturbed);
 
 				if(isSecondOrderSystem_)  {
-					B.template topRows<STATE_DIM/2>().setZero();
-					B.template block<STATE_DIM/2,1>(STATE_DIM/2,i) = (fPlusPerturbed.template tail<STATE_DIM/2>() - fMinusPerturbed.template tail<STATE_DIM/2>()) / (2.0*h);
+					tempB.template topRows<STATE_DIM/2>().setZero();
+					tempB.template block<STATE_DIM/2,1>(STATE_DIM/2,i) = (fPlusPerturbed.template tail<STATE_DIM/2>() - fMinusPerturbed.template tail<STATE_DIM/2>()) / (2.0*h);
 				}
 				else {
-					B.col(i) = (fPlusPerturbed - fMinusPerturbed) / (2.0*h);
+					tempB.col(i) = (fPlusPerturbed - fMinusPerturbed) / (2.0*h);
 
 //					std::cout << ">>>> The " << i << " element out of " << INPUT_DIM << std::endl;
 //					std::cout << "u+ :" << uPlusPerturbed.transpose() << std::endl;
@@ -148,27 +155,25 @@ public:
 			}
 			else {
 				if(isSecondOrderSystem_)  {
-					B.template topRows<STATE_DIM/2>().setZero();
-					B.template block<STATE_DIM/2,1>(STATE_DIM/2,i) = (fPlusPerturbed.template tail<STATE_DIM/2>() - f_.template tail<STATE_DIM/2>()) / h;
+					tempB.template topRows<STATE_DIM/2>().setZero();
+					tempB.template block<STATE_DIM/2,1>(STATE_DIM/2,i) = (fPlusPerturbed.template tail<STATE_DIM/2>() - f_.template tail<STATE_DIM/2>()) / h;
 				}
 				else
-					B.col(i) = (fPlusPerturbed - f_) / h;
+					tempB.col(i) = (fPlusPerturbed - f_) / h;
 			}
-
-
-
-
 		}  // end of i loop
+
+		B = nonlinearSystemPtr_->computeOutputStateDerivative(Base::t_, Base::x_, Base::u_) * tempB;
 	}
 
 
-	std::shared_ptr<Base> clone() const  { return std::make_shared<SystemDynamicsLinearizer<STATE_DIM, INPUT_DIM> >(*this); }
+	std::shared_ptr<Base> clone() const  { return std::make_shared<SystemDynamicsLinearizer<STATE_DIM, INPUT_DIM, OUTPUT_DIM> >(*this); }
 
 
 private:
 	const double eps_= sqrt(Eigen::NumTraits<double>::epsilon());
 
-	std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > nonlinearSystemPtr_;
+	std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > nonlinearSystemPtr_;
 	bool doubleSidedDerivative_;
 	bool isSecondOrderSystem_;
 

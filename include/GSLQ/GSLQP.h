@@ -27,14 +27,14 @@
 #include "GSLQ/FullSequentialRiccatiEquations.h"
 #include "GSLQ/RolloutSensitivityEquations.h"
 
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
 class GSLQP
 {
 public:
-	typedef SequentialRiccatiEquations<STATE_DIM, INPUT_DIM, NUM_Subsystems> RiccatiEquations;
-	typedef FullSequentialRiccatiEquations<STATE_DIM, INPUT_DIM, NUM_Subsystems> FullRiccatiEquations;
+	typedef SequentialRiccatiEquations<OUTPUT_DIM, INPUT_DIM, NUM_Subsystems> RiccatiEquations_t;
+	typedef FullSequentialRiccatiEquations<OUTPUT_DIM, INPUT_DIM, NUM_Subsystems> FullRiccatiEquations_t;
 
-	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
+	typedef Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::Options Options_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
@@ -43,6 +43,8 @@ public:
 	typedef typename DIMENSIONS::eigen_scalar_array_t eigen_scalar_array_t;
 	typedef typename DIMENSIONS::state_vector_t 	  state_vector_t;
 	typedef typename DIMENSIONS::state_vector_array_t state_vector_array_t;
+	typedef typename DIMENSIONS::output_vector_t 	  output_vector_t;
+	typedef typename DIMENSIONS::output_vector_array_t output_vector_array_t;
 	typedef typename DIMENSIONS::control_vector_t 		control_vector_t;
 	typedef typename DIMENSIONS::control_vector_array_t control_vector_array_t;
 	typedef typename DIMENSIONS::control_feedback_t 	  control_feedback_t;
@@ -54,25 +56,25 @@ public:
 	typedef typename DIMENSIONS::control_gain_matrix_t 		 control_gain_matrix_t;
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
 
-	typedef RolloutSensitivityEquations<STATE_DIM, INPUT_DIM, NUM_Subsystems> RolloutSensitivityEquations_t;
-	typedef typename RolloutSensitivityEquations_t::nabla_state_matrix_t       nabla_state_matrix_t;
-	typedef typename RolloutSensitivityEquations_t::nabla_state_matrix_array_t nabla_state_matrix_array_t;
+	typedef RolloutSensitivityEquations<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems> RolloutSensitivityEquations_t;
+	typedef typename RolloutSensitivityEquations_t::nabla_output_matrix_t       nabla_output_matrix_t;
+	typedef typename RolloutSensitivityEquations_t::nabla_output_matrix_array_t nabla_output_matrix_array_t;
 	typedef typename RolloutSensitivityEquations_t::nabla_input_matrix_t       nabla_input_matrix_t;
 	typedef typename RolloutSensitivityEquations_t::nabla_input_matrix_array_t nabla_input_matrix_array_t;
 	typedef typename RolloutSensitivityEquations_t::nabla_scalar_rowvector_t       nabla_scalar_rowvector_t;
 	typedef typename RolloutSensitivityEquations_t::nabla_scalar_rowvector_array_t nabla_scalar_rowvector_array_t;
 
 	typedef std::array<state_matrix_t, NUM_Subsystems-1> nabla_Sm_t;
-	typedef std::array<state_vector_t, NUM_Subsystems-1> nabla_Sv_t;
+	typedef std::array<output_vector_t, NUM_Subsystems-1> nabla_Sv_t;
 	typedef std::array<eigen_scalar_t, NUM_Subsystems-1> nabla_s_t;
 	typedef std::vector<nabla_Sm_t> nabla_Sm_array_t;
 	typedef std::vector<nabla_Sv_t> nabla_Sv_array_t;
     typedef std::vector<nabla_s_t>  nabla_s_array_t;
 
 
-	GSLQP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > >& subsystemDynamicsPtr,
-			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > >& subsystemDerivativesPtr,
-			const std::vector<std::shared_ptr<CostFunctionBase<STATE_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
+	GSLQP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDynamicsPtr,
+			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDerivativesPtr,
+			const std::vector<std::shared_ptr<CostFunctionBase<OUTPUT_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
 			const std::vector<controller_t>& initialControllersStock,
 			const std::vector<size_t>& systemStockIndex,
 			const Options_t& options = Options_t::Options())
@@ -85,8 +87,9 @@ public:
       nominalTimeTrajectoriesStock_(NUM_Subsystems),
       nominalStateTrajectoriesStock_(NUM_Subsystems),
       nominalInputTrajectoriesStock_(NUM_Subsystems),
+      nominalOutputTrajectoriesStock_(NUM_Subsystems),
       sensitivityTimeTrajectoryStock_(NUM_Subsystems),
-      nablaStateTrajectoryStock_(NUM_Subsystems),
+      nablaOutputTrajectoryStock_(NUM_Subsystems),
       nablaInputTrajectoryStock_(NUM_Subsystems),
       nablaqTrajectoryStock_(NUM_Subsystems),
       nablaQvTrajectoryStock_(NUM_Subsystems),
@@ -138,26 +141,34 @@ public:
 			const std::vector<controller_t>& controllersStock,
 			std::vector<scalar_array_t>& timeTrajectoriesStock,
 			std::vector<state_vector_array_t>& stateTrajectoriesStock,
-			std::vector<control_vector_array_t>& inputTrajectoriesStock);
+			std::vector<control_vector_array_t>& inputTrajectoriesStock,
+			std::vector<output_vector_array_t>& outputTrajectoriesStock);
+
+	void rollout(const state_vector_t& initState,
+				const std::vector<controller_t>& controllersStock,
+				std::vector<scalar_array_t>& timeTrajectoriesStock,
+				std::vector<state_vector_array_t>& stateTrajectoriesStock,
+				std::vector<control_vector_array_t>& inputTrajectoriesStock);
 
 	void rolloutCost(const std::vector<scalar_array_t>& timeTrajectoriesStock,
-			const std::vector<state_vector_array_t>& stateTrajectoriesStock,
+			const std::vector<output_vector_array_t>& stateTrajectoriesStock,
 			const std::vector<control_vector_array_t>& inputTrajectoriesStock,
 			scalar_t& totalCost);
 
 	void getRolloutSensitivity2SwitchingTime(std::vector<scalar_array_t>& sensitivityTimeTrajectoriesStock,
-		std::vector<nabla_state_matrix_array_t>& sensitivityStateTrajectoriesStock,
+		std::vector<nabla_output_matrix_array_t>& sensitivityOutputTrajectoriesStock,
 		std::vector<nabla_input_matrix_array_t>& sensitivityInputTrajectoriesStock);
 
-	void getController(std::vector<controller_t>& controllersStock) { controllersStock = nominalControllersStock_;}
+	void getController(std::vector<controller_t>& controllersStock);
 
-	void getValueFuntion(const scalar_t& time, const state_vector_t& state, scalar_t& valueFuntion);
+	void getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion);
 
-	void getCostFuntionDerivative(const state_vector_t& initState, Eigen::Matrix<double,NUM_Subsystems-1,1>& costFuntionDerivative);
+	void getCostFuntionDerivative(const output_vector_t& initOutput, Eigen::Matrix<double,NUM_Subsystems-1,1>& costFuntionDerivative);
 
 	void getNominalTrajectories(std::vector<scalar_array_t>& nominalTimeTrajectoriesStock,
 			std::vector<state_vector_array_t>& nominalStateTrajectoriesStock,
-			std::vector<control_vector_array_t>& nominalInputTrajectoriesStock);
+			std::vector<control_vector_array_t>& nominalInputTrajectoriesStock,
+			std::vector<output_vector_array_t>& nominalOutputTrajectoriesStock = std::vector<output_vector_array_t>());
 
 	void run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes);
 
@@ -185,34 +196,37 @@ protected:
 
 
 private:
-	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > > subsystemDynamicsPtrStock_;
-	std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > > subsystemDerivativesPtrStock_;
-	std::vector<std::shared_ptr<CostFunctionBase<STATE_DIM, INPUT_DIM> > > subsystemCostFunctionsPtrStock_;
+	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > > subsystemDynamicsPtrStock_;
+	std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > > subsystemDerivativesPtrStock_;
+	std::vector<std::shared_ptr<CostFunctionBase<OUTPUT_DIM, INPUT_DIM> > > subsystemCostFunctionsPtrStock_;
 
 	std::vector<std::shared_ptr<ODE45<STATE_DIM> > > subsystemSimulatorsStockPtr_;
 
 	scalar_t nominalTotalCost_;
 	std::vector<controller_t> nominalControllersStock_;
 	std::vector<scalar_array_t> nominalTimeTrajectoriesStock_;
-	std::vector<state_vector_array_t> nominalStateTrajectoriesStock_;
+	std::vector<state_vector_array_t>   nominalStateTrajectoriesStock_;
 	std::vector<control_vector_array_t> nominalInputTrajectoriesStock_;
+	std::vector<output_vector_array_t>   nominalOutputTrajectoriesStock_;
 
 	std::vector<scalar_array_t> sensitivityTimeTrajectoryStock_;
-	std::vector<nabla_state_matrix_array_t> nablaStateTrajectoryStock_;
+	std::vector<nabla_output_matrix_array_t> nablaOutputTrajectoryStock_;
 	std::vector<nabla_input_matrix_array_t> nablaInputTrajectoryStock_;
 	//
 	std::vector<nabla_scalar_rowvector_array_t> nablaqTrajectoryStock_;
-	std::vector<nabla_state_matrix_array_t> nablaQvTrajectoryStock_;
+	std::vector<nabla_output_matrix_array_t> nablaQvTrajectoryStock_;
 	std::vector<nabla_input_matrix_array_t> nablaRvTrajectoryStock_;
+	nabla_scalar_rowvector_t nablaqFinal_;
+	nabla_output_matrix_t nablaQvFinal_;
 
 	std::vector<state_matrix_array_t>        AmTrajectoryStock_;
 	std::vector<control_gain_matrix_array_t> BmTrajectoryStock_;
 
-	eigen_scalar_t qFinal_;
-	state_vector_t QvFinal_;
-	state_matrix_t QmFinal_;
+	eigen_scalar_t  qFinal_;
+	output_vector_t QvFinal_;
+	state_matrix_t  QmFinal_;
 	std::vector<eigen_scalar_array_t> qTrajectoryStock_;
-	std::vector<state_vector_array_t> QvTrajectoryStock_;
+	std::vector<output_vector_array_t> QvTrajectoryStock_;
 	std::vector<state_matrix_array_t> QmTrajectoryStock_;
 	std::vector<control_vector_array_t> RvTrajectoryStock_;
 	std::vector<control_matrix_array_t> RmTrajectoryStock_;
@@ -220,7 +234,7 @@ private:
 
 	std::vector<scalar_array_t> 	  SsTimeTrajectoryStock_;
 	std::vector<eigen_scalar_array_t> sTrajectoryStock_;
-	std::vector<state_vector_array_t> SvTrajectoryStock_;
+	std::vector<output_vector_array_t> SvTrajectoryStock_;
 	std::vector<state_matrix_array_t> SmTrajectoryStock_;
 	std::vector<nabla_s_array_t>  nablasTrajectoryStock_;
 	std::vector<nabla_Sv_array_t> nablaSvTrajectoryStock_;

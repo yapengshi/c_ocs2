@@ -71,7 +71,9 @@ public:
 		const State_T& initialState,
 		const TimeTrajectory_T& timeTrajectory,
 		StateTrajectory_T& stateTrajectory,
-		double dtInitial = 0.01
+		double dtInitial = 0.01,
+		double AbsTol = 1e-9,
+		double RelTol = 1e-6
 	) = 0;
 
 

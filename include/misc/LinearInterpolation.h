@@ -45,7 +45,7 @@ public:
 
 	void reset()	{index_=0;}
 
-	void interpolate(const double& enquiryTime, Data_T& enquiryData) {
+	void interpolate(const double& enquiryTime, Data_T& enquiryData, int greatestLessTimeStampIndex = -1) {
 
 		if (timeStampPtr_==NULL)  throw std::runtime_error("timeStampPtr is not initialized.");
 		if (dataPtr_==NULL)       throw std::runtime_error("dataPtr is not initialized.");
@@ -59,7 +59,13 @@ public:
 		}
 
 //		std::cout << "INDEX: " << index_;
-		size_t ind = find(enquiryTime);
+		size_t ind;
+		if (greatestLessTimeStampIndex == -1)
+			ind = find(enquiryTime);
+		else {
+			ind = greatestLessTimeStampIndex;
+			index_ = greatestLessTimeStampIndex;
+		}
 //		std::cout << " --> " << ind << std::endl;
 
 		if (enquiryTime<timeStampPtr_->front()) {
@@ -77,6 +83,8 @@ public:
 		double alpha = (enquiryTime-timeStampPtr_->at(ind+1)) / (timeStampPtr_->at(ind)-timeStampPtr_->at(ind+1));
 		enquiryData = alpha*dataPtr_->at(ind) + (1-alpha)*dataPtr_->at(ind+1);
 	}
+
+	size_t getGreatestLessTimeStampIndex() { return index_; }
 
 protected:
 	size_t find(const double& enquiryTime) {

@@ -31,6 +31,7 @@ public:
 	typedef typename DIMENSIONS::control_feedback_t control_feedback_t;
 	typedef typename DIMENSIONS::control_feedback_array_t control_feedback_array_t;
 	typedef typename DIMENSIONS::controller_t controller_t;
+	typedef typename DIMENSIONS::constraint1_vector_t constraint1_vector_t;
 
 	ControlledSystemBase()
 		: modelUpdated_(true)
@@ -82,6 +83,11 @@ public:
 		computeOutput(t, x, y);
 		computeInput(t, y, u);
 		computeDerivative(t, x, u, dxdt);
+	}
+
+	virtual void computeConstriant1(const scalar_t& t, const state_vector_t& x, const control_vector_t& u, size_t& numConstraint1, constraint1_vector_t& g1)  {
+
+		numConstraint1 = 0;
 	}
 
 	virtual void initializeModel(const scalar_t& initTime, const state_vector_t& initState,

@@ -1,12 +1,12 @@
 /*
- * FullSequentialRiccatiEquations.h
+ * FullSequentialErrorEquation.h
  *
- *  Created on: Jan 9, 2016
+ *  Created on: Apr 15, 2016
  *      Author: farbod
  */
 
-#ifndef FULLSEQUENTIALRICCATIEQUATIONS_H_
-#define FULLSEQUENTIALRICCATIEQUATIONS_H_
+#ifndef FULLSEQUENTIALERROREQUATION_H_
+#define FULLSEQUENTIALERROREQUATION_H_
 
 #include <array>
 
@@ -17,7 +17,7 @@
 #include "misc/LinearInterpolation.h"
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_SUBSYSTEMS>
-class FullSequentialRiccatiEquations : public SystemBase<NUM_SUBSYSTEMS*(STATE_DIM*STATE_DIM+STATE_DIM+1)>
+class FullSequentialErrorEquation : public SystemBase<NUM_SUBSYSTEMS*STATE_DIM>
 {
 public:
 	enum { S_DIM_ = STATE_DIM*STATE_DIM+STATE_DIM+1 };
@@ -45,15 +45,17 @@ public:
 	typedef Eigen::Matrix<double,STATE_DIM,NUM_SUBSYSTEMS-1> nabla_state_matrix_t;
 	typedef Eigen::Matrix<double,INPUT_DIM,NUM_SUBSYSTEMS-1> nabla_input_matrix_t;
 	typedef Eigen::Matrix<double,1,NUM_SUBSYSTEMS-1> 		 nabla_scalar_rowvector_t;
+	typedef Eigen::Matrix<double,DIMENSIONS::MAX_CONSTRAINT1_DIM_,NUM_SUBSYSTEMS-1> nabla_constraint1_matrix_t;
 	typedef std::vector<nabla_state_matrix_t, Eigen::aligned_allocator<nabla_state_matrix_t> > nabla_state_matrix_array_t;
 	typedef std::vector<nabla_input_matrix_t, Eigen::aligned_allocator<nabla_input_matrix_t> > nabla_input_matrix_array_t;
 	typedef std::vector<nabla_scalar_rowvector_t, Eigen::aligned_allocator<nabla_scalar_rowvector_t> > nabla_scalar_rowvector_array_t;
+	typedef std::vector<nabla_constraint1_matrix_t, Eigen::aligned_allocator<nabla_constraint1_matrix_t> > nabla_constraint1_matrix_array_t;
 	typedef std::array<state_matrix_t, NUM_SUBSYSTEMS-1> nabla_Sm_t;
 	typedef std::array<state_vector_t, NUM_SUBSYSTEMS-1> nabla_Sv_t;
 	typedef std::array<eigen_scalar_t, NUM_SUBSYSTEMS-1> nabla_s_t;
 
-	FullSequentialRiccatiEquations() {}
-	~FullSequentialRiccatiEquations() {}
+	FullSequentialErrorEquation() {}
+	~FullSequentialErrorEquation() {}
 
 	static void convert2Vector(const state_matrix_t& Sm, const state_vector_t& Sv, const eigen_scalar_t& s,
 			const nabla_Sm_t& nabla_Sm, const nabla_Sv_t& nabla_Sv, const nabla_s_t& nabla_s,
@@ -89,10 +91,11 @@ public:
 			scalar_array_t* const timeStampPtr,
 			state_matrix_array_t* const AmPtr, control_gain_matrix_array_t* const BmPtr,
 			eigen_scalar_array_t* const qPtr, state_vector_array_t* const QvPtr, state_matrix_array_t* const QmPtr,
-			control_vector_array_t* const RvPtr, control_matrix_array_t* const RmInversePtr,
+			control_vector_array_t* const RvPtr, control_matrix_array_t* const RmPtr,
 			control_feedback_array_t* const PmPtr,
 			scalar_array_t* const sensitivityTimeStampPtr, nabla_scalar_rowvector_array_t* const nablaqPtr,
-			nabla_state_matrix_array_t* const nablaQvPtr, nabla_input_matrix_array_t* const nablaRvPtr)  {
+			nabla_state_matrix_array_t* const nablaQvPtr, nabla_input_matrix_array_t* const nablaRvPtr,
+			nabla_constraint1_matrix_array_t* const nablaEvPtr)  {
 
 		alpha_ = learningRate;
 
@@ -113,8 +116,8 @@ public:
 		QmFunc_.setData(QmPtr);
 		RvFunc_.setTimeStamp(timeStampPtr);
 		RvFunc_.setData(RvPtr);
-		RmInverseFunc_.setTimeStamp(timeStampPtr);
-		RmInverseFunc_.setData(RmInversePtr);
+		RmFunc_.setTimeStamp(timeStampPtr);
+		RmFunc_.setData(RmPtr);
 		PmFunc_.setTimeStamp(timeStampPtr);
 		PmFunc_.setData(PmPtr);
 
@@ -124,6 +127,8 @@ public:
 		nablaQvFunc_.setData(nablaQvPtr);
 		nablaRvFunc_.setTimeStamp(sensitivityTimeStampPtr);
 		nablaRvFunc_.setData(nablaRvPtr);
+		nablaEvFunc_.setTimeStamp(sensitivityTimeStampPtr);
+		nablaEvFunc_.setData(nablaEvPtr);
 	}
 
 	void computeDerivative(const scalar_t& z, const all_s_vector_t& allSs, all_s_vector_t& derivatives)  {
@@ -139,35 +144,31 @@ public:
 		nabla_s_t  nabla_s;
 		convert2Matrix(allSs, Sm, Sv, s, nabla_Sm, nabla_Sv, nabla_s);
 
-		size_t greatestLessTimeStampIndex;
-
 		state_matrix_t Am;
 		AmFunc_.interpolate(t, Am);
-		greatestLessTimeStampIndex = AmFunc_.getGreatestLessTimeStampIndex();
 		control_gain_matrix_t Bm;
-		BmFunc_.interpolate(t, Bm, greatestLessTimeStampIndex);
+		BmFunc_.interpolate(t, Bm);
 
 		eigen_scalar_t q;
 		qFunc_.interpolate(t, q);
-		greatestLessTimeStampIndex = qFunc_.getGreatestLessTimeStampIndex();
 		state_vector_t Qv;
-		QvFunc_.interpolate(t, Qv, greatestLessTimeStampIndex);
+		QvFunc_.interpolate(t, Qv);
 		state_matrix_t Qm;
-		QmFunc_.interpolate(t, Qm, greatestLessTimeStampIndex);
+		QmFunc_.interpolate(t, Qm);
 		control_vector_t Rv;
-		RvFunc_.interpolate(t, Rv, greatestLessTimeStampIndex);
-		control_matrix_t inverseRm;
-		RmInverseFunc_.interpolate(t, inverseRm, greatestLessTimeStampIndex);
+		RvFunc_.interpolate(t, Rv);
+		control_matrix_t Rm;
+		RmFunc_.interpolate(t, Rm);
+		control_matrix_t inverseRm = Rm.inverse();
 		control_feedback_t Pm;
-		PmFunc_.interpolate(t, Pm, greatestLessTimeStampIndex);
+		PmFunc_.interpolate(t, Pm);
 
 		nabla_scalar_rowvector_t nablaq;
 		nablaqFunc_.interpolate(t, nablaq);
-		greatestLessTimeStampIndex = nablaqFunc_.getGreatestLessTimeStampIndex();
 		nabla_state_matrix_t nablaQv;
-		nablaQvFunc_.interpolate(t, nablaQv, greatestLessTimeStampIndex);
+		nablaQvFunc_.interpolate(t, nablaQv);
 		nabla_input_matrix_t nablaRv;
-		nablaRvFunc_.interpolate(t, nablaRv, greatestLessTimeStampIndex);
+		nablaRvFunc_.interpolate(t, nablaRv);
 
 		// Riccati equations for the original system
 		state_matrix_t dSmdt = Qm + Am.transpose()*Sm + Sm.transpose()*Am - (Pm+Bm.transpose()*Sm).transpose()*inverseRm*(Pm+Bm.transpose()*Sm);
@@ -215,7 +216,7 @@ public:
 				nabla_dsdz[j]  -= dsdt;
 			}
 
-		}  // end of j loop
+		}
 
 		convert2Vector(dSmdz, dSvdz, dsdz, nabla_dSmdz, nabla_dSvdz, nabla_dsdz, derivatives);
 	}
@@ -235,14 +236,16 @@ private:
 	LinearInterpolation<state_vector_t,Eigen::aligned_allocator<state_vector_t> > QvFunc_;
 	LinearInterpolation<state_matrix_t,Eigen::aligned_allocator<state_matrix_t> > QmFunc_;
 	LinearInterpolation<control_vector_t,Eigen::aligned_allocator<control_vector_t> > RvFunc_;
-	LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> > RmInverseFunc_;
+	LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> > RmFunc_;
 	LinearInterpolation<control_feedback_t,Eigen::aligned_allocator<control_feedback_t> > PmFunc_;
 
 	LinearInterpolation<nabla_scalar_rowvector_t,Eigen::aligned_allocator<nabla_scalar_rowvector_t> > nablaqFunc_;
 	LinearInterpolation<nabla_state_matrix_t,Eigen::aligned_allocator<nabla_state_matrix_t> > nablaQvFunc_;
 	LinearInterpolation<nabla_input_matrix_t,Eigen::aligned_allocator<nabla_input_matrix_t> > nablaRvFunc_;
+	LinearInterpolation<nabla_constraint1_matrix_t,Eigen::aligned_allocator<nabla_constraint1_matrix_t> > nablaEvFunc_;
 
 };
 
 
-#endif /* FULLSEQUENTIALRICCATIEQUATIONS_H_ */
+
+#endif /* FULLSEQUENTIALERROREQUATION_H_ */

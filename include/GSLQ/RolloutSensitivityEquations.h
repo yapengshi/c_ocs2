@@ -16,8 +16,8 @@
 
 #include "misc/LinearInterpolation.h"
 
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
-class RolloutSensitivityEquations : public SystemBase<(NUM_Subsystems-1)*OUTPUT_DIM>
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+class RolloutSensitivityEquations : public SystemBase<(NUM_SUBSYSTEMS-1)*OUTPUT_DIM>
 {
 public:
 	typedef Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM> DIMENSIONS;
@@ -36,14 +36,15 @@ public:
 	typedef typename DIMENSIONS::control_gain_matrix_t 		 control_gain_matrix_t;
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
 
-	typedef Eigen::Matrix<double,(NUM_Subsystems-1)*OUTPUT_DIM,1> nabla_output_vector_t;
-	typedef Eigen::Matrix<double,OUTPUT_DIM,NUM_Subsystems-1>     nabla_output_matrix_t;
+	typedef Eigen::Matrix<double,(NUM_SUBSYSTEMS-1)*OUTPUT_DIM,1> nabla_output_vector_t;
+	typedef std::vector<nabla_output_vector_t, Eigen::aligned_allocator<nabla_output_vector_t> > nabla_output_vector_array_t;
+	typedef Eigen::Matrix<double,OUTPUT_DIM,NUM_SUBSYSTEMS-1>     nabla_output_matrix_t;
 	typedef std::vector<nabla_output_matrix_t, Eigen::aligned_allocator<nabla_output_matrix_t> > nabla_output_matrix_array_t;
 	//
-	typedef Eigen::Matrix<double,INPUT_DIM,NUM_Subsystems-1> nabla_input_matrix_t;
+	typedef Eigen::Matrix<double,INPUT_DIM,NUM_SUBSYSTEMS-1> nabla_input_matrix_t;
 	typedef std::vector<nabla_input_matrix_t, Eigen::aligned_allocator<nabla_input_matrix_t> > nabla_input_matrix_array_t;
 	//
-	typedef Eigen::Matrix<double,1,NUM_Subsystems-1> nabla_scalar_rowvector_t;
+	typedef Eigen::Matrix<double,1,NUM_SUBSYSTEMS-1> nabla_scalar_rowvector_t;
 	typedef std::vector<nabla_scalar_rowvector_t, Eigen::aligned_allocator<nabla_scalar_rowvector_t> > nabla_scalar_rowvector_array_t;
 
 	RolloutSensitivityEquations()  {}
@@ -114,7 +115,7 @@ public:
 
 		nabla_output_matrix_t nabla_dXmdz;
 		nabla_dXmdz = (switchingTimes_[activeSubsystem_+1]-switchingTimes_[activeSubsystem_])*(Am*nabla_Ym+Bm*nabla_Um);
-		for (size_t j=0; j<NUM_Subsystems-1; j++)  {
+		for (size_t j=0; j<NUM_SUBSYSTEMS-1; j++)  {
 			if (j==activeSubsystem_)
 				nabla_dXmdz.col(j) += dydt;
 			if (j==activeSubsystem_-1)

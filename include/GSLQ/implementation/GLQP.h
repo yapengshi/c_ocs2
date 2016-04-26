@@ -324,10 +324,30 @@ void GLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::SolveRiccatiEquatio
 		SmTrajectoryStock_[i].resize(N);
 		SvTrajectoryStock_[i].resize(N);
 		sTrajectoryStock_[i].resize(N);
-		for (int k=0; k<normalizedTimeTrajectory.size(); k++) {
+		for (int k=0; k<N; k++) {
 
 			RiccatiEquations_t::convert2Matrix(allSsTrajectory[N-1-k], SmTrajectoryStock_[i][k], SvTrajectoryStock_[i][k], sTrajectoryStock_[i][k]);
 			timeTrajectoryStock_[i][k] = (switchingTimes_[i]-switchingTimes_[i+1])*(normalizedTimeTrajectory[N-1-k]-i) + switchingTimes_[i+1];
+		}
+
+		// testing the numerical stability of the Riccati equations
+		for (int k=N-1; k>=0; k--) {
+			try {
+				if (SmTrajectoryStock_[i][k] != SmTrajectoryStock_[i][k])  throw std::runtime_error("Sm is unstable");
+				if (SvTrajectoryStock_[i][k] != SvTrajectoryStock_[i][k])  throw std::runtime_error("Sv is unstable");
+				if (sTrajectoryStock_[i][k] != sTrajectoryStock_[i][k])    throw std::runtime_error("s is unstable");
+			}
+			catch(std::exception const& error)
+			{
+				std::cerr << "what(): " << error.what() << " at time " << timeTrajectoryStock_[i][k] << " [sec]." << std::endl;
+				for (int kp=k; kp<k+10; kp++)  {
+					if (kp >= N) continue;
+					std::cerr << "Sm[" << timeTrajectoryStock_[i][kp] << "]:\n"<< SmTrajectoryStock_[i][kp].transpose() << std::endl;
+					std::cerr << "Sv[" << timeTrajectoryStock_[i][kp] << "]:\t"<< SvTrajectoryStock_[i][kp].transpose() << std::endl;
+					std::cerr << "s[" << timeTrajectoryStock_[i][kp] << "]: \t"<< sTrajectoryStock_[i][kp].transpose() << std::endl;
+				}
+				exit(1);
+			}
 		}
 
 		// reset the final value for next Riccati equation

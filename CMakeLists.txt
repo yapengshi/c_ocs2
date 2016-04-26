@@ -138,6 +138,12 @@ add_executable(integration_test src/test/IntegrationTest.cpp)
 add_executable(exp1_gslqp_test src/test/EXP1GSLQPTest.cpp)
 
 ## Declare a cpp executable
+add_executable(exp3_gslqp_test src/test/EXP3GSLQPTest.cpp)
+
+## Declare a cpp executable
+add_executable(exp4_gslqp_test src/test/EXP4GSLQPTest.cpp)
+
+## Declare a cpp executable
 add_executable(exp1_test src/test/EXP1Test.cpp)
 
 ## Declare a cpp executable
@@ -150,10 +156,13 @@ add_executable(exp2_test src/test/EXP2Test.cpp)
 add_executable(ceres_test src/test/CeresTest.cpp)
 
 ## Declare a cpp executable 
-add_executable(numerical_derivative_test src/test/SystemDynamicsDerivativeTest.cpp)
+add_executable(exp1_numerical_derivative_test src/test/SystemDynamicsDerivativeTest.cpp)
 
 ## Declare a cpp executable 
 add_executable(exp1_cost_derivative_test src/test/EXP1DerivativesCheck.cpp)
+
+## Declare a cpp executable 
+add_executable(exp3_numerical_derivative_test src/test/EXP3SystemDynamicsDerivativeTest.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -171,6 +180,16 @@ target_link_libraries(integration_test
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp1_gslqp_test
+  ${catkin_LIBRARIES}
+)
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(exp3_gslqp_test
+  ${catkin_LIBRARIES}
+)
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(exp4_gslqp_test
   ${catkin_LIBRARIES}
 )
 
@@ -198,13 +217,18 @@ target_link_libraries(ceres_test
 )
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(numerical_derivative_test
+target_link_libraries(exp1_numerical_derivative_test
   ${catkin_LIBRARIES}
 )
 
 target_link_libraries(exp1_cost_derivative_test
   ${catkin_LIBRARIES}
   ${IPOPT_LIBS}
+)
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(exp3_numerical_derivative_test
+  ${catkin_LIBRARIES}
 )
 
 

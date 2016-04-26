@@ -18,6 +18,13 @@ class Dimensions
 {
 
 public:
+	enum DIMS {
+		STATE_DIM_  = STATE_DIM,
+		INPUT_DIM_  = INPUT_DIM,
+		OUTPUT_DIM_ = OUTPUT_DIM,
+		MAX_CONSTRAINT1_DIM_ = INPUT_DIM,
+	};
+
 	typedef Eigen::Matrix<double, STATE_DIM, 1> state_vector_t;
 	typedef std::vector<state_vector_t, Eigen::aligned_allocator<state_vector_t> > state_vector_array_t;
 
@@ -41,6 +48,21 @@ public:
 
     typedef Eigen::Matrix<double, OUTPUT_DIM*OUTPUT_DIM , 1 > state_matrix_vectorized_t;
 
+    typedef Eigen::Matrix<double, MAX_CONSTRAINT1_DIM_, 1> constraint1_vector_t;
+    typedef std::vector<constraint1_vector_t, Eigen::aligned_allocator<constraint1_vector_t> > constraint1_vector_array_t;
+
+    typedef Eigen::Matrix<double, MAX_CONSTRAINT1_DIM_, 1> constraint1_matrix_t;
+    typedef std::vector<constraint1_matrix_t, Eigen::aligned_allocator<constraint1_matrix_t> > constraint1_matrix_array_t;
+
+    typedef Eigen::Matrix<double, MAX_CONSTRAINT1_DIM_, OUTPUT_DIM> constraint1_state_matrix_t;
+    typedef std::vector<constraint1_state_matrix_t, Eigen::aligned_allocator<constraint1_state_matrix_t> > constraint1_state_matrix_array_t;
+
+    typedef Eigen::Matrix<double, MAX_CONSTRAINT1_DIM_, INPUT_DIM> constraint1_control_matrix_t;
+    typedef std::vector<constraint1_control_matrix_t, Eigen::aligned_allocator<constraint1_control_matrix_t> > constraint1_control_matrix_array_t;
+
+    typedef Eigen::Matrix<double, MAX_CONSTRAINT1_DIM_, INPUT_DIM> control_constraint1_matrix_t;
+    typedef std::vector<control_constraint1_matrix_t, Eigen::aligned_allocator<control_constraint1_matrix_t> > control_constraint1_matrix_array_t;
+
 	typedef double scalar_t;
 	typedef std::vector<scalar_t> scalar_array_t;
 
@@ -57,11 +79,15 @@ public:
 		Options() :
 			maxIterationGSLQP_(10),
 			minLearningRateGSLQP_(0.05),
+			minRelCostGSLQP_(1e-3),
 			dispayGSLQP_(false),
 			warmStartGSLQP_(false),
 
 			AbsTolODE_(1e-9),
 			RelTolODE_(1e-6),
+			simulationIsConstrained_(false),
+			minAbsConstraint1RMSE_(1e-3),
+			minRelConstraint1RMSE_(1e-3),
 
 			displayIPOPT_(true),
 			tolIPOPT_(1e-2),
@@ -71,12 +97,16 @@ public:
 		{}
 
 		size_t maxIterationGSLQP_;
-		scalar_t minLearningRateGSLQP_;
+		double minLearningRateGSLQP_;
+		double minRelCostGSLQP_;
 		bool dispayGSLQP_;
 		bool warmStartGSLQP_;
 
 		double AbsTolODE_;
 		double RelTolODE_;
+		bool simulationIsConstrained_;
+		double minAbsConstraint1RMSE_;
+		double minRelConstraint1RMSE_;
 
 		bool displayIPOPT_;
 		double tolIPOPT_;
@@ -85,11 +115,6 @@ public:
 		double minAcceptedSwitchingTimeDifference_;
 	};
 
-	enum DIMS {
-		STATE_DIM_  = STATE_DIM,
-		INPUT_DIM_  = INPUT_DIM,
-		OUTPUT_DIM_ = OUTPUT_DIM
-	};
 
 private:
 

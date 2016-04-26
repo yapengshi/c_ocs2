@@ -89,12 +89,14 @@ public:
 		const typename Base::State_T& initialState,
 		const typename Base::TimeTrajectory_T& timeTrajectory,
 		typename Base::StateTrajectory_T& stateTrajectory,
-		double dtInitial = 0.01
-		) override
-	 {
+		double dtInitial = 0.01,
+		double AbsTol = 1e-9,
+		double RelTol = 1e-6) override  {
+
 		 typename Base::State_T initialStateInternal = initialState;
 		 initialize(initialStateInternal, timeTrajectory.front(), dtInitial);
-		 integrate_times(stepper_, systemFunction_, initialStateInternal, &timeTrajectory.front(), &timeTrajectory.back(), dtInitial, Base::observer_.observeWrap);
+		 integrate_times(boost::numeric::odeint::make_controlled<Stepper>(AbsTol, RelTol),
+				 systemFunction_, initialStateInternal, &timeTrajectory.front(), &timeTrajectory.back()+1, dtInitial, Base::observer_.observeWrap);
 		 Base::retrieveStateTrajectoryFromObserver(stateTrajectory);
 		 return true;
 	 }

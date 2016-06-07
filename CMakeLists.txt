@@ -96,7 +96,7 @@ add_executable(exp2_gslqp_test src/test/EXP2GSLQPTest.cpp)
 add_executable(exp2_test src/test/EXP2Test.cpp)
 
 ## Declare a cpp executable 
-add_executable(exp1_numerical_derivative_test src/test/SystemDynamicsDerivativeTest.cpp)
+#add_executable(exp1_numerical_derivative_test src/test/SystemDynamicsDerivativeTest.cpp)
 
 ## Declare a cpp executable 
 add_executable(exp1_cost_derivative_test src/test/EXP1DerivativesCheck.cpp)
@@ -142,9 +142,9 @@ target_link_libraries(exp2_test
 )
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(exp1_numerical_derivative_test
-  ${catkin_LIBRARIES}
-)
+#target_link_libraries(exp1_numerical_derivative_test
+#  ${catkin_LIBRARIES}
+#)
 
 target_link_libraries(exp1_cost_derivative_test
   ${catkin_LIBRARIES}
@@ -169,6 +169,8 @@ target_link_libraries(exp3_numerical_derivative_test
 catkin_add_gtest(interpolation_test test/InterpolationTest.cpp)
 
 catkin_add_gtest(integration_test test/IntegrationTest.cpp)
+
+catkin_add_gtest(system_dynamics_derivative_test test/SystemDynamicsDerivativeTest.cpp)
 
 catkin_add_gtest(ceres_test test/CeresTest.cpp)
 

@@ -1,3 +1,10 @@
 *.mat
 *.xml
 *.m~
+*~
+build/
+Debug/
+Release/
+.cproject
+.project
+.settings

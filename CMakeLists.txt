@@ -73,16 +73,23 @@ set(CMAKE_BUILD_TYPE DEBUG)
 ###################################
 ## ipopot specific configuration ##
 ###################################
-SET(IPOPT_SOURCE_DIR "/home/farbod/Programs/ct_ws/src/ipopt")
+SET(IPOPT_SOURCE_DIR "/home/gimarkus/ipopt/CoinIpopt")
+
+# include ipopt directories
+include_directories(
+"${IPOPT_SOURCE_DIR}/build/include/coin"
+"${SNOPT_SOURCE_DIR}/include"
+)
 
 link_directories(${IPOPT_SOURCE_DIR}/build/lib)
 set(IPOPT_LIBS
     ipopt
-    lapack
     dl
+    coinmumps
+    coinhsl
+    lapack
     blas
     gfortran
-    coinmumps
     m
     quadmath
     coinmetis
@@ -98,7 +105,7 @@ set(IPOPT_LIBS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS  include 
+  INCLUDE_DIRS  include
       ${EIGEN_INCLUDE_DIRS}
       "${IPOPT_SOURCE_DIR}/build/include/coin"
       ${CERES_INCLUDE_DIRS}
@@ -128,11 +135,6 @@ include_directories(
 #   src/${PROJECT_NAME}/c_ocs2.cpp
 # ) 
 
-## Declare a cpp executable
-add_executable(interpolation_test src/test/InterpolationTest.cpp)
-
-## Declare a cpp executable
-add_executable(integration_test src/test/IntegrationTest.cpp)
 
 ## Declare a cpp executable
 add_executable(exp1_gslqp_test src/test/EXP1GSLQPTest.cpp)
@@ -153,9 +155,6 @@ add_executable(exp2_gslqp_test src/test/EXP2GSLQPTest.cpp)
 add_executable(exp2_test src/test/EXP2Test.cpp)
 
 ## Declare a cpp executable 
-add_executable(ceres_test src/test/CeresTest.cpp)
-
-## Declare a cpp executable 
 add_executable(exp1_numerical_derivative_test src/test/SystemDynamicsDerivativeTest.cpp)
 
 ## Declare a cpp executable 
@@ -168,15 +167,6 @@ add_executable(exp3_numerical_derivative_test src/test/EXP3SystemDynamicsDerivat
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(c_ocs2_node c_ocs2_generate_messages_cpp)
 
-## Specify libraries to link a library or executable target against
-target_link_libraries(interpolation_test
-  ${catkin_LIBRARIES}
-) 
-
-## Specify libraries to link a library or executable target against
-target_link_libraries(integration_test
-  ${catkin_LIBRARIES}
-)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp1_gslqp_test
@@ -208,12 +198,6 @@ target_link_libraries(exp2_gslqp_test
 target_link_libraries(exp2_test
   ${catkin_LIBRARIES}
   ${IPOPT_LIBS}
-)
-
-## Specify libraries to link a library or executable target against
-target_link_libraries(ceres_test
-  ${catkin_LIBRARIES}
-  ${CERES_LIBRARIES}
 )
 
 ## Specify libraries to link a library or executable target against
@@ -267,15 +251,23 @@ target_link_libraries(exp3_numerical_derivative_test
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
 
+
 #############
 ## Testing ##
 #############
 
-## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_c_ocs2.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
+## Info ==============================
+## to run tests, cd package/src and run 
+## $ catkin run_tests --no-deps --this
 
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
+## unit tests
+catkin_add_gtest(interpolation_test test/InterpolationTest.cpp)
+
+catkin_add_gtest(integration_test test/IntegrationTest.cpp)
+
+catkin_add_gtest(ceres_test test/CeresTest.cpp)
+
+target_link_libraries(ceres_test
+  ${catkin_LIBRARIES}
+  ${CERES_LIBRARIES}
+)

@@ -22,6 +22,9 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subs
 class IpoptCostFunntion : public TNLP
 {
 public:
+
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	enum {NumParameters_=NUM_Subsystems-1, NumConstraints_=NUM_Subsystems-2};
 
 	typedef GLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems> GLQP_t;

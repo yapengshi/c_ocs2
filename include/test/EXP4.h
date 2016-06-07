@@ -18,6 +18,8 @@
 class EXP4_Sys : public ControlledSystemBase<6,4>
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	EXP4_Sys() {}
 	~EXP4_Sys() {}
 
@@ -46,6 +48,8 @@ public:
 class EXP4_SysDerivative : public DerivativesBase<6,4>
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	EXP4_SysDerivative() {};
 	~EXP4_SysDerivative() {};
 
@@ -74,6 +78,8 @@ public:
 class EXP4_CostFunction : public CostFunctionBase<6,4>
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	EXP4_CostFunction() {
 		xFinal_ << 4.5, 0.0, 0.0, 0.0, 2.0, sqrt(5.0);
 

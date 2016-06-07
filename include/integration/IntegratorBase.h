@@ -35,6 +35,7 @@ public:
 	}
 
 	// Equidistant integration based on number of time steps and step length
+	// = integrate_n_steps
 	virtual bool integrate(
 		const State_T& initialState,
 		const double& startTime,
@@ -45,6 +46,7 @@ public:
 	) = 0;
 
 	// Equidistant integration based on initial and final time as well as step length
+	// = integrate_const
 	virtual bool integrate(
 		const State_T& initialState,
 		const double& startTime,
@@ -55,6 +57,7 @@ public:
 	) = 0;
 
 	// Adaptive time integration based on start time and final time
+	// = almost integrate adaptive
 	virtual bool integrate(
 		const State_T& initialState,
 		const double& startTime,
@@ -67,6 +70,7 @@ public:
 	) = 0;
 
 	// Output integration based on a given time trajectory
+	// = almost integrate times
 	virtual bool integrate(
 		const State_T& initialState,
 		const TimeTrajectory_T& timeTrajectory,

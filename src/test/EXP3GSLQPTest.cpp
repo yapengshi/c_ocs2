@@ -144,7 +144,7 @@ int main (int argc, char* argv[])
 		}
 	}
 
-	std::string resultDir = "/home/farbod/Programs/ct_ws/src/c_ocs2/cereal/test/exp1_test";
+	std::string resultDir = "/home/gimarkus/catkin_old/src/c_ocs2/cereal/test/exp1_test";
 	std::string stateFile = resultDir + "/exp1State.xml";
 	std::string timeFile = resultDir + "/exp1Time.xml";
 	std::string inputFile = resultDir + "/exp1Input.xml";

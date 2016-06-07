@@ -16,6 +16,8 @@
 class EXP2_Sys1 : public ControlledSystemBase<2,1>
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	EXP2_Sys1() {}
 	~EXP2_Sys1() {}
 
@@ -37,6 +39,8 @@ public:
 class EXP2_Sys2 : public ControlledSystemBase<2,1>
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	EXP2_Sys2() {}
 	~EXP2_Sys2() {}
 
@@ -58,6 +62,8 @@ public:
 class EXP2_SysDerivative1 : public DerivativesBase<2,1>
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	EXP2_SysDerivative1() {};
 	~EXP2_SysDerivative1() {};
 
@@ -74,6 +80,8 @@ public:
 class EXP2_SysDerivative2 : public DerivativesBase<2,1>
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	EXP2_SysDerivative2() {};
 	~EXP2_SysDerivative2() {};
 
@@ -90,6 +98,8 @@ public:
 class EXP2_CostFunction1 : public CostFunctionBase<2,1>
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	EXP2_CostFunction1() {};
 	~EXP2_CostFunction1() {};
 
@@ -109,31 +119,35 @@ public:
 	std::shared_ptr<CostFunctionBase<2,1> > clone() const { return std::make_shared<EXP2_CostFunction1>(*this); };
 };
 
+class EXP2_CostFunction2 : public EXP2_CostFunction1 {}; // completely identical
+
 
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-class EXP2_CostFunction2 : public CostFunctionBase<2,1>
-{
-public:
-	EXP2_CostFunction2() {};
-	~EXP2_CostFunction2() {};
-
-	void evaluate(scalar_t& L) { L = 0.5*(x_(1)-2.0)*(x_(1)-2.0) + 0.5*u_(0)*u_(0); }
-
-	void stateDerivative(state_vector_t& dLdx) { dLdx << 0.0, (x_(1)-2.0); }
-	void stateSecondDerivative(state_matrix_t& dLdxx)  { dLdxx << 0.0, 0.0, 0.0, 1.0; }
-	void controlDerivative(control_vector_t& dLdu)  { dLdu << u_; }
-	void controlSecondDerivative(control_matrix_t& dLduu)  { dLduu << 1.0; }
-
-	void stateControlDerivative(control_feedback_t& dLdxu) { dLdxu.setZero(); }
-
-	void terminalCost(scalar_t& Phi) { Phi = 0.5*(x_(0)-4.0)*(x_(0)-4.0) + 0.5*(x_(1)-2.0)*(x_(1)-2.0); }
-	void terminalCostStateDerivative(state_vector_t& dPhidx)  { dPhidx << (x_(0)-4.0), (x_(1)-2.0); }
-	void terminalCostStateSecondDerivative(state_matrix_t& dPhidxx)  { dPhidxx.setIdentity(); }
-
-	std::shared_ptr<CostFunctionBase<2,1> > clone() const { return std::make_shared<EXP2_CostFunction2>(*this); };
-
-};
+//class EXP2_CostFunction2 : public CostFunctionBase<2,1>
+//{
+//public:
+//	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+//
+//	EXP2_CostFunction2() {};
+//	~EXP2_CostFunction2() {};
+//
+//	void evaluate(scalar_t& L) { L = 0.5*(x_(1)-2.0)*(x_(1)-2.0) + 0.5*u_(0)*u_(0); }
+//
+//	void stateDerivative(state_vector_t& dLdx) { dLdx << 0.0, (x_(1)-2.0); }
+//	void stateSecondDerivative(state_matrix_t& dLdxx)  { dLdxx << 0.0, 0.0, 0.0, 1.0; }
+//	void controlDerivative(control_vector_t& dLdu)  { dLdu << u_; }
+//	void controlSecondDerivative(control_matrix_t& dLduu)  { dLduu << 1.0; }
+//
+//	void stateControlDerivative(control_feedback_t& dLdxu) { dLdxu.setZero(); }
+//
+//	void terminalCost(scalar_t& Phi) { Phi = 0.5*(x_(0)-4.0)*(x_(0)-4.0) + 0.5*(x_(1)-2.0)*(x_(1)-2.0); }
+//	void terminalCostStateDerivative(state_vector_t& dPhidx)  { dPhidx << (x_(0)-4.0), (x_(1)-2.0); }
+//	void terminalCostStateSecondDerivative(state_matrix_t& dPhidxx)  { dPhidxx.setIdentity(); }
+//
+//	std::shared_ptr<CostFunctionBase<2,1> > clone() const { return std::make_shared<EXP2_CostFunction2>(*this); };
+//
+//};
 
 #endif /* EXP2_H_ */

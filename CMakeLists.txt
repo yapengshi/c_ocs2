@@ -7,8 +7,8 @@ project(c_ocs2)
 find_package(catkin REQUIRED COMPONENTS cmake_modules cereal) 
 find_package(Ceres REQUIRED)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wfatal-errors -DEIGEN_INITIALIZE_MATRICES_BY_NAN  -march=native -fopenmp -pthread")
-set(CMAKE_BUILD_TYPE DEBUG)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+#set(CMAKE_BUILD_TYPE DEBUG)
 
 
 ###################################
@@ -140,11 +140,6 @@ target_link_libraries(exp2_test
   ${catkin_LIBRARIES}
   ${IPOPT_LIBS}
 )
-
-## Specify libraries to link a library or executable target against
-#target_link_libraries(exp1_numerical_derivative_test
-#  ${catkin_LIBRARIES}
-#)
 
 target_link_libraries(exp1_cost_derivative_test
   ${catkin_LIBRARIES}

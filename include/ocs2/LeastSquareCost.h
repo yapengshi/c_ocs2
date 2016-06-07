@@ -19,6 +19,8 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 class LeastSquareCost : public ceres::SizedCostFunction<1, NUM_Subsystems-1>
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	typedef GLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems> GLQP_t;
 	typedef GSLQP<STATE_DIM, INPUT_DIM, NUM_Subsystems> GSLQP_t;
 

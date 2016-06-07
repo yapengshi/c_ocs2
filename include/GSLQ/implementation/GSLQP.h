@@ -925,7 +925,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rolloutSensitivity
 			nablaqTrajectoryStock_[i][k]  = Qv.transpose()*nablaOutputTrajectoryStock_[i][k] + Rv.transpose()*nablaInputTrajectoryStock_[i][k];
 			nablaQvTrajectoryStock_[i][k] = Qm*nablaOutputTrajectoryStock_[i][k] + Pm.transpose()*nablaInputTrajectoryStock_[i][k];
 			nablaRvTrajectoryStock_[i][k] = Pm*nablaOutputTrajectoryStock_[i][k] + Rm*nablaInputTrajectoryStock_[i][k];
-			nablaEvTrajectoryStock_[i][k] = Cm*nablaOutputTrajectoryStock_[i][k] + Dm*nablaInputTrajectoryStock_[i][k];
+//			nablaEvTrajectoryStock_[i][k] = Cm*nablaOutputTrajectoryStock_[i][k] + Dm*nablaInputTrajectoryStock_[i][k];
 		}
 
 		if (i==NUM_SUBSYSTEMS-1)  {
@@ -1012,7 +1012,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 		// display
 		if (options_.dispayGSLQP_)  std::cerr << "\n#### Iteration " <<  iteration << std::endl;
 
-		// linearizing the dynamics and quadratizing the cost funtion along nominal trajectories
+		// linearizing the dynamics and quadratizing the cost function along nominal trajectories
 		approximateOptimalControlProblem();
 
 		// solve Riccati equations
@@ -1049,7 +1049,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 		if (options_.dispayGSLQP_)  std::cerr << "constraint1 Max:  " << sqrt(constraint1Max) << std::endl;
 		if (options_.dispayGSLQP_)  std::cerr << "cost: " << nominalTotalCost_ << std::endl;
 
-		// loop varibales
+		// loop variables
 		iteration++;
 		relConstraint1RMSE = fabs(absConstraint1RMSE-absConstraint1RMSECashed);
 		isConstraint1Satisfied = absConstraint1RMSE<=options_.minAbsConstraint1RMSE_ || relConstraint1RMSE<=options_.minRelConstraint1RMSE_;
@@ -1069,20 +1069,20 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 	}
 	if (options_.dispayGSLQP_)  std::cerr << "\n#### Final iteration" << std::endl;
 
-//	// linearizing the dynamics and quadratizing the cost funtion along nominal trajectories
-//	approximateOptimalControlProblem();
-//	// calculate nominal rollout sensitivity to switching times
-//	rolloutSensitivity2SwitchingTime();
-//
-//	// solve Riccati equations
-//	learningRateStar = 0.0;  // prevents the changes in the nominal trajectories and just update the gains
-//	solveFullSequentialRiccatiEquations(learningRateStar);
-//	// calculate controller
-//	calculatecontroller(learningRateStar);
+	// linearizing the dynamics and quadratizing the cost function along nominal trajectories
+	approximateOptimalControlProblem();
+	// calculate nominal rollout sensitivity to switching times
+	rolloutSensitivity2SwitchingTime();
 
- 	// transforme from local value funtion and local derivatives to global representation
-	transformeLocalValueFuntion2Global();
-//	transformeLocalValueFuntionDerivative2Global();
+	// solve Riccati equations
+	learningRateStar = 0.0;  // prevents the changes in the nominal trajectories and just update the gains
+	solveFullSequentialRiccatiEquations(learningRateStar);
+	// calculate controller
+	calculatecontroller(learningRateStar);
+
+ 	// transform from local value function and local derivatives to global representation
+//	transformeLocalValueFuntion2Global();
+	transformeLocalValueFuntionDerivative2Global();
 
 	// display
 	if (options_.dispayGSLQP_)  std::cerr << "\n#### GSLQP solver ends." << std::endl;

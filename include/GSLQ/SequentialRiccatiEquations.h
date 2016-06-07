@@ -18,6 +18,8 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBS
 class SequentialRiccatiEquations : public SystemBase<OUTPUT_DIM*OUTPUT_DIM+OUTPUT_DIM+1>
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	enum { S_DIM_ = OUTPUT_DIM*OUTPUT_DIM+OUTPUT_DIM+1 };
 	typedef Eigen::Matrix<double,S_DIM_,1> s_vector_t;
 	typedef Dimensions<OUTPUT_DIM, INPUT_DIM> DIMENSIONS;

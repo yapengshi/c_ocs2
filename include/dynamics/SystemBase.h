@@ -13,6 +13,9 @@ template <size_t STATE_DIM>
 class SystemBase
 {
 public:
+
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	SystemBase() {}
 	virtual ~SystemBase() {}
 

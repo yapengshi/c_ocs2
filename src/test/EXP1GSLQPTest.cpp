@@ -93,11 +93,11 @@ int main (int argc, char* argv[])
 	double rolloutCost;
 	gslqp.rolloutCost(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
 
-	// value funtion
+	// value function
 	double totalCost;
 	gslqp.getValueFuntion(0.0, initState, totalCost);
 
-	// value funtion derivative
+	// value function derivative
 	Eigen::Matrix<double,2,1> costFuntionDerivative;
 	gslqp.getCostFuntionDerivative(initState, costFuntionDerivative);
 

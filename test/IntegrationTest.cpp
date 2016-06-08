@@ -18,6 +18,7 @@
 
 #include <gtest/gtest.h>
 
+#include <PathTweaker.h>
 
 class SecondOrderSystem : public ControlledSystemBase<2,1>
 {
@@ -92,7 +93,11 @@ TEST(IntegrationTest, SecondOrderSystem)
 		timeEigenTrajectory[i](0) = timeTrajectory[i];
 	}
 
-	std::string resultDir = "/home/farbod/Programs/ct_ws/src/c_ocs2/cereal/test/integration_test";
+
+	PathTweaker pathTweaker(argv);
+
+	std::string resultDir = pathTweaker.getDirectory() +"/src/c_ocs2/cereal/test/integration_test";
+
 	std::string secondOrderStateFile = resultDir + "/secondOrderState.xml";
 	std::string secondOrderTimeFile = resultDir + "/secondOrderTime.xml";
 

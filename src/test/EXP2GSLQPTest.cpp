@@ -16,6 +16,8 @@
 #include "test/EXP2.h"
 #include "GSLQ/GSLQP.h"
 
+#include <PathTweaker.h>
+
 int main (int argc, char* argv[])
 {
 	// subsystem dynamics
@@ -142,7 +144,13 @@ int main (int argc, char* argv[])
 		}
 	}
 
-	std::string resultDir = "/home/farbod/Programs/ct_ws/src/c_ocs2/cereal/test/exp2_test";
+
+	PathTweaker pathTweaker(argv);
+
+	std::string resultDir = pathTweaker.getDirectory() +"/src/c_ocs2/cereal/test/exp2_test";
+
+	std::cout << "Saving to directory " << resultDir << std::endl;
+
 	std::string stateFile = resultDir + "/exp2State.xml";
 	std::string timeFile = resultDir + "/exp2Time.xml";
 	std::string inputFile = resultDir + "/exp2Input.xml";

@@ -6,6 +6,8 @@ project(c_ocs2)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS cmake_modules cereal) 
 find_package(Ceres REQUIRED)
+find_package(Boost REQUIRED system filesystem)
+
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 #set(CMAKE_BUILD_TYPE DEBUG)
@@ -15,12 +17,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 ## ipopot specific configuration ##
 ###################################
 SET(IPOPT_SOURCE_DIR "/home/gimarkus/ipopt/CoinIpopt")
-
-# include ipopt directories
-include_directories(
-"${IPOPT_SOURCE_DIR}/build/include/coin"
-"${SNOPT_SOURCE_DIR}/include"
-)
 
 link_directories(${IPOPT_SOURCE_DIR}/build/lib)
 set(IPOPT_LIBS
@@ -46,13 +42,14 @@ set(IPOPT_LIBS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS  include
+  INCLUDE_DIRS include util
       ${EIGEN_INCLUDE_DIRS}
       "${IPOPT_SOURCE_DIR}/build/include/coin"
       ${CERES_INCLUDE_DIRS}
-#  LIBRARIES c_ocs2
+      ${Boost_INCLUDE_DIRS}
+  #LIBRARIES c_ocs2 ${Boost_LIBRARIES}
   CATKIN_DEPENDS cereal  
-  DEPENDS ${IPOPT_LIBS}
+  DEPENDS ${IPOPT_LIBS} boost
 )
 
 
@@ -65,10 +62,12 @@ catkin_package(
 # include_directories(include)
 include_directories(
   include
+  util
   ${catkin_INCLUDE_DIRS}
   ${EIGEN_INCLUDE_DIRS}
   ${CERES_INCLUDE_DIRS}
-  "${IPOPT_SOURCE_DIR}/build/include/coin"
+  "${IPOPT_SOURCE_DIR}/build/include/coin"  
+  ${Boost_INCLUDE_DIRS}
 )
 
 ## Declare a cpp library
@@ -104,51 +103,59 @@ add_executable(exp1_cost_derivative_test src/test/EXP1DerivativesCheck.cpp)
 ## Declare a cpp executable 
 add_executable(exp3_numerical_derivative_test src/test/EXP3SystemDynamicsDerivativeTest.cpp)
 
+
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(c_ocs2_node c_ocs2_generate_messages_cpp)
 
-
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp1_gslqp_test
   ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
 )
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp3_gslqp_test
   ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
 )
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp4_gslqp_test
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES}  
+  ${Boost_LIBRARIES}
 )
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp1_test
   ${catkin_LIBRARIES}
   ${IPOPT_LIBS}
+  ${Boost_LIBRARIES}
 )
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp2_gslqp_test
   ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
 )
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp2_test
   ${catkin_LIBRARIES}
   ${IPOPT_LIBS}
+  ${Boost_LIBRARIES}
 )
 
 target_link_libraries(exp1_cost_derivative_test
   ${catkin_LIBRARIES}
   ${IPOPT_LIBS}
+  ${Boost_LIBRARIES}
 )
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp3_numerical_derivative_test
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES}  
+  ${Boost_LIBRARIES}
 )
 
 
@@ -164,6 +171,7 @@ target_link_libraries(exp3_numerical_derivative_test
 catkin_add_gtest(interpolation_test test/InterpolationTest.cpp)
 
 catkin_add_gtest(integration_test test/IntegrationTest.cpp)
+target_link_libraries(integration_test ${Boost_LIBRARIES})
 
 catkin_add_gtest(system_dynamics_derivative_test test/SystemDynamicsDerivativeTest.cpp)
 

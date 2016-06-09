@@ -77,6 +77,8 @@ public:
 
 	void computeDerivative(const scalar_t& t, const state_vector_t& x, state_vector_t& dxdt)  {
 
+		SystemBase<STATE_DIM>::numFunctionCalls_++;
+
 		output_vector_t y;
 		control_vector_t u;
 
@@ -92,7 +94,9 @@ public:
 
 	virtual void initializeModel(const scalar_t& initTime, const state_vector_t& initState,
 			const scalar_t& finalTime=0, const char* algorithmName=NULL)
-	{}
+	{
+		SystemBase<STATE_DIM>::numFunctionCalls_ = 0;
+	}
 
 	virtual void computeOutput(const scalar_t& t, const state_vector_t& x, output_vector_t& y)
 	{
@@ -103,6 +107,7 @@ public:
 			const scalar_t& t, const state_vector_t& x, const control_vector_t& u)  {
 		return Eigen::MatrixXd::Identity(OUTPUT_DIM, STATE_DIM);
 	}
+
 
 	virtual std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > clone() const = 0;
 
@@ -119,7 +124,6 @@ protected:
 
 	LinearInterpolation<control_vector_t, Eigen::aligned_allocator<control_vector_t> > linInterpolateUff_;
 	LinearInterpolation<control_feedback_t, Eigen::aligned_allocator<control_feedback_t> > linInterpolateK_;
-
 };
 
 

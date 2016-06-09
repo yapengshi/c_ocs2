@@ -9,41 +9,21 @@
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state_vector_t& initState,
-		const std::vector<controller_t>& controllersStock,
-		std::vector<scalar_array_t>& timeTrajectoriesStock,
-		std::vector<state_vector_array_t>& stateTrajectoriesStock,
-		std::vector<control_vector_array_t>& inputTrajectoriesStock,
-		std::vector<output_vector_array_t>& outputTrajectoriesStock,
-		std::vector<std::vector<size_t> >& nc1TrajectoriesStock,
-		std::vector<constraint1_vector_array_t>& EvTrajectoryStock)  {
+/*
+ * Forward integrate the system dynamics with given controller:
+ * 		inputs:
+ * 			+ initState: initial state at time switchingTimes_[0]
+ * 			+ controllersStock: controller for each subsystem
+ * 		outputs:
+ * 			+ timeTrajectoriesStock:  rollout simulated time steps
+ * 			+ stateTrajectoriesStock: rollout states
+ * 			+ inputTrajectoriesStock: rollout control inputs
+ * 			+ (optional) outputTrajectoriesStock: rollout outputs
+ * 			+ (optional) nc1TrajectoriesStock: number of active constraints at each time step
+ * 			+ (optional) EvTrajectoryStock: value of the constraint (if the rollout is constrained the value is
+ * 											always zero otherwise it is nonzero)
+ */
 
-	rollout(initState, controllersStock,
-			timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock, outputTrajectoriesStock);
-
-	nc1TrajectoriesStock.resize(NUM_SUBSYSTEMS);
-	EvTrajectoryStock.resize(NUM_SUBSYSTEMS);
-
-	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
-
-		// compute constraint1 trajectory for subsystem i
-		size_t N = timeTrajectoriesStock[i].size();
-		nc1TrajectoriesStock[i].resize(N);
-		EvTrajectoryStock[i].resize(N);
-
-		for (int k=0; k<N; k++) {
-			subsystemDynamicsPtrStock_[i]->computeConstriant1(timeTrajectoriesStock[i][k], stateTrajectoriesStock[i][k], inputTrajectoriesStock[i][k],
-					nc1TrajectoriesStock[i][k], EvTrajectoryStock[i][k]);
-			if (nc1TrajectoriesStock[i][k] > INPUT_DIM)
-				throw std::runtime_error("Number of active type-1 constraints should be less-equal to the number of input dimension.");
-		}  // end of k loop
-	}  // end of i loop
-
-}
-
-/******************************************************************************************************/
-/******************************************************************************************************/
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state_vector_t& initState,
@@ -67,6 +47,9 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const stat
 		timeTrajectoriesStock[i].clear();
 		stateTrajectoriesStock[i].clear();
 
+		size_t maxNumSteps = 4*(switchingTimes_[i+1]-switchingTimes_[i])/0.001;
+		maxNumSteps = ((1000>maxNumSteps) ? 1000 : maxNumSteps);
+
 		// initialize subsystem i
 		subsystemDynamicsPtrStock_[i]->initializeModel(switchingTimes_[i], x0, switchingTimes_[i+1], "GSLQP");
 		// set controller for subsystem i
@@ -74,10 +57,10 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const stat
 		// simulate subsystem i
 		subsystemSimulatorsStockPtr_[i]->integrate(x0, switchingTimes_[i], switchingTimes_[i+1],
 				stateTrajectoriesStock[i], timeTrajectoriesStock[i],
-				1e-3, options_.AbsTolODE_, options_.RelTolODE_);
+				1e-3, options_.AbsTolODE_, options_.RelTolODE_, maxNumSteps);
 
 		if (stateTrajectoriesStock[i].back() != stateTrajectoriesStock[i].back())
-				throw std::runtime_error("System became unstable during the GSLQP roullouts.");
+				throw std::runtime_error("System became unstable during the GSLQP rollout.");
 
 		// compute control trajectory for subsystem i
 		inputTrajectoriesStock[i].resize(timeTrajectoriesStock[i].size());
@@ -90,12 +73,9 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const stat
 		// reset the initial state
 		x0 = stateTrajectoriesStock[i].back();
 	}
-
 }
 
 
-/******************************************************************************************************/
-/******************************************************************************************************/
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state_vector_t& initState,
@@ -110,10 +90,60 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const stat
 }
 
 /******************************************************************************************************/
-/******************************************************************************************************/
-/******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rolloutCost(const std::vector<scalar_array_t>& timeTrajectoriesStock,
+void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state_vector_t& initState,
+		const std::vector<controller_t>& controllersStock,
+		std::vector<scalar_array_t>& timeTrajectoriesStock,
+		std::vector<state_vector_array_t>& stateTrajectoriesStock,
+		std::vector<control_vector_array_t>& inputTrajectoriesStock,
+		std::vector<output_vector_array_t>& outputTrajectoriesStock,
+		std::vector<std::vector<size_t> >& nc1TrajectoriesStock,
+		std::vector<constraint1_vector_array_t>& EvTrajectoryStock)  {
+
+	rollout(initState, controllersStock,
+			timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock, outputTrajectoriesStock);
+
+	// constraint type 1 computations which consists of number of active constraints at each time point
+	// and the value of the constraint (if the rollout is constrained the value is always zero otherwise
+	// it is nonzero)
+	nc1TrajectoriesStock.resize(NUM_SUBSYSTEMS);
+	EvTrajectoryStock.resize(NUM_SUBSYSTEMS);
+
+	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
+
+		size_t N = timeTrajectoriesStock[i].size();
+		nc1TrajectoriesStock[i].resize(N);
+		EvTrajectoryStock[i].resize(N);
+
+		// compute constraint1 trajectory for subsystem i
+		for (int k=0; k<N; k++) {
+			subsystemDynamicsPtrStock_[i]->computeConstriant1(timeTrajectoriesStock[i][k],
+					stateTrajectoriesStock[i][k], inputTrajectoriesStock[i][k],
+					nc1TrajectoriesStock[i][k], EvTrajectoryStock[i][k]);
+			if (nc1TrajectoriesStock[i][k] > INPUT_DIM)
+				throw std::runtime_error("Number of active type-1 constraints should be less-equal to the number of input dimension.");
+		}  // end of k loop
+	}  // end of i loop
+
+}
+
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+/*
+ * compute the cost for given rollout
+ * 		inputs:
+ * 			+ timeTrajectoriesStock:  rollout simulated time steps
+ * 			+ outputTrajectoriesStock: rollout outputs
+ * 			+ inputTrajectoriesStock: rollout control inputs
+ *
+ * 		outputs:
+ * 			+ totalCost: the total cost of the trajectory
+ */
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rolloutCost(
+		const std::vector<scalar_array_t>& timeTrajectoriesStock,
 		const std::vector<output_vector_array_t>& outputTrajectoriesStock,
 		const std::vector<control_vector_array_t>& inputTrajectoriesStock,
 		scalar_t& totalCost)  {
@@ -156,10 +186,46 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rolloutCost(const 
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
+/*
+ * approximates the nonlinear problem as a linear-quadratic problem around the nominal
+ * state and control trajectories. This method updates the following variables:
+ *
+ * 		+ linearized system model
+ * 		+ dxdt = Am(t)x(t) + Bm(t)u(t)
+ * 		+ s.t. Cm(t)x(t) + Dm(t)t(t) + Ev(t) = 0
+ * 		+ AmTrajectoryStock_: Am matrix
+ * 		+ BmTrajectoryStock_: Bm matrix
+ * 		+ CmTrajectoryStock_: Cm matrix
+ * 		+ DmTrajectoryStock_: Dm matrix
+ *
+ * 		+ quadratized intermediate cost function
+ * 		+ intermediate cost: q(t) + 0.5 y(t)Qm(t)y(t) + y(t)'Qv(t) + u(t)'Pm(t)y(t) + 0.5u(t)'Rm(t)u(t) + u(t)'Rv(t)
+ * 		+ qTrajectoryStock_:  q
+ * 		+ QvTrajectoryStock_: Qv vector
+ * 		+ QmTrajectoryStock_: Qm matrix
+ * 		+ PmTrajectoryStock_: Pm matrix
+ * 		+ RvTrajectoryStock_: Rv vector
+ * 		+ RmTrajectoryStock_: Rm matrix
+ * 		+ RmInverseTrajectoryStock_: inverse of Rm matrix
+ *
+ * 		+ quadratized final cost in the last subsystem: qFinal(t) + 0.5 y(t)QmFinal(t)y(t) + y(t)'QvFinal(t)
+ * 		+ qFinal_: qFinal
+ * 		+ qFinal_: QvFinal vector
+ * 		+ qFinal_: QmFinal matrix
+ *
+ * 		+ as well as the constrained coefficients of
+ * 			linearized system model
+ * 			quadratized intermediate cost function
+ * 			quadratized final cost
+ */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimalControlProblem()  {
 
 	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
+
+		// initialize subsystem i dynamics derivatives
+		subsystemDerivativesPtrStock_[i]->initializeModel(nominalTimeTrajectoriesStock_[i].front(),
+				nominalStateTrajectoriesStock_[i].front(), nominalTimeTrajectoriesStock_[i].back(), "GSLQP");
 
 		int N = nominalTimeTrajectoriesStock_[i].size();
 
@@ -176,25 +242,17 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimal
 		RmInverseTrajectoryStock_[i].resize(N);
 		PmTrajectoryStock_[i].resize(N);
 
-		// initialize subsystem i
-		subsystemDerivativesPtrStock_[i]->initializeModel(nominalTimeTrajectoriesStock_[i].front(),
-				nominalStateTrajectoriesStock_[i].front(), nominalTimeTrajectoriesStock_[i].back(), "GSLQP");
-
 		for (int k=0; k<N; k++) {
 
 			subsystemDerivativesPtrStock_[i]->setCurrentStateAndControl(nominalTimeTrajectoriesStock_[i][k],
 					nominalStateTrajectoriesStock_[i][k], nominalInputTrajectoriesStock_[i][k], nominalOutputTrajectoriesStock_[i][k]);
 			subsystemDerivativesPtrStock_[i]->getDerivativeState(AmTrajectoryStock_[i][k]);
 			subsystemDerivativesPtrStock_[i]->getDerivativesControl(BmTrajectoryStock_[i][k]);
-
-			size_t nc1;
-			subsystemDerivativesPtrStock_[i]->getConstraint1DerivativesState(nc1, CmTrajectoryStock_[i][k]);
-			if (nc1 != nc1TrajectoriesStock_[i][k])
-				throw std::runtime_error("First dimension of the Cm matrix is not compatible with number of active type-1 constraints in nominal rollout.");
-
-			subsystemDerivativesPtrStock_[i]->getConstraint1DerivativesControl(nc1, DmTrajectoryStock_[i][k]);
-			if (nc1 != nc1TrajectoriesStock_[i][k])
-				throw std::runtime_error("First dimension of the Dm matrix is not compatible with number of active type-1 constraints in nominal rollout.");
+			// if constraint type 1 is active
+			if (nc1TrajectoriesStock_[i][k] > 0) {
+				subsystemDerivativesPtrStock_[i]->getConstraint1DerivativesState(CmTrajectoryStock_[i][k]);
+				subsystemDerivativesPtrStock_[i]->getConstraint1DerivativesControl(DmTrajectoryStock_[i][k]);
+			}
 
 			subsystemCostFunctionsPtrStock_[i]->setCurrentStateAndControl(nominalTimeTrajectoriesStock_[i][k],
 					nominalOutputTrajectoriesStock_[i][k], nominalInputTrajectoriesStock_[i][k]);
@@ -212,7 +270,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimal
 			subsystemCostFunctionsPtrStock_[i]->terminalCost(qFinal_(0));
 			subsystemCostFunctionsPtrStock_[i]->terminalCostStateDerivative(QvFinal_);
 			subsystemCostFunctionsPtrStock_[i]->terminalCostStateSecondDerivative(QmFinal_);
-			// making sure that Qm is PSD
+			// making sure that Qm remains PSD
 			makePSD(QmFinal_);
 		}
 	}
@@ -222,10 +280,12 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimal
 
 		int N = nominalTimeTrajectoriesStock_[i].size();
 
-		RmConstraintProjectionTrajectoryStock_[i].resize(N);
-		DmDagerTrajectoryStock_[i].resize(N);
+		RmConstraintProjectionTrajectoryStock_[i].resize(N);  // ( Dm(t) Rm(t)^{-1} Dm(t)' )^{-1}
+		DmDagerTrajectoryStock_[i].resize(N);				  // Rm(t)^{-1} Dm(t)' ( Dm(t) Rm(t)^{-1} Dm(t)' )^{-1}
+
 		AmConstrainedTrajectoryStock_[i].resize(N);
 		BmConstrainedTrajectoryStock_[i].resize(N);
+
 		QmConstrainedTrajectoryStock_[i].resize(N);
 		QvConstrainedTrajectoryStock_[i].resize(N);
 		RvConstrainedTrajectoryStock_[i].resize(N);
@@ -235,7 +295,6 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimal
 			size_t nc1 = nc1TrajectoriesStock_[i][k];
 
 			if (nc1 == 0) {
-
 				RmConstraintProjectionTrajectoryStock_[i][k].setZero();
 				DmDagerTrajectoryStock_[i][k].setZero();
 				AmConstrainedTrajectoryStock_[i][k] = AmTrajectoryStock_[i][k];
@@ -244,14 +303,17 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimal
 				QvConstrainedTrajectoryStock_[i][k] = QvTrajectoryStock_[i][k];
 				RvConstrainedTrajectoryStock_[i][k] = RvTrajectoryStock_[i][k];
 				PmConstrainedTrajectoryStock_[i][k] = PmTrajectoryStock_[i][k];
+
 			} else {
 
 				Eigen::MatrixXd Cm = CmTrajectoryStock_[i][k].topRows(nc1);
 				Eigen::MatrixXd Dm = DmTrajectoryStock_[i][k].topRows(nc1);
+
 				Eigen::MatrixXd RmConstraintProjection = ( Dm*RmInverseTrajectoryStock_[i][k]*Dm.transpose() ).inverse();
 				Eigen::MatrixXd DmDager = RmInverseTrajectoryStock_[i][k]*Dm.transpose()*RmConstraintProjection;
+
 				control_matrix_t DmNullSpaceProjection = control_matrix_t::Identity() - DmDager*Dm;
-				state_matrix_t PmTransDmDagerCm = PmTrajectoryStock_[i][k].transpose()*DmDager*Cm;
+				state_matrix_t   PmTransDmDagerCm = PmTrajectoryStock_[i][k].transpose()*DmDager*Cm;
 
 				RmConstraintProjectionTrajectoryStock_[i][k].topLeftCorner(nc1,nc1) = RmConstraintProjection;
 				DmDagerTrajectoryStock_[i][k].leftCols(nc1) = DmDager;
@@ -263,8 +325,9 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimal
 				PmConstrainedTrajectoryStock_[i][k] = DmNullSpaceProjection.transpose()*PmTrajectoryStock_[i][k];
 			}
 
-			// making sure that Qm is PSD
+			// making sure that constrained Qm is PSD
 			makePSD(QmConstrainedTrajectoryStock_[i][k]);
+
 		}  // end of k loop
 	}  // end of i loop
 }
@@ -273,12 +336,23 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimal
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
+/*
+ * calculates the controller:
+ * 		This method uses the following variables:
+ * 			+ constrained, linearized model
+ * 			+ constrained, quadratized cost
+ *
+ * 		The method outputs:
+ * 			+ controllersStock: the controller that stabilizes the system around the new nominal trajectory
+ * 								and improves the constraints.
+ * 			+ feedForwardControlStock: the increment to the feedforward control input
+ *			+ feedForwardConstraintInputStock: the increment to the feedforward control input due to constraint type-1
+ */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculatecontroller(scalar_t& learningRateStar) {
-
-	double maxUffe = 0.0;
-
-	std::vector<controller_t> controllersStock(NUM_SUBSYSTEMS);
+void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculatecontroller(
+		std::vector<controller_t>& controllersStock,
+		std::vector<control_vector_array_t>& feedForwardControlStock,
+		std::vector<control_vector_array_t>& feedForwardConstraintInputStock) {
 
 	LinearInterpolation<control_gain_matrix_t,Eigen::aligned_allocator<control_gain_matrix_t> > BmFunc;
 	LinearInterpolation<constraint1_state_matrix_t,Eigen::aligned_allocator<constraint1_state_matrix_t> > CmFunc;
@@ -292,8 +366,6 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculatecontrolle
 	LinearInterpolation<output_vector_t,Eigen::aligned_allocator<output_vector_t> > nominalOutputFunc;
 	LinearInterpolation<control_vector_t,Eigen::aligned_allocator<control_vector_t> > nominalInputFunc;
 
-	std::vector<control_vector_array_t> deltaUffStock(NUM_SUBSYSTEMS);
-	std::vector<control_vector_t> maxDeltaUffStock(NUM_SUBSYSTEMS);
 
 	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
 
@@ -324,101 +396,73 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculatecontrolle
 		nominalInputFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
 		nominalInputFunc.setData( &(nominalInputTrajectoriesStock_[i]) );
 
+
 		int N = SsTimeTrajectoryStock_[i].size();
+
 		controllersStock[i].time_ = SsTimeTrajectoryStock_[i];
 		controllersStock[i].k_.resize(N);
 		controllersStock[i].uff_.resize(N);
-		deltaUffStock[i].resize(N);
+
+		feedForwardControlStock[i].resize(N);
+		feedForwardConstraintInputStock[i].resize(N);
+
 		for (int k=0; k<N; k++) {
 
+			const double& time = SsTimeTrajectoryStock_[i][k];
+
 			control_gain_matrix_t Bm;
-			BmFunc.interpolate(SsTimeTrajectoryStock_[i][k], Bm);
+			BmFunc.interpolate(time, Bm);
 			size_t greatestLessTimeStampIndex = BmFunc.getGreatestLessTimeStampIndex();
 
 			control_vector_t Rv;
-			RvFunc.interpolate(SsTimeTrajectoryStock_[i][k], Rv, greatestLessTimeStampIndex);
+			RvFunc.interpolate(time, Rv, greatestLessTimeStampIndex);
 			control_matrix_t RmInverse;
-			RmInverseFunc.interpolate(SsTimeTrajectoryStock_[i][k], RmInverse, greatestLessTimeStampIndex);
+			RmInverseFunc.interpolate(time, RmInverse, greatestLessTimeStampIndex);
 			control_feedback_t Pm;
-			PmFunc.interpolate(SsTimeTrajectoryStock_[i][k], Pm, greatestLessTimeStampIndex);
-
-			control_vector_t uffe = -RmInverse*Bm.transpose()*SveTrajectoryStock_[i][k];
-			control_feedback_t ke = control_feedback_t::Zero();
-			size_t nc1 = nc1TrajectoriesStock_[i][greatestLessTimeStampIndex];
-			if (nc1 != 0) {
-				constraint1_state_matrix_t Cm;
-				CmFunc.interpolate(SsTimeTrajectoryStock_[i][k], Cm, greatestLessTimeStampIndex);
-				control_constraint1_matrix_t DmDager;
-				DmDagerFunc.interpolate(SsTimeTrajectoryStock_[i][k], DmDager, greatestLessTimeStampIndex);
-				constraint1_vector_t Ev;
-				EvFunc.interpolate(SsTimeTrajectoryStock_[i][k], Ev, greatestLessTimeStampIndex);
-
-				uffe += -DmDager.leftCols(nc1)*Ev.head(nc1);
-				ke = -DmDager.leftCols(nc1)*Cm.topRows(nc1);
-			}
+			PmFunc.interpolate(time, Pm, greatestLessTimeStampIndex);
 
 			output_vector_t nominalOutput;
-			nominalOutputFunc.interpolate(SsTimeTrajectoryStock_[i][k], nominalOutput);
+			nominalOutputFunc.interpolate(time, nominalOutput, greatestLessTimeStampIndex);
 			control_vector_t nominalInput;
-			nominalInputFunc.interpolate(SsTimeTrajectoryStock_[i][k], nominalInput);
+			nominalInputFunc.interpolate(time, nominalInput, greatestLessTimeStampIndex);
+
+			feedForwardConstraintInputStock[i][k] = -RmInverse*Bm.transpose()*SveTrajectoryStock_[i][k];
+			control_feedback_t ke = control_feedback_t::Zero();
+
+			size_t nc1 = nc1TrajectoriesStock_[i][greatestLessTimeStampIndex];
+			if (nc1 > 0) {
+				constraint1_state_matrix_t Cm;
+				CmFunc.interpolate(time, Cm, greatestLessTimeStampIndex);
+				control_constraint1_matrix_t DmDager;
+				DmDagerFunc.interpolate(time, DmDager, greatestLessTimeStampIndex);
+				constraint1_vector_t Ev;
+				EvFunc.interpolate(time, Ev, greatestLessTimeStampIndex);
+
+				ke = -DmDager.leftCols(nc1)*Cm.topRows(nc1);
+				feedForwardConstraintInputStock[i][k] += -DmDager.leftCols(nc1)*Ev.head(nc1);
+			}
 
 			controllersStock[i].k_[k]   = ke - RmInverse * (Pm + Bm.transpose()*SmTrajectoryStock_[i][k]);
-			controllersStock[i].uff_[k] = nominalInput + uffe - controllersStock[i].k_[k]*nominalOutput;
-			deltaUffStock[i][k] = -RmInverse * (Rv + Bm.transpose()*SvTrajectoryStock_[i][k]);
+			controllersStock[i].uff_[k] = nominalInput - controllersStock[i].k_[k]*nominalOutput;
+			feedForwardControlStock[i][k] = -RmInverse * (Rv + Bm.transpose()*SvTrajectoryStock_[i][k]);
 
-			if (options_.dispayGSLQP_) maxUffe = (maxUffe<uffe.norm()) ? uffe.norm() : maxUffe;
-
-			// testing the numerical stability of the controller gains
+			// checking the numerical stability of the controller parameters
 			try {
-				if (uffe != uffe)  throw std::runtime_error("uffe is unstable.");
-				if (ke != ke)      throw std::runtime_error("ke is unstable.");
-				if (controllersStock[i].k_[k] != controllersStock[i].k_[k])  throw std::runtime_error("K is unstable.");
-				if (deltaUffStock[i][k] != deltaUffStock[i][k])              throw std::runtime_error("deltaUff is unstable.");
+				if (controllersStock[i].k_[k] != controllersStock[i].k_[k])
+					throw std::runtime_error("Feedback gains are unstable.");
+				if (feedForwardControlStock[i][k] != feedForwardControlStock[i][k])
+					throw std::runtime_error("feedForwardControl is unstable.");
+				if (nc1 != 0 && feedForwardConstraintInputStock[i][k] != feedForwardConstraintInputStock[i][k])
+					throw std::runtime_error("feedForwardConstraintInput is unstable.");
+				if (nc1 != 0 && ke != ke)
+					throw std::runtime_error("feedBackConstraintInput is unstable.");
 			}
-			catch(std::exception const& error)
-			{
+			catch(const std::exception& error)  {
 			    std::cerr << "what(): " << error.what() << " at time " << controllersStock[i].time_[k] << " [sec]." << std::endl;
 			}
+
 		}  // end of k loop
-
-		// display
-		if (options_.dispayGSLQP_)  maxDeltaUffStock[i] = *std::max_element(deltaUffStock[i].begin(), deltaUffStock[i].end(),
-				[] (const control_vector_t& u1, const control_vector_t& u2){ return u1.norm() < u2.norm(); });
-
 	}  // end of i loop
-
-	// display
-	if (options_.dispayGSLQP_)  {
-		control_vector_t maxDeltaUff = *std::max_element(maxDeltaUffStock.begin(), maxDeltaUffStock.end(),
-				[] (const control_vector_t& u1, const control_vector_t& u2){ return u1.norm() < u2.norm(); });
-		std::cerr << "max delta_uff norm: " << maxDeltaUff.norm() << std::endl;
-		std::cerr << "max uff_error norm: " << maxUffe << std::endl;
-	}
-
-
-	if (!options_.simulationIsConstrained_)  {
-		nominalRolloutIsUpdated_ = true;
-		nominalControllersStock_ = controllersStock;
-		rollout(initState_, nominalControllersStock_, nominalTimeTrajectoriesStock_,
-				nominalStateTrajectoriesStock_, nominalInputTrajectoriesStock_, nominalOutputTrajectoriesStock_,
-				nc1TrajectoriesStock_, EvTrajectoryStock_);
-		rolloutCost(nominalTimeTrajectoriesStock_, nominalOutputTrajectoriesStock_, nominalInputTrajectoriesStock_,
-				nominalTotalCost_);
-		// display
-		if (options_.dispayGSLQP_)  std::cerr << "\t learningRate 0.0 cost:\t" << nominalTotalCost_ << std::endl;
-	}
-
-
-	// finding the optimal learningRate
-	lineSearch(controllersStock, deltaUffStock, learningRateStar);
-
-	// calculating the nominal controller
-	nominalControllersStock_ = controllersStock;
-	if (learningRateStar>0) {
-		for (int i=0; i<NUM_SUBSYSTEMS; i++)
-			for (int k=0; k<SsTimeTrajectoryStock_[i].size(); k++)
-				nominalControllersStock_[i].uff_[k] += learningRateStar*deltaUffStock[i][k];
-	}
 
 }
 
@@ -427,36 +471,78 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculatecontrolle
 /******************************************************************************************************/
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(const std::vector<controller_t>& controllersStock,
-		const std::vector<control_vector_array_t>& deltaUffStock,
-		scalar_t& learningRateStar)  {
+void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
+		const std::vector<control_vector_array_t>& feedForwardControlStock,
+		const std::vector<control_vector_array_t>& feedForwardConstraintInputStock,
+		scalar_t& learningRateStar/*=1*/)  {
+
+	// display
+	if (options_.dispayGSLQP_)  {
+		// less-equal operator for eigen vectors
+		auto eigenVectorLessEqual = [] (const control_vector_t& u1, const control_vector_t& u2){ return u1.norm() < u2.norm(); };
+
+		std::vector<control_vector_t> maxDeltaUffStock(NUM_SUBSYSTEMS);
+		std::vector<control_vector_t> maxDeltaUffeStock(NUM_SUBSYSTEMS);
+		for (size_t i=0; i<NUM_SUBSYSTEMS; i++)  {
+			maxDeltaUffStock[i]  = *std::max_element(feedForwardControlStock[i].begin(), feedForwardControlStock[i].end(), eigenVectorLessEqual);
+			maxDeltaUffeStock[i] = *std::max_element(feedForwardConstraintInputStock[i].begin(), feedForwardConstraintInputStock[i].end(), eigenVectorLessEqual);
+		}
+		control_vector_t maxDeltaUff  = *std::max_element(maxDeltaUffStock.begin(), maxDeltaUffStock.end(), eigenVectorLessEqual);
+		control_vector_t maxDeltaUffe = *std::max_element(maxDeltaUffeStock.begin(), maxDeltaUffeStock.end(), eigenVectorLessEqual);
+
+		std::cerr << "max delta_uff norm: " << maxDeltaUff.norm()  << std::endl;
+		std::cerr << "max uff_error norm: " << maxDeltaUffe.norm() << std::endl;
+	}
+
+	// update the nominal controller with feedForwardConstraintInput
+	for (int i=0; i<NUM_SUBSYSTEMS; i++)
+		for (int k=0; k<nominalControllersStock_[i].time_.size(); k++)
+			nominalControllersStock_[i].uff_[k] += feedForwardConstraintInputStock[i][k];
+
+	// perform one rollout while the input correction for the type-1 constraint is considered.
+	rollout(initState_, nominalControllersStock_, nominalTimeTrajectoriesStock_,
+			nominalStateTrajectoriesStock_, nominalInputTrajectoriesStock_, nominalOutputTrajectoriesStock_,
+			nc1TrajectoriesStock_, EvTrajectoryStock_);
+	rolloutCost(nominalTimeTrajectoriesStock_, nominalOutputTrajectoriesStock_, nominalInputTrajectoriesStock_,
+			nominalTotalCost_);
+	// display
+	if (options_.dispayGSLQP_)  std::cerr << "\t learningRate 0.0 cost:\t" << nominalTotalCost_ << std::endl;
+
 
 	scalar_t learningRate = learningRateStar;
+	std::vector<controller_t> controllersStock = nominalControllersStock_;
 
+	// local search forward simulation's variables
 	scalar_t lsTotalCost;
-	std::vector<controller_t> lsControllersStock(NUM_SUBSYSTEMS);
-	std::vector<scalar_array_t> lsTimeTrajectoriesStock(NUM_SUBSYSTEMS);
-	std::vector<state_vector_array_t> lsStateTrajectoriesStock(NUM_SUBSYSTEMS);
+	std::vector<controller_t>           lsControllersStock(NUM_SUBSYSTEMS);
+	std::vector<scalar_array_t>         lsTimeTrajectoriesStock(NUM_SUBSYSTEMS);
+	std::vector<state_vector_array_t>   lsStateTrajectoriesStock(NUM_SUBSYSTEMS);
 	std::vector<control_vector_array_t> lsInputTrajectoriesStock(NUM_SUBSYSTEMS);
-	std::vector<output_vector_array_t> lsOutputTrajectoriesStock(NUM_SUBSYSTEMS);
-	std::vector<std::vector<size_t> > lsNc1TrajectoriesStock(NUM_SUBSYSTEMS);
+	std::vector<output_vector_array_t>  lsOutputTrajectoriesStock(NUM_SUBSYSTEMS);
+	std::vector<std::vector<size_t> >   lsNc1TrajectoriesStock(NUM_SUBSYSTEMS);
 	std::vector<constraint1_vector_array_t> lsEvTrajectoryStock(NUM_SUBSYSTEMS);
 
 	while (learningRate > options_.minLearningRateGSLQP_)  {
-		// modifying uff by the local increamant
+		// modifying uff by the local increments
 		lsControllersStock = controllersStock;
 		for (int i=0; i<NUM_SUBSYSTEMS; i++)
-			for (int k=0; k<SsTimeTrajectoryStock_[i].size(); k++)
-				lsControllersStock[i].uff_[k] += learningRate*deltaUffStock[i][k];
+			for (int k=0; k<lsControllersStock[i].time_.size(); k++)
+				lsControllersStock[i].uff_[k] += learningRate*feedForwardControlStock[i][k];
 
-		// rollout
-		rollout(initState_, lsControllersStock, lsTimeTrajectoriesStock, lsStateTrajectoriesStock, lsInputTrajectoriesStock, lsOutputTrajectoriesStock,
-				lsNc1TrajectoriesStock, lsEvTrajectoryStock);
-		// calculate rollout cost
-		rolloutCost(lsTimeTrajectoriesStock, lsOutputTrajectoriesStock, lsInputTrajectoriesStock, lsTotalCost);
-
-		// display
-		if (options_.dispayGSLQP_)  std::cerr << "\t learningRate " << learningRate << " cost:\t" << lsTotalCost << std::endl;
+		// perform rollout
+		try {
+			rollout(initState_, lsControllersStock, lsTimeTrajectoriesStock, lsStateTrajectoriesStock, lsInputTrajectoriesStock, lsOutputTrajectoriesStock,
+					lsNc1TrajectoriesStock, lsEvTrajectoryStock);
+			// calculate rollout cost
+			rolloutCost(lsTimeTrajectoriesStock, lsOutputTrajectoriesStock, lsInputTrajectoriesStock, lsTotalCost);
+			// display
+			if (options_.dispayGSLQP_)  std::cerr << "\t learningRate " << learningRate << " cost:\t" << lsTotalCost << std::endl;
+		}
+		catch(const std::exception& error)
+		{
+			std::cerr << "\t rollout with learningRate " << learningRate << " is terminated due to the slow simulation!" << std::endl;
+			lsTotalCost = std::numeric_limits<scalar_t>::max();
+		}
 
 		// break condition 1: it exits with largest learningRate that its cost is smaller than nominal cost.
 		if (lsTotalCost < nominalTotalCost_*(1-1e-3*learningRate))  {
@@ -470,17 +556,16 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(const s
 			nc1TrajectoriesStock_ = lsNc1TrajectoriesStock;
 			EvTrajectoryStock_ = lsEvTrajectoryStock;
 			learningRateStar = learningRate;
-			break;
+			break;  // exit while loop
 		} else {
 			learningRate = 0.5*learningRate;
 		}
 
 	}  // end of while
 
-	if (learningRate <= options_.minLearningRateGSLQP_) {
-		nominalRolloutIsUpdated_ = true;  // since the open loop input will not change, the nominal trajectories will be constatnt (no disturbance effect has been assumed)
+	// since the open loop input will not change, the nominal trajectories will be unchanged (no disturbance effect has been assumed)
+	if (learningRate <= options_.minLearningRateGSLQP_)
 		learningRateStar = 0.0;
-	}
 
 	// display
 	if (options_.dispayGSLQP_)  std::cerr << "The chosen learningRate is: " << learningRateStar << std::endl;
@@ -679,7 +764,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRic
 				if (SvTrajectoryStock_[i][k] != SvTrajectoryStock_[i][k])  throw std::runtime_error("Sv is unstable.");
 				if (sTrajectoryStock_[i][k] != sTrajectoryStock_[i][k])    throw std::runtime_error("s is unstable.");
 			}
-			catch(std::exception const& error)
+			catch(const std::exception& error)
 			{
 				std::cerr << "what(): " << error.what() << " at time " << SsTimeTrajectoryStock_[i][k] << " [sec]." << std::endl;
 				for (int kp=k; kp<k+10; kp++)  {
@@ -699,6 +784,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRic
 		/*
 		 * Type_1 constriants error correction
 		 */
+
+		SveTrajectoryStock_[i].resize(N);
 
 		// Skip calculation of the error correction term Sve if the constrained simulation is used for forward simulation
 		if (options_.simulationIsConstrained_) {
@@ -756,7 +843,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRic
 			try {
 				if (SveTrajectoryStock_[i][k] != SveTrajectoryStock_[i][k])  throw std::runtime_error("Sve is unstable");
 			}
-			catch(std::exception const& error) 	{
+			catch(const std::exception& error) 	{
 				std::cerr << "what(): " << error.what() << " at time " << SsTimeTrajectoryStock_[i][k] << " [sec]." << std::endl;
 				for (int kp=k; kp<N; kp++)   std::cerr << "Sve[" << SsTimeTrajectoryStock_[i][kp] << "]:\t"<< SveTrajectoryStock_[i][kp].transpose() << std::endl;
 				exit(1);
@@ -833,7 +920,69 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveFullSequentia
 /******************************************************************************************************/
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rolloutSensitivity2SwitchingTime()  {
+void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::inputIncrementSensitivity2SwitchingTime(
+		std::vector<scalar_array_t>& nablaUffTimeTrajectoryStock,
+		std::vector<nabla_input_matrix_array_t>& nablaUffTrajectoryStock)  {
+
+	LinearInterpolation<control_gain_matrix_t,Eigen::aligned_allocator<control_gain_matrix_t> > BmFunc;
+	LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> > RmInverseFunc;
+
+	LinearInterpolation<nabla_input_matrix_t,Eigen::aligned_allocator<nabla_input_matrix_t> > nabla_RvFunc;
+
+	nablaUffTimeTrajectoryStock = SsTimeTrajectoryStock_;
+
+	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
+
+		// set data
+		BmFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
+		BmFunc.setData(&BmTrajectoryStock_[i]);
+		RmInverseFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
+		RmInverseFunc.setData(&RmInverseTrajectoryStock_[i]);
+		nabla_RvFunc.setTimeStamp(&sensitivityTimeTrajectoryStock_[i]);
+		nabla_RvFunc.setData(&nablaRvTrajectoryStock_[i]);
+
+		// resizing the
+		size_t N = nablaUffTimeTrajectoryStock[i].size();
+		nablaUffTrajectoryStock[i].resize(N);
+
+		for (size_t k=0; k<N; k++) {
+
+			// time
+			double t = SsTimeTrajectoryStock_[i][k];
+
+			// nabla_sv
+			nabla_output_matrix_t nabla_Sv;
+			for (size_t j=0; j<NUM_SUBSYSTEMS-1; j++)
+				nabla_Sv.col(j) = nablaSvTrajectoryStock_[i][k][j];
+
+			// Bm
+			control_gain_matrix_t Bm;
+			BmFunc.interpolate(t, Bm);
+			int greatestLessTimeStampIndex = BmFunc.getGreatestLessTimeStampIndex();
+			// RmInverse
+			control_matrix_t RmInverse;
+			RmInverseFunc.interpolate(t, RmInverse, greatestLessTimeStampIndex);
+
+			// nabla_Rv
+			nabla_input_matrix_t nabla_Rv;
+			nabla_RvFunc.interpolate(t, nabla_Rv);
+
+			nablaUffTrajectoryStock[i][k] = -RmInverse*(nabla_Rv+Bm.transpose()*nabla_Sv);
+		}
+	}
+}
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rolloutSensitivity2SwitchingTime(bool nablaSvUpdated)  {
+
+
+	std::vector<scalar_array_t> nablaUffTimeTrajectoryStock(NUM_SUBSYSTEMS);
+	std::vector<nabla_input_matrix_array_t> nablaUffTrajectoryStock(NUM_SUBSYSTEMS);
+	if (nablaSvUpdated==true)
+		inputIncrementSensitivity2SwitchingTime(nablaUffTimeTrajectoryStock, nablaUffTrajectoryStock);
 
 	auto rolloutSensitivityEquationsPtr = std::make_shared<RolloutSensitivityEquations_t>();
 
@@ -846,9 +995,15 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rolloutSensitivity
 		subsystemDynamicsPtrStock_[i]->initializeModel(nominalTimeTrajectoriesStock_[i].front(),
 				nominalStateTrajectoriesStock_[i].front(), nominalTimeTrajectoriesStock_[i].back(), "GSLQP");
 
-		rolloutSensitivityEquationsPtr->setData(i, switchingTimes_, subsystemDynamicsPtrStock_[i], &nominalControllersStock_[i],
-				&nominalTimeTrajectoriesStock_[i], &nominalStateTrajectoriesStock_[i], &nominalInputTrajectoriesStock_[i],
-				&AmConstrainedTrajectoryStock_[i], &BmConstrainedTrajectoryStock_[i]);
+		if (nablaSvUpdated==true)
+			rolloutSensitivityEquationsPtr->setData(i, switchingTimes_, subsystemDynamicsPtrStock_[i], &nominalControllersStock_[i],
+					&nominalTimeTrajectoriesStock_[i], &nominalStateTrajectoriesStock_[i], &nominalInputTrajectoriesStock_[i],
+					&AmConstrainedTrajectoryStock_[i], &BmConstrainedTrajectoryStock_[i],
+					&nablaUffTimeTrajectoryStock[i], &nablaUffTrajectoryStock[i]);
+		else
+			rolloutSensitivityEquationsPtr->setData(i, switchingTimes_, subsystemDynamicsPtrStock_[i], &nominalControllersStock_[i],
+								&nominalTimeTrajectoriesStock_[i], &nominalStateTrajectoriesStock_[i], &nominalInputTrajectoriesStock_[i],
+								&AmConstrainedTrajectoryStock_[i], &BmConstrainedTrajectoryStock_[i]);
 
 		// integrating
 		scalar_array_t normalizedSensitivityTimeTrajectory;
@@ -925,7 +1080,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rolloutSensitivity
 			nablaqTrajectoryStock_[i][k]  = Qv.transpose()*nablaOutputTrajectoryStock_[i][k] + Rv.transpose()*nablaInputTrajectoryStock_[i][k];
 			nablaQvTrajectoryStock_[i][k] = Qm*nablaOutputTrajectoryStock_[i][k] + Pm.transpose()*nablaInputTrajectoryStock_[i][k];
 			nablaRvTrajectoryStock_[i][k] = Pm*nablaOutputTrajectoryStock_[i][k] + Rm*nablaInputTrajectoryStock_[i][k];
-			nablaEvTrajectoryStock_[i][k] = Cm*nablaOutputTrajectoryStock_[i][k] + Dm*nablaInputTrajectoryStock_[i][k];
+//			nablaEvTrajectoryStock_[i][k] = Cm*nablaOutputTrajectoryStock_[i][k] + Dm*nablaInputTrajectoryStock_[i][k];
 		}
 
 		if (i==NUM_SUBSYSTEMS-1)  {
@@ -974,12 +1129,15 @@ bool GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::makePSD(Eigen::Mat
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes)  {
 
-
 	if (switchingTimes.size() != NUM_SUBSYSTEMS+1)
 		throw std::runtime_error("Number of switching times should be one plus the number of subsystems.");
 
 	// display
-	if (options_.dispayGSLQP_)  std::cerr << "\n#### GSLQP solver starts ..." << std::endl << std::endl;
+	if (options_.dispayGSLQP_) {
+		std::cerr << "\n#### GSLQP solver starts with switching times [" << switchingTimes[0];
+		for (size_t i=1; i<=NUM_SUBSYSTEMS; i++)   std::cerr << ", " << switchingTimes[i];
+		std::cerr << "] ..." << std::endl << std::endl;
+	}
 
 	switchingTimes_ = switchingTimes;
 	initState_ = initState;
@@ -997,7 +1155,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 		double absConstraint1RMSECashed = absConstraint1RMSE;
 		double costCashed = nominalTotalCost_;
 
-		// do a rollout if nominalRolloutIsUpdated_ is fale.
+		// do a rollout if nominalRolloutIsUpdated_ is false.
 		if (nominalRolloutIsUpdated_== false)  {
 			rollout(initState_, nominalControllersStock_, nominalTimeTrajectoriesStock_,
 					nominalStateTrajectoriesStock_, nominalInputTrajectoriesStock_, nominalOutputTrajectoriesStock_,
@@ -1020,14 +1178,19 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 
 		// calculate controller
 		nominalRolloutIsUpdated_ = false;
-		learningRateStar = 1.0;  // resetting learningRateStar
-		calculatecontroller(learningRateStar);  // uses a line search scheme to determine the optimal learningRate
+		std::vector<control_vector_array_t> feedForwardControlStock(NUM_SUBSYSTEMS);
+		std::vector<control_vector_array_t> feedForwardConstraintInputStock(NUM_SUBSYSTEMS);
+		calculatecontroller(nominalControllersStock_, feedForwardControlStock, feedForwardConstraintInputStock);
 
-		// calculates type-1 constraints RMSE
+		// finding the optimal learningRate
+		learningRateStar = 1.0;  // resetting learningRateStar
+		lineSearch(feedForwardControlStock, feedForwardConstraintInputStock, learningRateStar);
+
+		// calculates type-1 constraints RMSE nad MAX values
 		double constraint1SSE = 0.0;
+		double constraint1Max = 0.0;
 		double errorSquaredNorm;
 		size_t totalNumData = 0;
-		double constraint1Max = 0.0;
 		for (int i=0; i<NUM_SUBSYSTEMS; i++) {
 			for (int k=0; k<nominalTimeTrajectoriesStock_[i].size(); k++) {
 				size_t nc1 = nc1TrajectoriesStock_[i][k];
@@ -1044,12 +1207,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 		else
 			absConstraint1RMSE = sqrt(constraint1SSE/(double)totalNumData);
 
-		// display
-		if (options_.dispayGSLQP_)  std::cerr << "constraint1 RMSE: " << absConstraint1RMSE << std::endl;
-		if (options_.dispayGSLQP_)  std::cerr << "constraint1 Max:  " << sqrt(constraint1Max) << std::endl;
-		if (options_.dispayGSLQP_)  std::cerr << "cost: " << nominalTotalCost_ << std::endl;
-
-		// loop varibales
+		// loop variables
 		iteration++;
 		relConstraint1RMSE = fabs(absConstraint1RMSE-absConstraint1RMSECashed);
 		isConstraint1Satisfied = absConstraint1RMSE<=options_.minAbsConstraint1RMSE_ || relConstraint1RMSE<=options_.minRelConstraint1RMSE_;
@@ -1057,32 +1215,50 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 		isCostValueConverged = learningRateStar==0 || relCost<=options_.minRelCostGSLQP_;
 		isOptimizationConverged = (isCostValueConverged==true) && (isConstraint1Satisfied==true);
 
+		// display
+		if (options_.dispayGSLQP_)  {
+			std::cerr << "optimization cost: " << nominalTotalCost_ << std::endl;
+			std::cerr << "constraint RMSE:   " << absConstraint1RMSE << std::endl;
+			std::cerr << "constraint1 Max:   " << sqrt(constraint1Max) << std::endl;
+		}
 	}  // end of while loop
 
 	// display
 	if (options_.dispayGSLQP_ && isOptimizationConverged) {
-		if (learningRateStar==0)  std::cerr << "GSLQP successfully termintes as learningRate reduced to zero." << std::endl;
-		else std::cerr << "GSLQP successfully termintes as cost relative change (relCost=" << relCost <<") reached to the min value." << std::endl;
+		if (learningRateStar==0)  std::cerr << "GSLQP successfully terminates as learningRate reduced to zero." << std::endl;
+		else std::cerr << "GSLQP successfully terminates as cost relative change (relCost=" << relCost <<") reached to the min value." << std::endl;
 
 		if (absConstraint1RMSE<=options_.minAbsConstraint1RMSE_)  std::cerr << "constraint1 absolute RMSE (absConstraint1RMSE=" << absConstraint1RMSE <<") reached to the min value." << std::endl;
 		else std::cerr << "constraint1 relative RMSE  (relConstraint1RMSE=" << relConstraint1RMSE << ") reached to the min value." << std::endl;
 	}
+
 	if (options_.dispayGSLQP_)  std::cerr << "\n#### Final iteration" << std::endl;
 
-//	// linearizing the dynamics and quadratizing the cost funtion along nominal trajectories
-//	approximateOptimalControlProblem();
-//	// calculate nominal rollout sensitivity to switching times
-//	rolloutSensitivity2SwitchingTime();
-//
-//	// solve Riccati equations
-//	learningRateStar = 0.0;  // prevents the changes in the nominal trajectories and just update the gains
-//	solveFullSequentialRiccatiEquations(learningRateStar);
-//	// calculate controller
-//	calculatecontroller(learningRateStar);
+	// linearizing the dynamics and quadratizing the cost function along nominal trajectories
+	approximateOptimalControlProblem();
 
- 	// transforme from local value funtion and local derivatives to global representation
+	// solve Riccati equations
+	solveSequentialRiccatiEquations(0.0 /*nominal learningRate*/);
+
+	// calculate controller
+	std::vector<control_vector_array_t> feedForwardControlStock(NUM_SUBSYSTEMS);
+	std::vector<control_vector_array_t> feedForwardConstraintInputStock(NUM_SUBSYSTEMS);
+	calculatecontroller(nominalControllersStock_, feedForwardControlStock, feedForwardConstraintInputStock);
+
+
+	for (size_t j=0; j<3; j++) {
+		// calculate nominal rollout sensitivity to switching times
+		bool nablaSvUpdated = ((j==0) ? false : true);
+		rolloutSensitivity2SwitchingTime(nablaSvUpdated);
+
+		// solve Riccati equations
+		learningRateStar = 0.0;  // prevents the changes in the nominal trajectories and just update the gains
+		solveFullSequentialRiccatiEquations(learningRateStar);
+	}
+
+	// transform from local value function and local derivatives to global representation
 	transformeLocalValueFuntion2Global();
-//	transformeLocalValueFuntionDerivative2Global();
+	transformeLocalValueFuntionDerivative2Global();
 
 	// display
 	if (options_.dispayGSLQP_)  std::cerr << "\n#### GSLQP solver ends." << std::endl;

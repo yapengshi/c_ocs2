@@ -107,12 +107,10 @@ public:
 //		B << sin(x_(0)), -cos(x_(1)), -cos(x_(1)), sin(x_(0));
 		B << sin(x_(0)), 0.0, -cos(x_(1)), 0.0;
 	}
-	void getConstraint1DerivativesState(size_t& numConstraint1, constraint1_state_matrix_t& C) {
-		numConstraint1 = 1;
+	void getConstraint1DerivativesState(constraint1_state_matrix_t& C) {
 		C.topRows<1>() << u_(1)*cos(x_(0)), u_(1)*sin(x_(1));
 	}
-	void getConstraint1DerivativesControl(size_t& numConstraint1, constraint1_control_matrix_t& D) {
-		numConstraint1 = 1;
+	void getConstraint1DerivativesControl(constraint1_control_matrix_t& D) {
 		D.topRows<1>() << 0.0, sin(x_(0))-cos(x_(1))+0.1;
 	}
 
@@ -137,12 +135,10 @@ public:
 //		B << sin(x_(1)), -cos(x_(0)), -cos(x_(0)), sin(x_(1));
 		B << sin(x_(1)), 0.0, -cos(x_(0)), 0.0;
 	}
-	void getConstraint1DerivativesState(size_t& numConstraint1, constraint1_state_matrix_t& C) {
-		numConstraint1 = 1;
+	void getConstraint1DerivativesState(constraint1_state_matrix_t& C) {
 		C.topRows<1>() << u_(1)*sin(x_(1)), -u_(1)*cos(x_(1));
 	}
-	void getConstraint1DerivativesControl(size_t& numConstraint1, constraint1_control_matrix_t& D) {
-		numConstraint1 = 1;
+	void getConstraint1DerivativesControl(constraint1_control_matrix_t& D) {
 		D.topRows<1>() << 0.0, sin(x_(1))-cos(x_(0))+0.1;
 	}
 
@@ -167,12 +163,10 @@ public:
 //		B << -sin(x_(0)), cos(x_(1)), cos(x_(1)), -sin(x_(0));
 		B << -sin(x_(0)), 0.0, cos(x_(1)), 0.0;
 	}
-	void getConstraint1DerivativesState(size_t& numConstraint1, constraint1_state_matrix_t& C) {
-		numConstraint1 = 1;
+	void getConstraint1DerivativesState(constraint1_state_matrix_t& C) {
 		C.topRows<1>() << -u_(1)*cos(x_(0)), -u_(1)*sin(x_(1));
 	}
-	void getConstraint1DerivativesControl(size_t& numConstraint1, constraint1_control_matrix_t& D) {
-		numConstraint1 = 1;
+	void getConstraint1DerivativesControl(constraint1_control_matrix_t& D) {
 		D.topRows<1>() << 0.0, -sin(x_(0))+cos(x_(1))+0.1;
 	}
 

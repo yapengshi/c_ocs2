@@ -307,10 +307,10 @@ void IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::solveG
 			controllersStock, systemStockIndex_, options_);
 	gslqp.run(initState_, switchingTimes);
 
-	// cost funtion
+	// cost function
 	gslqp.getValueFuntion(0.0, initState_, currentTotalCost_);
 
-	// cost funtion jacobian
+	// cost function jacobian
 	gslqp.getCostFuntionDerivative(initState_, currentCostFuntionDerivative_);
 
 	numFuntionCall_++;

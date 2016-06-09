@@ -74,10 +74,14 @@ public:
 		typename Base::TimeTrajectory_T& timeTrajectory,
 		double dtInitial = 0.01,
 		double AbsTol = 1e-9,
-		double RelTol = 1e-6) override  {
+		double RelTol = 1e-6,
+		size_t maxNumSteps = std::numeric_limits<size_t>::max()
+		) override  {
 
 		 typename Base::State_T initialStateInternal = initialState;
 		 initialize(initialStateInternal, startTime, dtInitial);
+		 if (maxNumSteps < std::numeric_limits<size_t>::max())
+			 Base::observer_.setMaxNumSteps(maxNumSteps, Base::system_);
 		 integrate_adaptive(boost::numeric::odeint::make_controlled<Stepper>(AbsTol, RelTol),
 				 systemFunction_, initialStateInternal, startTime, finalTime, dtInitial, Base::observer_.observeWrap);
 		 Base::retrieveTrajectoriesFromObserver(stateTrajectory, timeTrajectory);

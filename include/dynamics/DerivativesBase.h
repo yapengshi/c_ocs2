@@ -51,8 +51,8 @@ public:
 
 	virtual void getDerivativeState(state_matrix_t& A) = 0;
 	virtual void getDerivativesControl(control_gain_matrix_t& B) = 0;
-	virtual void getConstraint1DerivativesState(size_t& numConstraint1, constraint1_state_matrix_t& C) {	numConstraint1 = 0; }
-	virtual void getConstraint1DerivativesControl(size_t& numConstraint1, constraint1_control_matrix_t& D) { numConstraint1 = 0; }
+	virtual void getConstraint1DerivativesState(constraint1_state_matrix_t& C) {}
+	virtual void getConstraint1DerivativesControl(constraint1_control_matrix_t& D) {}
 
 	virtual std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > clone() const = 0;
 

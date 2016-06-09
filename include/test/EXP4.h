@@ -55,12 +55,10 @@ public:
 	void getDerivativesControl(control_gain_matrix_t& B) {
 		B << Eigen::MatrixXd::Zero(2,4), Eigen::MatrixXd::Identity(4,4);
 	}
-	void getConstraint1DerivativesState(size_t& numConstraint1, constraint1_state_matrix_t& C) {
-		numConstraint1 = 1;
+	void getConstraint1DerivativesState(constraint1_state_matrix_t& C) {
 		C.topRows<1>() << -(u_(2)-x_(2)), -(u_(3)-x_(3)), -(x_(4)-x_(0)), -(x_(5)-x_(1)), (u_(2)-x_(2)), (u_(3)-x_(3));
 	}
-	void getConstraint1DerivativesControl(size_t& numConstraint1, constraint1_control_matrix_t& D) {
-		numConstraint1 = 1;
+	void getConstraint1DerivativesControl(constraint1_control_matrix_t& D) {
 		D.topRows<1>() << 0.0, 0.0, (x_(4)-x_(0)), (x_(5)-x_(1));
 	}
 

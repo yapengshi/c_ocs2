@@ -63,7 +63,15 @@ public:
 	void setData(const size_t& activeSubsystem, const scalar_array_t& switchingTimes,
 			const std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> >& subsystemDynamicsPtr, controller_t* const controllerPtr,
 			scalar_array_t* const timeTrajectoryPtr, state_vector_array_t* const stateTrajectoryPtr, control_vector_array_t* const inputTrajectoryPtr,
-			state_matrix_array_t* const AmTrajectoryPtr, control_gain_matrix_array_t* const BmTrajectoryPtr)  {
+			state_matrix_array_t* const AmTrajectoryPtr, control_gain_matrix_array_t* const BmTrajectoryPtr,
+			scalar_array_t* const nablaLvTimeTrajectoryPtr=NULL, nabla_input_matrix_array_t* const nablaLvTrajectoryPtr=NULL)  {
+
+		if (nablaLvTimeTrajectoryPtr==NULL && nablaLvTrajectoryPtr==NULL)
+			nablaLvIsSet = false;
+		else if (nablaLvTimeTrajectoryPtr!=NULL && nablaLvTrajectoryPtr!=NULL)
+			nablaLvIsSet = true;
+		else
+			throw std::runtime_error("The pointers to nablaLv and its time stamp should be either set or ignored.");
 
 		activeSubsystem_ = activeSubsystem;
 		switchingTimes_ = switchingTimes;
@@ -76,6 +84,9 @@ public:
 
 		KmFunc_.setTimeStamp(&(controllerPtr->time_));
 		KmFunc_.setData(&(controllerPtr->k_));
+
+		LvFunc_.setTimeStamp(nablaLvTimeTrajectoryPtr);
+		LvFunc_.setData(nablaLvTrajectoryPtr);
 
 		stateFunc_.setTimeStamp(timeTrajectoryPtr);
 		stateFunc_.setData(stateTrajectoryPtr);
@@ -131,17 +142,25 @@ public:
 		control_feedback_t Km;
 		KmFunc_.interpolate(t, Km);
 
-		nabla_Um = Km*nabla_Ym;
+		nabla_input_matrix_t nabla_Lv;
+		if (nablaLvIsSet==true)
+			LvFunc_.interpolate(t, nabla_Lv);
+		else
+			nabla_Lv.setZero();
+
+		nabla_Um = Km*nabla_Ym + nabla_Lv;
 	}
 
 
 private:
 	size_t activeSubsystem_;
 	scalar_array_t switchingTimes_;
+	bool nablaLvIsSet;
 
 	std::function<void (const scalar_t& /*t*/, const state_vector_t& /*x*/, const control_vector_t& /*u*/, output_vector_t& /*dy*/)> systemFunction_;
 
 	LinearInterpolation<control_feedback_t,Eigen::aligned_allocator<control_feedback_t> > KmFunc_;
+	LinearInterpolation<nabla_input_matrix_t,Eigen::aligned_allocator<nabla_input_matrix_t> > LvFunc_;
 
 	LinearInterpolation<state_vector_t,Eigen::aligned_allocator<state_vector_t> > stateFunc_;
 	LinearInterpolation<control_vector_t,Eigen::aligned_allocator<control_vector_t> > inputFunc_;

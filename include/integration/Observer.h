@@ -8,7 +8,9 @@
 #ifndef OCS2OBSERVER_H_
 #define OCS2OBSERVER_H_
 
+#include <limits>
 #include "EventHandler.h"
+#include "dynamics/SystemBase.h"
 
 
 template <size_t STATE_DIM>
@@ -26,12 +28,19 @@ public:
 
 	Observer(const std::shared_ptr<EventHandler<STATE_DIM> >& eventHandler = nullptr) :
 		observeWrap([this](const State_T& x, const double& t){ this->observe(x,t); }),
-		eventHandler_(eventHandler)
+		eventHandler_(eventHandler),
+		system_(nullptr),
+		maxNumSteps_(std::numeric_limits<size_t>::max())
 	{}
 
 	void reset() {
 		stateTrajectory_.clear();
 		timeTrajectory_.clear();
+	}
+
+	void setMaxNumSteps(size_t maxNumSteps, const std::shared_ptr<SystemBase<STATE_DIM> >& system) {
+		maxNumSteps_ = maxNumSteps;
+		system_ = system;
 	}
 
 	void observe(const State_T& x, const double& t)
@@ -43,6 +52,9 @@ public:
 		{
 			eventHandler_->handleEvent(x, t);
 		}
+
+		if (system_)
+			if (system_->getNumFunctionCalls() > maxNumSteps_)  throw std::runtime_error("integration terminated: max number of steps reached.\n");
 	}
 
 	// Lambda to pass to odeint (odeint takes copies of the observer so we can't pass the class
@@ -50,6 +62,8 @@ public:
 
 private:
 	std::shared_ptr<EventHandler<STATE_DIM> > eventHandler_;
+	std::shared_ptr<SystemBase<STATE_DIM> > system_;
+	size_t maxNumSteps_;
 
 	StateTrajectory_T stateTrajectory_;
 	TimeTrajectory_T timeTrajectory_;

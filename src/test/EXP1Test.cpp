@@ -45,8 +45,9 @@ int main (int argc, char* argv[])
 	OCS2Ipopt<2,1,2,3>::Options_t gslqpOptions;
 	gslqpOptions.maxIterationGSLQP_ = 50;
 	gslqpOptions.warmStartGSLQP_ = true;
-//	gslqpOptions.dispayGSLQP_ = false;
-//	gslqpOptions.displayIPOPT_ = false;
+	gslqpOptions.dispayGSLQP_ = false;
+	gslqpOptions.displayIPOPT_ = true;
+	gslqpOptions.simulationIsConstrained_ = true;
 
 
 	/******************************************************************************************************/

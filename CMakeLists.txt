@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(c_ocs2)
+project(c_ocs2) 
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -73,7 +73,7 @@ set(CMAKE_BUILD_TYPE DEBUG)
 ###################################
 ## ipopot specific configuration ##
 ###################################
-SET(IPOPT_SOURCE_DIR "/home/farbod/Programs/ct_ws/src/ipopt")
+SET(IPOPT_SOURCE_DIR "/home/farbod/Programs/catkin_ws/src/ipopt")
 
 link_directories(${IPOPT_SOURCE_DIR}/build/lib)
 set(IPOPT_LIBS

@@ -13,14 +13,19 @@ template <size_t STATE_DIM>
 class SystemBase
 {
 public:
-	SystemBase() {}
+	SystemBase()
+		: numFunctionCalls_(0) {}
 	virtual ~SystemBase() {}
+
+	size_t getNumFunctionCalls() {return numFunctionCalls_;}
 
 	virtual void computeDerivative(
 			const double& t,
 			const Eigen::Matrix<double,STATE_DIM,1>& state,
 			Eigen::Matrix<double,STATE_DIM,1>& derivative) = 0;
 
+protected:
+	size_t numFunctionCalls_;
 
 private:
 };

@@ -8,6 +8,8 @@
 #ifndef OCS2INTEGRATORBASE_H_
 #define OCS2INTEGRATORBASE_H_
 
+#include <limits>
+
 #include "dynamics/SystemBase.h"
 #include "Observer.h"
 #include "EventHandler.h"
@@ -63,7 +65,8 @@ public:
 		TimeTrajectory_T& timeTrajectory,
 		double dtInitial = 0.01,
 		double AbsTol = 1e-6,
-		double RelTol = 1e-3
+		double RelTol = 1e-3,
+		size_t maxNumSteps = std::numeric_limits<size_t>::max()
 	) = 0;
 
 	// Output integration based on a given time trajectory

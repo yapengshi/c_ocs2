@@ -222,16 +222,22 @@ protected:
 
 	void approximateOptimalControlProblem();
 
-	void calculatecontroller(scalar_t& learningRate);
+	void calculatecontroller(std::vector<controller_t>& controllersStock,
+			std::vector<control_vector_array_t>& feedForwardControlStock,
+			std::vector<control_vector_array_t>& feedForwardConstraintInputStock);
 
-	void lineSearch(const std::vector<controller_t>& controllersStock, const std::vector<control_vector_array_t>& deltaUffStock,
+	void lineSearch(const std::vector<control_vector_array_t>& feedForwardControlStock,
+			const std::vector<control_vector_array_t>& feedForwardConstraintInputStock,
 			scalar_t& learningRateStar);
 
 	void transformeLocalValueFuntion2Global();
 
 	void transformeLocalValueFuntionDerivative2Global();
 
-	void rolloutSensitivity2SwitchingTime();
+	void rolloutSensitivity2SwitchingTime(bool nablaSvUpdated);
+
+	void inputIncrementSensitivity2SwitchingTime(std::vector<scalar_array_t>& nablaUffTimeTrajectoryStock,
+			std::vector<nabla_input_matrix_array_t>& nablaUffTrajectoryStock);
 
 	template <typename Derived>
 	bool makePSD(Eigen::MatrixBase<Derived>& squareMatrix);

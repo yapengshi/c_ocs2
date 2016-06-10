@@ -1232,8 +1232,6 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 		else std::cerr << "constraint1 relative RMSE  (relConstraint1RMSE=" << relConstraint1RMSE << ") reached to the min value." << std::endl;
 	}
 
-	if (options_.dispayGSLQP_)  std::cerr << "\n#### Final iteration" << std::endl;
-
 	// linearizing the dynamics and quadratizing the cost function along nominal trajectories
 	approximateOptimalControlProblem();
 
@@ -1245,6 +1243,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 	std::vector<control_vector_array_t> feedForwardConstraintInputStock(NUM_SUBSYSTEMS);
 	calculatecontroller(nominalControllersStock_, feedForwardControlStock, feedForwardConstraintInputStock);
 
+
+	if (options_.dispayGSLQP_)  std::cerr << "\n#### Calculating cost function sensitivity ..." << std::endl;
 
 	for (size_t j=0; j<3; j++) {
 		// calculate nominal rollout sensitivity to switching times
@@ -1261,6 +1261,6 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 	transformeLocalValueFuntionDerivative2Global();
 
 	// display
-	if (options_.dispayGSLQP_)  std::cerr << "\n#### GSLQP solver ends." << std::endl;
+	if (options_.dispayGSLQP_)  std::cerr << "\n#### GSLQP solver is ended." << std::endl;
 }
 

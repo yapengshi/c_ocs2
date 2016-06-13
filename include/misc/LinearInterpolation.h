@@ -24,20 +24,20 @@ public:
 		  dataPtr_(NULL)
 	{}
 
-	LinearInterpolation(std::vector<double>* const timeStampPtr, std::vector<Data_T,Alloc>* const dataPtr)
+	LinearInterpolation(const std::vector<double>* timeStampPtr, const std::vector<Data_T,Alloc>* dataPtr)
 		: index_(0),
 		  timeStampPtr_(timeStampPtr),
 		  dataPtr_(dataPtr)
 	{}
 
 
-	void setData(std::vector<Data_T,Alloc>* const dataPtr)	{
+	void setData(const std::vector<Data_T,Alloc>* dataPtr)	{
 
 		dataPtr_ = dataPtr;
 		reset();
 	}
 
-	void setTimeStamp(std::vector<double>* const timeStampPtr)	{
+	void setTimeStamp(const std::vector<double>* timeStampPtr)	{
 
 		timeStampPtr_ = timeStampPtr;
 		reset();
@@ -114,8 +114,8 @@ protected:
 private:
 	size_t index_;
 
-	std::vector<double>* timeStampPtr_;
-	std::vector<Data_T,Alloc>* dataPtr_;
+	const std::vector<double>* timeStampPtr_;
+	const std::vector<Data_T,Alloc>* dataPtr_;
 
 };
 

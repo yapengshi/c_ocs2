@@ -38,8 +38,8 @@ int main (int argc, char* argv[])
 	Eigen::Vector2d initState(2.0, 3.0);
 
 	std::vector<double> switchingTimes {0, 0.2262, 1.0176, 3};
-	if (argc>1)  switchingTimes[1] = std::atof(argv[1]);
-	if (argc>2)  switchingTimes[2] = std::atof(argv[2]);
+//	if (argc>1)  switchingTimes[1] = std::atof(argv[1]);
+//	if (argc>2)  switchingTimes[2] = std::atof(argv[2]);
 
 	/******************************************************************************************************/
 	/******************************************************************************************************/
@@ -73,10 +73,14 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	GSLQP<2,2,2,3>::Options_t gslqpOptions;
 	gslqpOptions.dispayGSLQP_ = 1;
-	gslqpOptions.maxIterationGSLQP_ = 10;
+	gslqpOptions.maxIterationGSLQP_ = 40;
+
+	double pho = 2000.0;
+	if (argc>1)
+		pho = std::atof(argv[1]);
 
 	// GSLQ
-	GSLQP<2,2,2,3> gslqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);
+	GSLQP<2,2,2,3> gslqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions, pho);
 
 	gslqp.run(initState, switchingTimes);
 

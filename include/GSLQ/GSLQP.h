@@ -102,8 +102,7 @@ public:
 			const std::vector<std::shared_ptr<CostFunctionBase<OUTPUT_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
 			const std::vector<controller_t>& initialControllersStock,
 			const std::vector<size_t>& systemStockIndex,
-			const Options_t& options = Options_t::Options(),
-			double pho = 1.0)
+			const Options_t& options = Options_t::Options())
 
     : subsystemDynamicsPtrStock_(NUM_SUBSYSTEMS),
       subsystemDerivativesPtrStock_(NUM_SUBSYSTEMS),
@@ -155,8 +154,7 @@ public:
       nablaSmTrajectoryStock_(NUM_SUBSYSTEMS),
       switchingTimes_(NUM_SUBSYSTEMS+1),
       nominalRolloutIsUpdated_(false),
-      options_(options),
-      pho_(pho)
+      options_(options)
 	{
 
 		if (subsystemDynamicsPtr.size() != subsystemDerivativesPtr.size())
@@ -179,7 +177,6 @@ public:
 			subsystemSimulatorsStockPtr_[i] = std::make_shared<ODE45<STATE_DIM> >(subsystemDynamicsPtrStock_[i]);
 		}
 
-		std::cout << "pho: " << pho_ << std::endl;
 	}
 
 	~GSLQP() {}
@@ -206,22 +203,22 @@ public:
 			std::vector<state_vector_array_t>& stateTrajectoriesStock,
 			std::vector<control_vector_array_t>& inputTrajectoriesStock);
 
-
-	void rolloutCost(const std::vector<scalar_array_t>& timeTrajectoriesStock,
+	void calculateCostFunction(const std::vector<scalar_array_t>& timeTrajectoriesStock,
 			const std::vector<output_vector_array_t>& stateTrajectoriesStock,
 			const std::vector<control_vector_array_t>& inputTrajectoriesStock,
 			scalar_t& totalCost);
 
-	void rolloutLagrangeMultiplier(const std::vector<scalar_array_t>& timeTrajectoriesStock,
-			const std::vector<output_vector_array_t>& outputTrajectoriesStock,
-			const std::vector<lagrange_t>& lagrangeControllersStock,
-			std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> > >&  lagrangeTrajectoriesStock);
-
-	void rolloutMerit(const std::vector<scalar_array_t>& timeTrajectoriesStock,
+	void calculateMeritFunction(const std::vector<scalar_array_t>& timeTrajectoriesStock,
 			const std::vector<std::vector<size_t> >& nc1TrajectoriesStock,
 			const std::vector<constraint1_vector_array_t>& EvTrajectoryStock,
 			const std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> > >&  lagrangeTrajectoriesStock,
+			const scalar_t& totalCost,
 			scalar_t& meritFuntionValue);
+
+	void calculateConstraintISE(const std::vector<scalar_array_t>& timeTrajectoriesStock,
+			const std::vector<std::vector<size_t>>& nc1TrajectoriesStock,
+			const std::vector<constraint1_vector_array_t>& EvTrajectoriesStock,
+			scalar_t& constraintISE);
 
 	void getRolloutSensitivity2SwitchingTime(std::vector<scalar_array_t>& sensitivityTimeTrajectoriesStock,
 		std::vector<nabla_output_matrix_array_t>& sensitivityOutputTrajectoriesStock,
@@ -252,23 +249,18 @@ protected:
 			std::vector<control_vector_array_t>& feedForwardControlStock,
 			std::vector<control_vector_array_t>& feedForwardConstraintInputStock);
 
-	void calculateLagrangeController(std::vector<lagrange_t>& lagrangeControllersStock,
+	void calculateLagrangeMultiplierFunction(std::vector<lagrange_t>& lagrangeMultiplierFunctionsStock,
 			bool firstCall=false);
 
-	void calculateConstraintISE(const scalar_array_t& timeTrajectory,
-			const std::vector<size_t>& nc1Trajectory,
-			const constraint1_vector_array_t& EvTrajectory,
-			scalar_t& constraintISE);
+	void calculateRolloutLagrangeMultiplier(const std::vector<scalar_array_t>& timeTrajectoriesStock,
+			const std::vector<output_vector_array_t>& outputTrajectoriesStock,
+			const std::vector<lagrange_t>& lagrangeMultiplierFunctionsStock,
+			std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> > >&  lagrangeTrajectoriesStock);
 
 	void lineSearch(const std::vector<control_vector_array_t>& feedForwardControlStock,
 			const std::vector<control_vector_array_t>& feedForwardConstraintInputStock,
 			scalar_t& learningRateStar,
 			scalar_t maxLearningRateStar=1.0);
-
-	void constraintLineSearch(const std::vector<control_vector_array_t>& feedForwardConstraintInputStock,
-			std::vector<controller_t>& controllersStock,
-			std::vector<double>& constraintLearningRate,
-			scalar_t maxLearningRate=1.0);
 
 	void transformeLocalValueFuntion2Global();
 
@@ -356,8 +348,6 @@ private:
 	bool nominalRolloutIsUpdated_;
 
 	Options_t options_;
-
-	double pho_;
 };
 
 #include "implementation/GSLQP.h"

@@ -94,7 +94,7 @@ int main (int argc, char* argv[])
 
 	// compute cost
 	double rolloutCost;
-	gslqp.rolloutCost(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
+	gslqp.calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
 
 	// value funtion
 	double totalCost;

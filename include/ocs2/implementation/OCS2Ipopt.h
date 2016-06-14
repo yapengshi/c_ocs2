@@ -138,7 +138,7 @@ void OCS2Ipopt<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::rolloutSolutio
 			optimizedInputTrajectoriesStock_, optimizedOutputTrajectoriesStock_);
 
 	// cost funtion
-	gslqp.rolloutCost(optimizedTimeTrajectoriesStock_, optimizedStateTrajectoriesStock_,
+	gslqp.calculateCostFunction(optimizedTimeTrajectoriesStock_, optimizedStateTrajectoriesStock_,
 			optimizedInputTrajectoriesStock_, optimizedTotalCost_);
 
 	// cost funtion jacobian

@@ -73,14 +73,12 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	GSLQP<2,2,2,3>::Options_t gslqpOptions;
 	gslqpOptions.dispayGSLQP_ = 1;
-	gslqpOptions.maxIterationGSLQP_ = 40;
-
-	double pho = 2000.0;
-	if (argc>1)
-		pho = std::atof(argv[1]);
+	gslqpOptions.maxIterationGSLQP_ = 20;
+	gslqpOptions.meritFunctionRho_ = 2000.0;
+	if (argc>1) gslqpOptions.meritFunctionRho_ = std::atof(argv[1]);
 
 	// GSLQ
-	GSLQP<2,2,2,3> gslqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions, pho);
+	GSLQP<2,2,2,3> gslqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);
 
 	gslqp.run(initState, switchingTimes);
 
@@ -95,7 +93,7 @@ int main (int argc, char* argv[])
 
 	// compute cost
 	double rolloutCost;
-	gslqp.rolloutCost(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
+	gslqp.calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
 
 	// value funtion
 	double totalCost;

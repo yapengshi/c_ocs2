@@ -80,6 +80,7 @@ public:
 			maxIterationGSLQP_(10),
 			minLearningRateGSLQP_(0.05),
 			minRelCostGSLQP_(1e-3),
+			meritFunctionRho_(1.0),
 			dispayGSLQP_(false),
 			warmStartGSLQP_(false),
 
@@ -99,6 +100,7 @@ public:
 		size_t maxIterationGSLQP_;
 		double minLearningRateGSLQP_;
 		double minRelCostGSLQP_;
+		double meritFunctionRho_;
 		bool dispayGSLQP_;
 		bool warmStartGSLQP_;
 

@@ -58,11 +58,11 @@ public:
 
 	void setData(const scalar_t& learningRate,
 			const size_t& activeSubsystem, const scalar_t& switchingTimeStart, const scalar_t& switchingTimeFinal,
-			scalar_array_t* const timeStampPtr,
-			state_matrix_array_t* const AmPtr, control_gain_matrix_array_t* const BmPtr,
-			eigen_scalar_array_t* const qPtr, state_vector_array_t* const QvPtr, state_matrix_array_t* const QmPtr,
-			control_vector_array_t* const RvPtr, control_matrix_array_t* const RmInversePtr,
-			control_feedback_array_t* const PmPtr)  {
+			const scalar_array_t* timeStampPtr,
+			const state_matrix_array_t* AmPtr, const control_gain_matrix_array_t* BmPtr,
+			const eigen_scalar_array_t* qPtr, const state_vector_array_t* QvPtr, const state_matrix_array_t* QmPtr,
+			const control_vector_array_t* RvPtr, const control_matrix_array_t* RmInversePtr, const control_matrix_array_t* RmPtr,
+			const control_feedback_array_t* PmPtr)  {
 
 		alpha_ = learningRate;
 
@@ -83,8 +83,10 @@ public:
 		QmFunc_.setData(QmPtr);
 		RvFunc_.setTimeStamp(timeStampPtr);
 		RvFunc_.setData(RvPtr);
-		RmRmInverseFunc_.setTimeStamp(timeStampPtr);
-		RmRmInverseFunc_.setData(RmInversePtr);
+		RmInverseFunc_.setTimeStamp(timeStampPtr);
+		RmInverseFunc_.setData(RmInversePtr);
+		RmFunc_.setTimeStamp(timeStampPtr);
+		RmFunc_.setData(RmPtr);
 		PmFunc_.setTimeStamp(timeStampPtr);
 		PmFunc_.setData(PmPtr);
 	}
@@ -114,7 +116,9 @@ public:
 		control_vector_t Rv;
 		RvFunc_.interpolate(t, Rv, greatestLessTimeStampIndex);
 		control_matrix_t RmInverse;
-		RmRmInverseFunc_.interpolate(t, RmInverse, greatestLessTimeStampIndex);
+		RmInverseFunc_.interpolate(t, RmInverse, greatestLessTimeStampIndex);
+		control_matrix_t Rm;
+		RmFunc_.interpolate(t, Rm, greatestLessTimeStampIndex);
 		control_feedback_t Pm;
 		PmFunc_.interpolate(t, Pm, greatestLessTimeStampIndex);
 
@@ -123,10 +127,12 @@ public:
 		eigen_scalar_t dsdt, dsdz;
 
 		// Riccati equations for the original system
-		dSmdt = Qm + Am.transpose()*Sm + Sm.transpose()*Am - (Pm+Bm.transpose()*Sm).transpose()*RmInverse*(Pm+Bm.transpose()*Sm);
+		control_feedback_t Lm = RmInverse*(Pm+Bm.transpose()*Sm);
+		control_vector_t   Lv = RmInverse*(Rv+Bm.transpose()*Sv);
+		dSmdt = Qm + Am.transpose()*Sm + Sm.transpose()*Am - Lm.transpose()*Rm*Lm;
 		dSmdt = 0.5*(dSmdt+dSmdt.transpose()).eval();
-		dSvdt = Qv + Am.transpose()*Sv - (Pm+Bm.transpose()*Sm).transpose()*RmInverse*(Rv+Bm.transpose()*Sv);
-		dsdt  = q - 0.5*alpha_*(2.0-alpha_)*(Rv+Bm.transpose()*Sv).transpose()*RmInverse*(Rv+Bm.transpose()*Sv);
+		dSvdt = Qv + Am.transpose()*Sv - Lm.transpose()*Rm*Lv;
+		dsdt  = q - 0.5*alpha_*(2.0-alpha_)*Lv.transpose()*Rm*Lv;
 
 		// Riccati equations for the equivalent system
 		dSmdz = (switchingTimeFinal_-switchingTimeStart_)*dSmdt;
@@ -175,7 +181,8 @@ private:
 	LinearInterpolation<state_vector_t,Eigen::aligned_allocator<state_vector_t> > QvFunc_;
 	LinearInterpolation<state_matrix_t,Eigen::aligned_allocator<state_matrix_t> > QmFunc_;
 	LinearInterpolation<control_vector_t,Eigen::aligned_allocator<control_vector_t> > RvFunc_;
-	LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> > RmRmInverseFunc_;
+	LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> > RmInverseFunc_;
+	LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> > RmFunc_;
 	LinearInterpolation<control_feedback_t,Eigen::aligned_allocator<control_feedback_t> > PmFunc_;
 
 };

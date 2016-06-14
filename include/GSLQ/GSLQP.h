@@ -32,20 +32,12 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBS
 class GSLQP
 {
 public:
-	struct lagrange_t {
-		std::vector<double> time_;
-		std::vector<Eigen::Matrix<double, Eigen::Dynamic, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, Eigen::Dynamic, 1>> > vff_;
-		std::vector<Eigen::Matrix<double, Eigen::Dynamic, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, Eigen::Dynamic, 1>> > deltaVff_;
-		std::vector<Eigen::Matrix<double, Eigen::Dynamic, STATE_DIM>, Eigen::aligned_allocator<Eigen::Matrix<double, Eigen::Dynamic, STATE_DIM>> > vfb_;
-		std::vector<size_t> nc1_;
-	};
-
-
 	typedef SequentialRiccatiEquations<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> RiccatiEquations_t;
 	typedef SequentialErrorEquation<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> ErrorEquation_t;
 	typedef FullSequentialRiccatiEquations<OUTPUT_DIM, INPUT_DIM, NUM_SUBSYSTEMS> FullRiccatiEquations_t;
 
 	typedef Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM> DIMENSIONS;
+	typedef typename DIMENSIONS::template LinearFunction_t<Eigen::Dynamic> lagrange_t;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::Options Options_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
@@ -96,7 +88,6 @@ public:
 	typedef std::vector<nabla_Sv_t> nabla_Sv_array_t;
     typedef std::vector<nabla_s_t>  nabla_s_array_t;
 
-
 	GSLQP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDynamicsPtr,
 			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDerivativesPtr,
 			const std::vector<std::shared_ptr<CostFunctionBase<OUTPUT_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
@@ -136,13 +127,13 @@ public:
       PmTrajectoryStock_(NUM_SUBSYSTEMS),
       RmInverseTrajectoryStock_(NUM_SUBSYSTEMS),
       AmConstrainedTrajectoryStock_(NUM_SUBSYSTEMS),
-      BmConstrainedTrajectoryStock_(NUM_SUBSYSTEMS),
       QmConstrainedTrajectoryStock_(NUM_SUBSYSTEMS),
       QvConstrainedTrajectoryStock_(NUM_SUBSYSTEMS),
-      RvConstrainedTrajectoryStock_(NUM_SUBSYSTEMS),
-      PmConstrainedTrajectoryStock_(NUM_SUBSYSTEMS),
+      RmConstrainedTrajectoryStock_(NUM_SUBSYSTEMS),
       DmDagerTrajectoryStock_(NUM_SUBSYSTEMS),
-      RmConstraintProjectionTrajectoryStock_(NUM_SUBSYSTEMS),
+      EvProjectedTrajectoryStock_(NUM_SUBSYSTEMS),
+      CmProjectedTrajectoryStock_(NUM_SUBSYSTEMS),
+      DmProjectedTrajectoryStock_(NUM_SUBSYSTEMS),
       SsTimeTrajectoryStock_(NUM_SUBSYSTEMS),
       sTrajectoryStock_(NUM_SUBSYSTEMS),
       SvTrajectoryStock_(NUM_SUBSYSTEMS),
@@ -245,20 +236,17 @@ protected:
 
 	void approximateOptimalControlProblem();
 
-	void calculatecontroller(std::vector<controller_t>& controllersStock,
-			std::vector<control_vector_array_t>& feedForwardControlStock,
-			std::vector<control_vector_array_t>& feedForwardConstraintInputStock);
-
-	void calculateLagrangeMultiplierFunction(std::vector<lagrange_t>& lagrangeMultiplierFunctionsStock,
-			bool firstCall=false);
+	void calculateControllerLagrangian(std::vector<controller_t>& controllersStock,
+			std::vector<lagrange_t>& lagrangeMultiplierFunctionsStock,
+			std::vector<control_vector_array_t>& feedForwardConstraintInputStock,
+			bool firstCall=true);
 
 	void calculateRolloutLagrangeMultiplier(const std::vector<scalar_array_t>& timeTrajectoriesStock,
 			const std::vector<output_vector_array_t>& outputTrajectoriesStock,
 			const std::vector<lagrange_t>& lagrangeMultiplierFunctionsStock,
 			std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> > >&  lagrangeTrajectoriesStock);
 
-	void lineSearch(const std::vector<control_vector_array_t>& feedForwardControlStock,
-			const std::vector<control_vector_array_t>& feedForwardConstraintInputStock,
+	void lineSearch(const std::vector<control_vector_array_t>& feedForwardConstraintInputStock,
 			scalar_t& learningRateStar,
 			scalar_t maxLearningRateStar=1.0);
 
@@ -321,15 +309,15 @@ private:
 	std::vector<control_matrix_array_t> RmTrajectoryStock_;
 	std::vector<control_feedback_array_t> PmTrajectoryStock_;
 
-	std::vector<control_matrix_array_t>      RmInverseTrajectoryStock_;
-	std::vector<state_matrix_array_t>        AmConstrainedTrajectoryStock_;
-	std::vector<control_gain_matrix_array_t> BmConstrainedTrajectoryStock_;
-	std::vector<state_matrix_array_t>        QmConstrainedTrajectoryStock_;
-	std::vector<output_vector_array_t>       QvConstrainedTrajectoryStock_;
-	std::vector<control_vector_array_t>      RvConstrainedTrajectoryStock_;
-	std::vector<control_feedback_array_t>    PmConstrainedTrajectoryStock_;
+	std::vector<control_matrix_array_t> RmInverseTrajectoryStock_;
+	std::vector<state_matrix_array_t>   AmConstrainedTrajectoryStock_;
+	std::vector<state_matrix_array_t>   QmConstrainedTrajectoryStock_;
+	std::vector<output_vector_array_t>  QvConstrainedTrajectoryStock_;
+	std::vector<control_matrix_array_t> RmConstrainedTrajectoryStock_;
 	std::vector<control_constraint1_matrix_array_t> DmDagerTrajectoryStock_;
-	std::vector<constraint1_matrix_array_t>  RmConstraintProjectionTrajectoryStock_;
+	std::vector<control_vector_array_t>   EvProjectedTrajectoryStock_;  // DmDager * Ev
+	std::vector<control_feedback_array_t> CmProjectedTrajectoryStock_;  // DmDager * Cm
+	std::vector<control_matrix_array_t>   DmProjectedTrajectoryStock_;  // DmDager * Dm
 
 
 	std::vector<scalar_array_t> 	  SsTimeTrajectoryStock_;

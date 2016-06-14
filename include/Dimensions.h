@@ -69,11 +69,15 @@ public:
 	typedef Eigen::Matrix<double, 1, 1> eigen_scalar_t;
 	typedef std::vector<eigen_scalar_t, Eigen::aligned_allocator<eigen_scalar_t> > eigen_scalar_array_t;
 
-	struct controller_t {
+	template <int DIM>
+	class LinearFunction_t {
+	public:
 		scalar_array_t time_;
-		control_vector_array_t uff_;
-		control_feedback_array_t k_;
+		std::vector<Eigen::Matrix<double, DIM, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, DIM, 1>> > uff_;
+		std::vector<Eigen::Matrix<double, DIM, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, DIM, 1>> > deltaUff_;
+		std::vector<Eigen::Matrix<double, DIM, OUTPUT_DIM>, Eigen::aligned_allocator<Eigen::Matrix<double, DIM, OUTPUT_DIM>> > k_;
 	};
+	typedef LinearFunction_t<INPUT_DIM> controller_t;
 
 	struct Options {
 		Options() :

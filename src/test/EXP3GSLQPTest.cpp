@@ -73,7 +73,7 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	GSLQP<2,2,2,3>::Options_t gslqpOptions;
 	gslqpOptions.dispayGSLQP_ = 1;
-	gslqpOptions.maxIterationGSLQP_ = 20;
+	gslqpOptions.maxIterationGSLQP_ = 50;
 	gslqpOptions.meritFunctionRho_ = 2000.0;
 	if (argc>1) gslqpOptions.meritFunctionRho_ = std::atof(argv[1]);
 

@@ -378,49 +378,51 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimal
 
 		int N = nominalTimeTrajectoriesStock_[i].size();
 
-		RmConstraintProjectionTrajectoryStock_[i].resize(N);  // ( Dm(t) Rm(t)^{-1} Dm(t)' )^{-1}
-		DmDagerTrajectoryStock_[i].resize(N);				  // Rm(t)^{-1} Dm(t)' ( Dm(t) Rm(t)^{-1} Dm(t)' )^{-1}
+		RmConstrainedTrajectoryStock_[i].resize(N);
+		DmDagerTrajectoryStock_[i].resize(N);
 
 		AmConstrainedTrajectoryStock_[i].resize(N);
-		BmConstrainedTrajectoryStock_[i].resize(N);
-
 		QmConstrainedTrajectoryStock_[i].resize(N);
 		QvConstrainedTrajectoryStock_[i].resize(N);
-		RvConstrainedTrajectoryStock_[i].resize(N);
-		PmConstrainedTrajectoryStock_[i].resize(N);
+
+		EvProjectedTrajectoryStock_[i].resize(N);
+		CmProjectedTrajectoryStock_[i].resize(N);
+		DmProjectedTrajectoryStock_[i].resize(N);
 
 		for (int k=0; k<N; k++) {
 			size_t nc1 = nc1TrajectoriesStock_[i][k];
 
 			if (nc1 == 0) {
-				RmConstraintProjectionTrajectoryStock_[i][k].setZero();
 				DmDagerTrajectoryStock_[i][k].setZero();
+				EvProjectedTrajectoryStock_[i][k].setZero();
+				CmProjectedTrajectoryStock_[i][k].setZero();
+				DmProjectedTrajectoryStock_[i][k].setZero();
+
 				AmConstrainedTrajectoryStock_[i][k] = AmTrajectoryStock_[i][k];
-				BmConstrainedTrajectoryStock_[i][k] = BmTrajectoryStock_[i][k];
 				QmConstrainedTrajectoryStock_[i][k] = QmTrajectoryStock_[i][k];
 				QvConstrainedTrajectoryStock_[i][k] = QvTrajectoryStock_[i][k];
-				RvConstrainedTrajectoryStock_[i][k] = RvTrajectoryStock_[i][k];
-				PmConstrainedTrajectoryStock_[i][k] = PmTrajectoryStock_[i][k];
+				RmConstrainedTrajectoryStock_[i][k] = RmTrajectoryStock_[i][k];
 
 			} else {
-
 				Eigen::MatrixXd Cm = CmTrajectoryStock_[i][k].topRows(nc1);
 				Eigen::MatrixXd Dm = DmTrajectoryStock_[i][k].topRows(nc1);
+				Eigen::MatrixXd Ev = EvTrajectoryStock_[i][k].head(nc1);
 
-				Eigen::MatrixXd RmConstraintProjection = ( Dm*RmInverseTrajectoryStock_[i][k]*Dm.transpose() ).inverse();
-				Eigen::MatrixXd DmDager = RmInverseTrajectoryStock_[i][k]*Dm.transpose()*RmConstraintProjection;
+				Eigen::MatrixXd RmProjected = ( Dm*RmInverseTrajectoryStock_[i][k]*Dm.transpose() ).inverse();
+				Eigen::MatrixXd DmDager = RmInverseTrajectoryStock_[i][k] * Dm.transpose() * RmProjected;
 
-				control_matrix_t DmNullSpaceProjection = control_matrix_t::Identity() - DmDager*Dm;
-				state_matrix_t   PmTransDmDagerCm = PmTrajectoryStock_[i][k].transpose()*DmDager*Cm;
-
-				RmConstraintProjectionTrajectoryStock_[i][k].topLeftCorner(nc1,nc1) = RmConstraintProjection;
 				DmDagerTrajectoryStock_[i][k].leftCols(nc1) = DmDager;
-				AmConstrainedTrajectoryStock_[i][k] = AmTrajectoryStock_[i][k] - BmTrajectoryStock_[i][k]*DmDager*Cm;
-				BmConstrainedTrajectoryStock_[i][k] = BmTrajectoryStock_[i][k]*DmNullSpaceProjection;
-				QmConstrainedTrajectoryStock_[i][k] = QmTrajectoryStock_[i][k] + Cm.transpose()*RmConstraintProjection*Cm - PmTransDmDagerCm - PmTransDmDagerCm.transpose();
-				QvConstrainedTrajectoryStock_[i][k] = QvTrajectoryStock_[i][k] - (DmDager*Cm).transpose()*RvTrajectoryStock_[i][k];
-				RvConstrainedTrajectoryStock_[i][k] = DmNullSpaceProjection.transpose()*RvTrajectoryStock_[i][k];
-				PmConstrainedTrajectoryStock_[i][k] = DmNullSpaceProjection.transpose()*PmTrajectoryStock_[i][k];
+				EvProjectedTrajectoryStock_[i][k] = DmDager * Ev;
+				CmProjectedTrajectoryStock_[i][k] = DmDager * Cm;
+				DmProjectedTrajectoryStock_[i][k] = DmDager * Dm;
+
+				control_matrix_t DmNullSpaceProjection = control_matrix_t::Identity() - DmProjectedTrajectoryStock_[i][k];
+				state_matrix_t   PmTransDmDagerCm = PmTrajectoryStock_[i][k].transpose()*CmProjectedTrajectoryStock_[i][k];
+
+				AmConstrainedTrajectoryStock_[i][k] = AmTrajectoryStock_[i][k] - BmTrajectoryStock_[i][k]*CmProjectedTrajectoryStock_[i][k];
+				QmConstrainedTrajectoryStock_[i][k] = QmTrajectoryStock_[i][k] + Cm.transpose()*RmProjected*Cm - PmTransDmDagerCm - PmTransDmDagerCm.transpose();
+				QvConstrainedTrajectoryStock_[i][k] = QvTrajectoryStock_[i][k] - CmProjectedTrajectoryStock_[i][k].transpose()*RvTrajectoryStock_[i][k];
+				RmConstrainedTrajectoryStock_[i][k] = DmNullSpaceProjection.transpose() * RmTrajectoryStock_[i][k] * DmNullSpaceProjection;
 			}
 
 			// making sure that constrained Qm is PSD
@@ -447,46 +449,34 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimal
  *			+ feedForwardConstraintInputStock: the increment to the feedforward control input due to constraint type-1
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculatecontroller(
+void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControllerLagrangian(
 		std::vector<controller_t>& controllersStock,
-		std::vector<control_vector_array_t>& feedForwardControlStock,
-		std::vector<control_vector_array_t>& feedForwardConstraintInputStock) {
+		std::vector<lagrange_t>& lagrangeMultiplierFunctionsStock,
+		std::vector<control_vector_array_t>& feedForwardConstraintInputStock,
+		bool firstCall) {
+
+	// functions for controller and lagrane multiplier
+	LinearInterpolation<output_vector_t,Eigen::aligned_allocator<output_vector_t> >   nominalOutputFunc;
+	LinearInterpolation<control_vector_t,Eigen::aligned_allocator<control_vector_t> > nominalInputFunc;
 
 	LinearInterpolation<control_gain_matrix_t,Eigen::aligned_allocator<control_gain_matrix_t> > BmFunc;
-	LinearInterpolation<constraint1_state_matrix_t,Eigen::aligned_allocator<constraint1_state_matrix_t> > CmFunc;
-	LinearInterpolation<control_constraint1_matrix_t,Eigen::aligned_allocator<control_constraint1_matrix_t> > DmDagerFunc;
-	LinearInterpolation<constraint1_vector_t,Eigen::aligned_allocator<constraint1_vector_t> > EvFunc;
-
-	LinearInterpolation<control_vector_t,Eigen::aligned_allocator<control_vector_t> > RvFunc;
-	LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> > RmInverseFunc;
 	LinearInterpolation<control_feedback_t,Eigen::aligned_allocator<control_feedback_t> > PmFunc;
+	LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> >     RmInverseFunc;
+	LinearInterpolation<control_vector_t,Eigen::aligned_allocator<control_vector_t> >     RvFunc;
+	LinearInterpolation<control_vector_t,Eigen::aligned_allocator<control_vector_t> >     EvProjectedFunc;
+	LinearInterpolation<control_feedback_t,Eigen::aligned_allocator<control_feedback_t> > CmProjectedFunc;
+	LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> >     DmProjectedFunc;
 
-	LinearInterpolation<output_vector_t,Eigen::aligned_allocator<output_vector_t> > nominalOutputFunc;
-	LinearInterpolation<control_vector_t,Eigen::aligned_allocator<control_vector_t> > nominalInputFunc;
+	// functions for lagrane multiplier only
+	LinearInterpolation<Eigen::VectorXd,Eigen::aligned_allocator<Eigen::VectorXd> > nominalLagrangeMultiplierFunc;
+
+	LinearInterpolation<control_constraint1_matrix_t,Eigen::aligned_allocator<control_constraint1_matrix_t> > DmDagerFunc;
+	LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> > RmFunc;
 
 
 	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
 
-		BmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		BmFunc.setData( &(BmConstrainedTrajectoryStock_[i]) );
-
-		CmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		CmFunc.setData( &(CmTrajectoryStock_[i]) );
-
-		DmDagerFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		DmDagerFunc.setData( &(DmDagerTrajectoryStock_[i]) );
-
-		EvFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		EvFunc.setData( &(EvTrajectoryStock_[i]) );
-
-		RvFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		RvFunc.setData( &(RvConstrainedTrajectoryStock_[i]) );
-
-		RmInverseFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		RmInverseFunc.setData( &(RmInverseTrajectoryStock_[i]) );
-
-		PmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		PmFunc.setData( &(PmConstrainedTrajectoryStock_[i]) );
+		// functions for controller and lagrane multiplier
 
 		nominalOutputFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
 		nominalOutputFunc.setData( &(nominalOutputTrajectoriesStock_[i]) );
@@ -494,130 +484,34 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculatecontrolle
 		nominalInputFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
 		nominalInputFunc.setData( &(nominalInputTrajectoriesStock_[i]) );
 
-
-		int N = SsTimeTrajectoryStock_[i].size();
-
-		controllersStock[i].time_ = SsTimeTrajectoryStock_[i];
-		controllersStock[i].k_.resize(N);
-		controllersStock[i].uff_.resize(N);
-
-		feedForwardControlStock[i].resize(N);
-		feedForwardConstraintInputStock[i].resize(N);
-
-		for (int k=0; k<N; k++) {
-
-			const double& time = SsTimeTrajectoryStock_[i][k];
-
-			control_gain_matrix_t Bm;
-			BmFunc.interpolate(time, Bm);
-			size_t greatestLessTimeStampIndex = BmFunc.getGreatestLessTimeStampIndex();
-
-			control_vector_t Rv;
-			RvFunc.interpolate(time, Rv, greatestLessTimeStampIndex);
-			control_matrix_t RmInverse;
-			RmInverseFunc.interpolate(time, RmInverse, greatestLessTimeStampIndex);
-			control_feedback_t Pm;
-			PmFunc.interpolate(time, Pm, greatestLessTimeStampIndex);
-
-			output_vector_t nominalOutput;
-			nominalOutputFunc.interpolate(time, nominalOutput, greatestLessTimeStampIndex);
-			control_vector_t nominalInput;
-			nominalInputFunc.interpolate(time, nominalInput, greatestLessTimeStampIndex);
-
-			feedForwardConstraintInputStock[i][k] = -RmInverse*Bm.transpose()*SveTrajectoryStock_[i][k];
-			control_feedback_t ke = control_feedback_t::Zero();
-
-			size_t nc1 = nc1TrajectoriesStock_[i][greatestLessTimeStampIndex];
-			if (nc1 > 0) {
-				constraint1_state_matrix_t Cm;
-				CmFunc.interpolate(time, Cm, greatestLessTimeStampIndex);
-				control_constraint1_matrix_t DmDager;
-				DmDagerFunc.interpolate(time, DmDager, greatestLessTimeStampIndex);
-				constraint1_vector_t Ev;
-				EvFunc.interpolate(time, Ev, greatestLessTimeStampIndex);
-
-				ke = -DmDager.leftCols(nc1)*Cm.topRows(nc1);
-				feedForwardConstraintInputStock[i][k] += -DmDager.leftCols(nc1)*Ev.head(nc1);
-			}
-
-			controllersStock[i].k_[k]   = ke - RmInverse * (Pm + Bm.transpose()*SmTrajectoryStock_[i][k]);
-			controllersStock[i].uff_[k] = nominalInput - controllersStock[i].k_[k]*nominalOutput;
-			feedForwardControlStock[i][k] = -RmInverse * (Rv + Bm.transpose()*SvTrajectoryStock_[i][k]);
-
-			// checking the numerical stability of the controller parameters
-			try {
-				if (controllersStock[i].k_[k] != controllersStock[i].k_[k])
-					throw std::runtime_error("Feedback gains are unstable.");
-				if (feedForwardControlStock[i][k] != feedForwardControlStock[i][k])
-					throw std::runtime_error("feedForwardControl is unstable.");
-				if (nc1 != 0 && feedForwardConstraintInputStock[i][k] != feedForwardConstraintInputStock[i][k])
-					throw std::runtime_error("feedForwardConstraintInput is unstable.");
-				if (nc1 != 0 && ke != ke)
-					throw std::runtime_error("feedBackConstraintInput is unstable.");
-			}
-			catch(const std::exception& error)  {
-			    std::cerr << "what(): " << error.what() << " at time " << controllersStock[i].time_[k] << " [sec]." << std::endl;
-			}
-
-		}  // end of k loop
-	}  // end of i loop
-
-}
-
-
-
-/******************************************************************************************************/
-/******************************************************************************************************/
-/******************************************************************************************************/
-/*
- * calculate Lagrange multiplier as a funtion of time and state
- * 		inputs:
- * 			+ lagrangeMultiplierFunctionsStock: the coefficients of the linear function for lagrangeMultiplier
- * 			+ firstCall: true if this the first time that this funtion is called.
- */
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateLagrangeMultiplierFunction(
-		std::vector<lagrange_t>& lagrangeMultiplierFunctionsStock,
-		bool firstCall) {
-
-	LinearInterpolation<control_gain_matrix_t,Eigen::aligned_allocator<control_gain_matrix_t> > BmFunc;
-	LinearInterpolation<constraint1_state_matrix_t,Eigen::aligned_allocator<constraint1_state_matrix_t> > CmFunc;
-	LinearInterpolation<control_constraint1_matrix_t,Eigen::aligned_allocator<control_constraint1_matrix_t> > DmDagerFunc;
-	LinearInterpolation<constraint1_vector_t,Eigen::aligned_allocator<constraint1_vector_t> > EvFunc;
-
-	LinearInterpolation<control_vector_t,Eigen::aligned_allocator<control_vector_t> > RvFunc;
-	LinearInterpolation<constraint1_matrix_t,Eigen::aligned_allocator<constraint1_matrix_t> > RmConstraintFunc;
-	LinearInterpolation<control_feedback_t,Eigen::aligned_allocator<control_feedback_t> > PmFunc;
-
-	LinearInterpolation<output_vector_t,Eigen::aligned_allocator<output_vector_t> > nominalOutputFunc;
-	LinearInterpolation<Eigen::VectorXd,Eigen::aligned_allocator<Eigen::VectorXd> > nominalLagrangeMultiplierFunc;
-
-	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
-
 		BmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
 		BmFunc.setData( &(BmTrajectoryStock_[i]) );
-
-		CmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		CmFunc.setData( &(CmTrajectoryStock_[i]) );
-
-		DmDagerFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		DmDagerFunc.setData( &(DmDagerTrajectoryStock_[i]) );
-
-		EvFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		EvFunc.setData( &(EvTrajectoryStock_[i]) );
-
-		RvFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		RvFunc.setData( &(RvTrajectoryStock_[i]) );
-
-		RmConstraintFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		RmConstraintFunc.setData( &(RmConstraintProjectionTrajectoryStock_[i]) );
 
 		PmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
 		PmFunc.setData( &(PmTrajectoryStock_[i]) );
 
+		RmInverseFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		RmInverseFunc.setData( &(RmInverseTrajectoryStock_[i]) );
 
-		nominalOutputFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		nominalOutputFunc.setData( &(nominalOutputTrajectoriesStock_[i]) );
+		RvFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		RvFunc.setData( &(RvTrajectoryStock_[i]) );
+
+		EvProjectedFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		EvProjectedFunc.setData( &(EvProjectedTrajectoryStock_[i]) );
+
+		CmProjectedFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		CmProjectedFunc.setData( &(CmProjectedTrajectoryStock_[i]) );
+
+		DmProjectedFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		DmProjectedFunc.setData( &(DmProjectedTrajectoryStock_[i]) );
+
+		// functions for lagrane multiplier only
+
+		RmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		RmFunc.setData( &(RmTrajectoryStock_[i]) );
+
+		DmDagerFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		DmDagerFunc.setData( &(DmDagerTrajectoryStock_[i]) );
 
 		if (firstCall==false) {
 			nominalLagrangeMultiplierFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
@@ -626,76 +520,112 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateLagrangeM
 
 		int N = SsTimeTrajectoryStock_[i].size();
 
+		controllersStock[i].time_ = SsTimeTrajectoryStock_[i];
+		controllersStock[i].k_.resize(N);
+		controllersStock[i].uff_.resize(N);
+		controllersStock[i].deltaUff_.resize(N);
+
+		feedForwardConstraintInputStock[i].resize(N);
+
 		lagrangeMultiplierFunctionsStock[i].time_ = SsTimeTrajectoryStock_[i];
-		lagrangeMultiplierFunctionsStock[i].vff_.resize(N);
-		lagrangeMultiplierFunctionsStock[i].deltaVff_.resize(N);
-		lagrangeMultiplierFunctionsStock[i].vfb_.resize(N);
-		lagrangeMultiplierFunctionsStock[i].nc1_.resize(N);
+		lagrangeMultiplierFunctionsStock[i].k_.resize(N);
+		lagrangeMultiplierFunctionsStock[i].uff_.resize(N);
+		lagrangeMultiplierFunctionsStock[i].deltaUff_.resize(N);
 
 		for (int k=0; k<N; k++) {
 
 			const double& time = SsTimeTrajectoryStock_[i][k];
-
-			control_gain_matrix_t Bm;
-			BmFunc.interpolate(time, Bm);
-			size_t greatestLessTimeStampIndex = BmFunc.getGreatestLessTimeStampIndex();
-
-			size_t nc1 = nc1TrajectoriesStock_[i][greatestLessTimeStampIndex];
-			lagrangeMultiplierFunctionsStock[i].nc1_[k] = nc1;
-			if (nc1==0)
-				continue;
-
-			constraint1_state_matrix_t Cm;
-			CmFunc.interpolate(time, Cm, greatestLessTimeStampIndex);
-			control_constraint1_matrix_t DmDager;
-			DmDagerFunc.interpolate(time, DmDager, greatestLessTimeStampIndex);
-			constraint1_vector_t Ev;
-			EvFunc.interpolate(time, Ev, greatestLessTimeStampIndex);
-
-			control_vector_t Rv;
-			RvFunc.interpolate(time, Rv, greatestLessTimeStampIndex);
-			constraint1_matrix_t RmConstraint;
-			RmConstraintFunc.interpolate(time, RmConstraint, greatestLessTimeStampIndex);
-			control_feedback_t Pm;
-			PmFunc.interpolate(time, Pm, greatestLessTimeStampIndex);
+			size_t greatestLessTimeStampIndex;
 
 			output_vector_t nominalOutput;
-			nominalOutputFunc.interpolate(time, nominalOutput, greatestLessTimeStampIndex);
+			nominalOutputFunc.interpolate(time, nominalOutput);
+			greatestLessTimeStampIndex = nominalOutputFunc.getGreatestLessTimeStampIndex();
+			control_vector_t nominalInput;
+			nominalInputFunc.interpolate(time, nominalInput, greatestLessTimeStampIndex);
 
-			lagrangeMultiplierFunctionsStock[i].vfb_[k] = RmConstraint.topLeftCorner(nc1,nc1)*Cm.topRows(nc1)
-					- DmDager.leftCols(nc1).transpose() * (Pm + Bm.transpose()*SmTrajectoryStock_[i][k]);
-			lagrangeMultiplierFunctionsStock[i].vff_[k] = -lagrangeMultiplierFunctionsStock[i].vfb_[k]*nominalOutput;
+			control_gain_matrix_t Bm;
+			BmFunc.interpolate(time, Bm, greatestLessTimeStampIndex);
+			control_feedback_t Pm;
+			PmFunc.interpolate(time, Pm, greatestLessTimeStampIndex);
+			control_vector_t Rv;
+			RvFunc.interpolate(time, Rv, greatestLessTimeStampIndex);
+			control_matrix_t RmInverse;
+			RmInverseFunc.interpolate(time, RmInverse, greatestLessTimeStampIndex);
+			control_vector_t EvProjected;
+			EvProjectedFunc.interpolate(time, EvProjected, greatestLessTimeStampIndex);
+			control_feedback_t CmProjected;
+			CmProjectedFunc.interpolate(time, CmProjected, greatestLessTimeStampIndex);
+			control_matrix_t DmProjected;
+			DmProjectedFunc.interpolate(time, DmProjected, greatestLessTimeStampIndex);
 
-			Eigen::VectorXd localVff = RmConstraint.topLeftCorner(nc1,nc1)*Ev.head(nc1)
-					- DmDager.leftCols(nc1).transpose() * (Rv + Bm.transpose()*SvTrajectoryStock_[i][k] + Bm.transpose()*SveTrajectoryStock_[i][k]);
+			control_feedback_t Lm  = RmInverse * (Pm + Bm.transpose()*SmTrajectoryStock_[i][k]);
+			control_vector_t   Lv  = RmInverse * (Rv + Bm.transpose()*SvTrajectoryStock_[i][k]);
+			control_vector_t   Lve = RmInverse * (Bm.transpose()*SveTrajectoryStock_[i][k]);
 
+			control_matrix_t DmNullProjection = control_matrix_t::Identity()-DmProjected;
+			controllersStock[i].k_[k]   = -DmNullProjection*Lm - CmProjected;
+			controllersStock[i].uff_[k] = nominalInput - controllersStock[i].k_[k]*nominalOutput;
+			controllersStock[i].deltaUff_[k]      = -DmNullProjection*Lv;
+			feedForwardConstraintInputStock[i][k] = -DmNullProjection*Lve - EvProjected;
+
+			// checking the numerical stability of the controller parameters
+			try {
+				if (controllersStock[i].k_[k] != controllersStock[i].k_[k])
+					throw std::runtime_error("Feedback gains are unstable.");
+				if (controllersStock[i].deltaUff_[k] != controllersStock[i].deltaUff_[k])
+					throw std::runtime_error("feedForwardControl is unstable.");
+				if (feedForwardConstraintInputStock[i][k] != feedForwardConstraintInputStock[i][k])
+					throw std::runtime_error("feedForwardConstraintInput is unstable.");
+			}
+			catch(const std::exception& error)  {
+			    std::cerr << "what(): " << error.what() << " at time " << controllersStock[i].time_[k] << " [sec]." << std::endl;
+			}
+
+
+			// lagrane multiplier calculation
+
+			const size_t& nc1 = nc1TrajectoriesStock_[i][greatestLessTimeStampIndex];
+
+			control_constraint1_matrix_t DmDager;
+			DmDagerFunc.interpolate(time, DmDager, greatestLessTimeStampIndex);
+			control_matrix_t Rm;
+			RmFunc.interpolate(time, Rm, greatestLessTimeStampIndex);
+
+			Eigen::MatrixXd DmDagerTransRm = DmDager.leftCols(nc1).transpose() * Rm;
+
+			lagrangeMultiplierFunctionsStock[i].k_[k]   = -DmDagerTransRm*Lm + DmDagerTransRm*CmProjected;
+			lagrangeMultiplierFunctionsStock[i].uff_[k] = -lagrangeMultiplierFunctionsStock[i].k_[k]*nominalOutput;
+
+			Eigen::VectorXd localVff = -DmDagerTransRm*(Lv+Lve) + DmDagerTransRm*EvProjected;
 			if (firstCall==true) {
-				lagrangeMultiplierFunctionsStock[i].vff_[k] += localVff;
-				lagrangeMultiplierFunctionsStock[i].deltaVff_[k] = Eigen::VectorXd::Zero(nc1);
+				lagrangeMultiplierFunctionsStock[i].uff_[k] += localVff;
+				lagrangeMultiplierFunctionsStock[i].deltaUff_[k] = Eigen::VectorXd::Zero(nc1);
 
 			} else {
 				Eigen::VectorXd nominalLagrangeMultiplier;
 				nominalLagrangeMultiplierFunc.interpolate(time, nominalLagrangeMultiplier, greatestLessTimeStampIndex);
-				lagrangeMultiplierFunctionsStock[i].vff_[k] += nominalLagrangeMultiplier;
+				lagrangeMultiplierFunctionsStock[i].uff_[k] += nominalLagrangeMultiplier;
 
-				lagrangeMultiplierFunctionsStock[i].deltaVff_[k] = localVff - nominalLagrangeMultiplier;
+				lagrangeMultiplierFunctionsStock[i].deltaUff_[k] = localVff - nominalLagrangeMultiplier;
 			}
 
 			// checking the numerical stability of the controller parameters
 			try {
-				if (lagrangeMultiplierFunctionsStock[i].vfb_[k] != lagrangeMultiplierFunctionsStock[i].vfb_[k])
+				if (lagrangeMultiplierFunctionsStock[i].k_[k] != lagrangeMultiplierFunctionsStock[i].k_[k])
 					throw std::runtime_error("Feedback lagrangeMultiplier is unstable.");
-				if (lagrangeMultiplierFunctionsStock[i].vff_[k] != lagrangeMultiplierFunctionsStock[i].vff_[k])
+				if (lagrangeMultiplierFunctionsStock[i].deltaUff_[k] != lagrangeMultiplierFunctionsStock[i].deltaUff_[k])
 					throw std::runtime_error("Feedforward lagrangeMultiplier is unstable.");
 			}
 			catch(const std::exception& error)  {
-			    std::cerr << "what(): " << error.what() << " at time " << lagrangeMultiplierFunctionsStock[i].time_[k] << " [sec]." << std::endl;
+				std::cerr << "what(): " << error.what() << " at time " << lagrangeMultiplierFunctionsStock[i].time_[k] << " [sec]." << std::endl;
 			}
+
 
 		}  // end of k loop
 	}  // end of i loop
 
 }
+
 
 
 /******************************************************************************************************/
@@ -728,10 +658,10 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateRolloutLa
 	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
 
 		vffFunc.setTimeStamp(&lagrangeMultiplierFunctionsStock[i].time_);
-		vffFunc.setData(&lagrangeMultiplierFunctionsStock[i].vff_);
+		vffFunc.setData(&lagrangeMultiplierFunctionsStock[i].uff_);
 
 		vfbFunc.setTimeStamp(&lagrangeMultiplierFunctionsStock[i].time_);
-		vfbFunc.setData(&lagrangeMultiplierFunctionsStock[i].vfb_);
+		vfbFunc.setData(&lagrangeMultiplierFunctionsStock[i].k_);
 
 		lagrangeTrajectoriesStock[i].resize(timeTrajectoriesStock[i].size());
 
@@ -756,7 +686,6 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateRolloutLa
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
-		const std::vector<control_vector_array_t>& feedForwardControlStock,
 		const std::vector<control_vector_array_t>& feedForwardConstraintInputStock,
 		scalar_t& learningRateStar,
 		scalar_t maxLearningRateStar/*=1.0*/)  {
@@ -769,7 +698,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 		std::vector<control_vector_t> maxDeltaUffStock(NUM_SUBSYSTEMS);
 		std::vector<control_vector_t> maxDeltaUffeStock(NUM_SUBSYSTEMS);
 		for (size_t i=0; i<NUM_SUBSYSTEMS; i++)  {
-			maxDeltaUffStock[i]  = *std::max_element(feedForwardControlStock[i].begin(), feedForwardControlStock[i].end(), eigenVectorLessEqual);
+			maxDeltaUffStock[i]  = *std::max_element(nominalControllersStock_[i].deltaUff_.begin(), nominalControllersStock_[i].deltaUff_.template end(), eigenVectorLessEqual);
 			maxDeltaUffeStock[i] = *std::max_element(feedForwardConstraintInputStock[i].begin(), feedForwardConstraintInputStock[i].end(), eigenVectorLessEqual);
 		}
 		control_vector_t maxDeltaUff  = *std::max_element(maxDeltaUffStock.begin(), maxDeltaUffStock.end(), eigenVectorLessEqual);
@@ -829,13 +758,13 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 		lsControllersStock = controllersStock;
 		for (int i=0; i<NUM_SUBSYSTEMS; i++)
 			for (int k=0; k<lsControllersStock[i].time_.size(); k++)
-				lsControllersStock[i].uff_[k] += learningRate*(feedForwardControlStock[i][k]+feedForwardConstraintInputStock[i][k]);
+				lsControllersStock[i].uff_[k] += learningRate*(lsControllersStock[i].deltaUff_[k]+feedForwardConstraintInputStock[i][k]);
 
 		// modifying vff by the local increments
 		lsLagrangeControllersStock = lagrangeMultiplierFunctionsStock;
 		for (int i=0; i<NUM_SUBSYSTEMS; i++)
 			for (int k=0; k<lsLagrangeControllersStock[i].time_.size(); k++)
-				lsLagrangeControllersStock[i].vff_[k] += learningRate*lsLagrangeControllersStock[i].deltaVff_[k];
+				lsLagrangeControllersStock[i].uff_[k] += learningRate*lsLagrangeControllersStock[i].deltaUff_[k];
 
 		// perform rollout
 		try {
@@ -1057,9 +986,9 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRic
 		auto riccatiEquationsPtr = std::make_shared<RiccatiEquations_t>();
 		riccatiEquationsPtr->setData(learningRate, i, switchingTimes_[i], switchingTimes_[i+1],
 				&nominalTimeTrajectoriesStock_[i],
-				&AmConstrainedTrajectoryStock_[i], &BmConstrainedTrajectoryStock_[i],
+				&AmConstrainedTrajectoryStock_[i], &BmTrajectoryStock_[i],
 				&qTrajectoryStock_[i], &QvConstrainedTrajectoryStock_[i], &QmConstrainedTrajectoryStock_[i],
-				&RvConstrainedTrajectoryStock_[i], &RmInverseTrajectoryStock_[i], &PmConstrainedTrajectoryStock_[i]);
+				&RvTrajectoryStock_[i], &RmInverseTrajectoryStock_[i], &RmConstrainedTrajectoryStock_[i], &PmTrajectoryStock_[i]);
 
 		// integrating the Riccati equations
 		ODE45<RiccatiEquations_t::S_DIM_> ode45(riccatiEquationsPtr);
@@ -1104,7 +1033,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRic
 		allSsFinal = allSsTrajectory.back();
 
 		/*
-		 * Type_1 constriants error correction
+		 * Type_1 constraints error correction compensation
 		 */
 
 		// final value for the last error equation
@@ -1130,21 +1059,14 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRic
 			state_matrix_t Sm;
 			SmFunc.interpolate(nominalTimeTrajectoriesStock_[i][k], Sm);
 
-			GmTrajectory[k] = AmConstrainedTrajectoryStock_[i][k] - BmConstrainedTrajectoryStock_[i][k]*RmInverseTrajectoryStock_[i][k]*(
-					PmConstrainedTrajectoryStock_[i][k]+BmConstrainedTrajectoryStock_[i][k].transpose()*Sm);
+			control_feedback_t Lm = RmInverseTrajectoryStock_[i][k]*(PmTrajectoryStock_[i][k]+BmTrajectoryStock_[i][k].transpose()*Sm);
 
-			size_t nc1 = nc1TrajectoriesStock_[i][k];
-			if (nc1 == 0)
-				GvTrajectory[k].setZero();
-			else {
-				Eigen::MatrixXd Cm = CmTrajectoryStock_[i][k].topRows(nc1);
-				Eigen::MatrixXd Ev = EvTrajectoryStock_[i][k].head(nc1);
-				Eigen::MatrixXd RmConstraintProjection = RmConstraintProjectionTrajectoryStock_[i][k].topLeftCorner(nc1,nc1);
-				Eigen::MatrixXd DmDager = DmDagerTrajectoryStock_[i][k].leftCols(nc1);
+			GmTrajectory[k] = AmConstrainedTrajectoryStock_[i][k] -
+					BmTrajectoryStock_[i][k]*RmInverseTrajectoryStock_[i][k]*RmConstrainedTrajectoryStock_[i][k]*Lm;
 
-				GvTrajectory[k] = Cm.transpose()*RmConstraintProjection*Ev -
-						( PmTrajectoryStock_[i][k]+BmTrajectoryStock_[i][k].transpose()*Sm ).transpose() * DmDager * Ev;
-			}
+			GvTrajectory[k] = (CmProjectedTrajectoryStock_[i][k]-DmProjectedTrajectoryStock_[i][k]*Lm).transpose()*
+					RmTrajectoryStock_[i][k]*EvProjectedTrajectoryStock_[i][k];
+
 		}  // end of k loop
 
 		// set data for error equations
@@ -1203,9 +1125,9 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveFullSequentia
 		riccatiEquationsPtr->setData(learningRate,
 				i, switchingTimes_[i], switchingTimes_[i+1],
 				&nominalTimeTrajectoriesStock_[i],
-				&AmConstrainedTrajectoryStock_[i], &BmConstrainedTrajectoryStock_[i],
+				&AmConstrainedTrajectoryStock_[i], &BmTrajectoryStock_[i],
 				&qTrajectoryStock_[i], &QvConstrainedTrajectoryStock_[i], &QmConstrainedTrajectoryStock_[i],
-				&RvConstrainedTrajectoryStock_[i], &RmInverseTrajectoryStock_[i], &PmConstrainedTrajectoryStock_[i],
+				&RvTrajectoryStock_[i], &RmInverseTrajectoryStock_[i], &RmConstrainedTrajectoryStock_[i], &PmTrajectoryStock_[i],
 				&sensitivityTimeTrajectoryStock_[i], &nablaqTrajectoryStock_[i],
 				&nablaQvTrajectoryStock_[i], &nablaRvTrajectoryStock_[i]);
 
@@ -1323,12 +1245,12 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rolloutSensitivity
 		if (nablaSvUpdated==true)
 			rolloutSensitivityEquationsPtr->setData(i, switchingTimes_, subsystemDynamicsPtrStock_[i], &nominalControllersStock_[i],
 					&nominalTimeTrajectoriesStock_[i], &nominalStateTrajectoriesStock_[i], &nominalInputTrajectoriesStock_[i],
-					&AmConstrainedTrajectoryStock_[i], &BmConstrainedTrajectoryStock_[i],
+					&AmConstrainedTrajectoryStock_[i], &BmTrajectoryStock_[i],
 					&nablaUffTimeTrajectoryStock[i], &nablaUffTrajectoryStock[i]);
 		else
 			rolloutSensitivityEquationsPtr->setData(i, switchingTimes_, subsystemDynamicsPtrStock_[i], &nominalControllersStock_[i],
 								&nominalTimeTrajectoriesStock_[i], &nominalStateTrajectoriesStock_[i], &nominalInputTrajectoriesStock_[i],
-								&AmConstrainedTrajectoryStock_[i], &BmConstrainedTrajectoryStock_[i]);
+								&AmConstrainedTrajectoryStock_[i], &BmTrajectoryStock_[i]);
 
 		// integrating
 		scalar_array_t normalizedSensitivityTimeTrajectory;
@@ -1405,7 +1327,6 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rolloutSensitivity
 			nablaqTrajectoryStock_[i][k]  = Qv.transpose()*nablaOutputTrajectoryStock_[i][k] + Rv.transpose()*nablaInputTrajectoryStock_[i][k];
 			nablaQvTrajectoryStock_[i][k] = Qm*nablaOutputTrajectoryStock_[i][k] + Pm.transpose()*nablaInputTrajectoryStock_[i][k];
 			nablaRvTrajectoryStock_[i][k] = Pm*nablaOutputTrajectoryStock_[i][k] + Rm*nablaInputTrajectoryStock_[i][k];
-//			nablaEvTrajectoryStock_[i][k] = Cm*nablaOutputTrajectoryStock_[i][k] + Dm*nablaInputTrajectoryStock_[i][k];
 		}
 
 		if (i==NUM_SUBSYSTEMS-1)  {
@@ -1464,7 +1385,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 		std::cerr << "] ..." << std::endl << std::endl;
 	}
 
-	bool lagrangianIsNotUpdated = true;
+	bool lagrangianIsUpdated = false;
 
 	switchingTimes_ = switchingTimes;
 	initState_ = initState;
@@ -1504,18 +1425,14 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 		// solve Riccati equations
 		solveSequentialRiccatiEquations(1.0 /*nominal learningRate*/);
 
-		// calculate controller
+		// calculate controller and lagrange multiplier
 		nominalRolloutIsUpdated_ = false;
-		std::vector<control_vector_array_t> feedForwardControlStock(NUM_SUBSYSTEMS);
 		std::vector<control_vector_array_t> feedForwardConstraintInputStock(NUM_SUBSYSTEMS);
-		calculatecontroller(nominalControllersStock_, feedForwardControlStock, feedForwardConstraintInputStock);
-
-		// calculate Lagrange multiplier
-		calculateLagrangeMultiplierFunction(lagrangeControllerStock_, lagrangianIsNotUpdated);
-		lagrangianIsNotUpdated = false;
+		calculateControllerLagrangian(nominalControllersStock_, lagrangeControllerStock_, feedForwardConstraintInputStock, ~lagrangianIsUpdated);
+		lagrangianIsUpdated = true;
 
 		// finding the optimal learningRate
-		lineSearch(feedForwardControlStock, feedForwardConstraintInputStock, learningRateStar, 1.0/*maxLearningRate*/);
+		lineSearch(feedForwardConstraintInputStock, learningRateStar, 1.0/*maxLearningRate*/);
 
 		// calculates type-1 constraints RMSE nad MAX values
 		double constraint1SSE = 0.0;
@@ -1574,10 +1491,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 	solveSequentialRiccatiEquations(0.0 /*nominal learningRate*/);
 
 	// calculate controller
-	std::vector<control_vector_array_t> feedForwardControlStock(NUM_SUBSYSTEMS);
 	std::vector<control_vector_array_t> feedForwardConstraintInputStock(NUM_SUBSYSTEMS);
-	calculatecontroller(nominalControllersStock_, feedForwardControlStock, feedForwardConstraintInputStock);
-
+	calculateControllerLagrangian(nominalControllersStock_, lagrangeControllerStock_, feedForwardConstraintInputStock, false);
 
 	if (options_.dispayGSLQP_)  std::cerr << "\n#### Calculating cost function sensitivity ..." << std::endl;
 

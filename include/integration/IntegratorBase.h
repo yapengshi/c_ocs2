@@ -57,7 +57,7 @@ public:
 	) = 0;
 
 	// Adaptive time integration based on start time and final time
-	// = almost integrate adaptive
+	// = integrate adaptive
 	virtual bool integrate(
 		const State_T& initialState,
 		const double& startTime,
@@ -70,7 +70,7 @@ public:
 	) = 0;
 
 	// Output integration based on a given time trajectory
-	// = almost integrate times
+	// = integrate times
 	virtual bool integrate(
 		const State_T& initialState,
 		const TimeTrajectory_T& timeTrajectory,

@@ -158,7 +158,6 @@ target_link_libraries(exp3_numerical_derivative_test
   ${Boost_LIBRARIES}
 )
 
-
 #############
 ## Testing ##
 #############

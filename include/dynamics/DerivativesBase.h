@@ -52,7 +52,7 @@ public:
 			const scalar_t& finalTime=0, const char* algorithmName=NULL)
 	{}
 
-	virtual void getDerivativeState(state_matrix_t& A) = 0;
+	virtual void getDerivativeState(state_matrix_t& A) = 0;  //FIXME: consistentcy in naming
 	virtual void getDerivativesControl(control_gain_matrix_t& B) = 0;
 	virtual void getConstraint1DerivativesState(size_t& numConstraint1, constraint1_state_matrix_t& C) {	numConstraint1 = 0; }
 	virtual void getConstraint1DerivativesControl(size_t& numConstraint1, constraint1_control_matrix_t& D) { numConstraint1 = 0; }

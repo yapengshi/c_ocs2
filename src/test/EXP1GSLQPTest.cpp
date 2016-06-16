@@ -16,6 +16,7 @@
 
 #include "test/EXP1.h"
 #include "GSLQ/GLQP.h"
+#include "GSLQ/SLQP.h"
 
 int main (int argc, char* argv[])
 {
@@ -72,35 +73,65 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	/******************************************************************************************************/
-	GSLQP<2,1,2,3>::Options_t gslqpOptions;
-	gslqpOptions.dispayGSLQP_ = 1;
-	gslqpOptions.lineSearchByMeritFuntion_ = false;
+	SLQP<2,1,2,3>::Options_t slqpOptions;
+	slqpOptions.dispayGSLQP_ = 1;
+	slqpOptions.lineSearchByMeritFuntion_ = false;
 
-	// GSLQ
-	GSLQP<2,1,2,3> gslqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);
+	// SLQP
+	SLQP<2,1,2,3> slqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, slqpOptions);
 
-	gslqp.run(initState, switchingTimes);
+	slqp.run(initState, switchingTimes);
 
 	// get controller
-	gslqp.getController(controllersStock);
+	slqp.getController(controllersStock);
 
 	// rollout
-	std::vector<GSLQP<2,1,2,3>::scalar_array_t> timeTrajectoriesStock;
-	std::vector<GSLQP<2,1,2,3>::state_vector_array_t> stateTrajectoriesStock;
-	std::vector<GSLQP<2,1,2,3>::control_vector_array_t> controlTrajectoriesStock;
-	gslqp.rollout(initState, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
+	std::vector<SLQP<2,1,2,3>::scalar_array_t> timeTrajectoriesStock;
+	std::vector<SLQP<2,1,2,3>::state_vector_array_t> stateTrajectoriesStock;
+	std::vector<SLQP<2,1,2,3>::control_vector_array_t> controlTrajectoriesStock;
+	slqp.rollout(initState, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
 
 	// compute cost
 	double rolloutCost;
-	gslqp.calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
+	slqp.calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
 
 	// value funtion
 	double totalCost;
-	gslqp.getValueFuntion(0.0, initState, totalCost);
+	slqp.getValueFuntion(0.0, initState, totalCost);
 
-	// value funtion derivative
-	Eigen::Matrix<double,2,1> costFuntionDerivative;
-	gslqp.getCostFuntionDerivative(initState, costFuntionDerivative);
+
+	/******************************************************************************************************/
+	/******************************************************************************************************/
+	/******************************************************************************************************/
+//	GSLQP<2,1,2,3>::Options_t gslqpOptions;
+//	gslqpOptions.dispayGSLQP_ = 1;
+//	gslqpOptions.lineSearchByMeritFuntion_ = false;
+//
+//	// GSLQ
+//	GSLQP<2,1,2,3> gslqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);
+//
+//	gslqp.run(initState, switchingTimes);
+//
+//	// get controller
+//	gslqp.getController(controllersStock);
+//
+//	// rollout
+//	std::vector<GSLQP<2,1,2,3>::scalar_array_t> timeTrajectoriesStock;
+//	std::vector<GSLQP<2,1,2,3>::state_vector_array_t> stateTrajectoriesStock;
+//	std::vector<GSLQP<2,1,2,3>::control_vector_array_t> controlTrajectoriesStock;
+//	gslqp.rollout(initState, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
+//
+//	// compute cost
+//	double rolloutCost;
+//	gslqp.calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
+//
+//	// value funtion
+//	double totalCost;
+//	gslqp.getValueFuntion(0.0, initState, totalCost);
+//
+//	// value funtion derivative
+//	Eigen::Matrix<double,2,1> costFuntionDerivative;
+//	gslqp.getCostFuntionDerivative(initState, costFuntionDerivative);
 
 	/******************************************************************************************************/
 	/******************************************************************************************************/
@@ -113,66 +144,66 @@ int main (int argc, char* argv[])
 
 	std::cout << "The total cost: " << totalCost << std::endl;
 	std::cout << "The total cost in the test rollout: " << rolloutCost << std::endl;
-	std::cout << "The total cost derivative: " << costFuntionDerivative.transpose() << std::endl;
-
-	GSLQP<2,1,2,3>::eigen_scalar_array_t timeEigenTrajectory;
-	GSLQP<2,1,2,3>::state_vector_array_t stateTrajectory;
-	GSLQP<2,1,2,3>::control_vector_array_t inputTrajectory;
-
-	for (size_t i=0; i<switchingTimes.size()-1; i++)  {
-
-		for (size_t k=0; k<timeTrajectoriesStock[i].size(); k++)  {
-
-			timeEigenTrajectory.push_back((Eigen::MatrixXd(1,1) << timeTrajectoriesStock[i][k]).finished());
-			stateTrajectory.push_back(stateTrajectoriesStock[i][k]);
-			inputTrajectory.push_back(controlTrajectoriesStock[i][k]);
-		}
-	}
-
-
-	// Sensitivity2SwitchingTime
-	std::vector<GSLQP<2,1,2,3>::scalar_array_t> sensitivityTimeTrajectoriesStock;
-	std::vector<GSLQP<2,1,2,3>::nabla_output_matrix_array_t> sensitivityStateTrajectoriesStock;
-	std::vector<GSLQP<2,1,2,3>::nabla_input_matrix_array_t> sensitivityInputTrajectoriesStock;
-	gslqp.getRolloutSensitivity2SwitchingTime(sensitivityTimeTrajectoriesStock, sensitivityStateTrajectoriesStock, sensitivityInputTrajectoriesStock);
-
-	GSLQP<2,1,2,3>::eigen_scalar_array_t sensitivityTimeTrajectory;
-	GSLQP<2,1,2,3>::nabla_output_matrix_array_t sensitivityStateTrajectory;
-	for (size_t i=0; i<switchingTimes.size()-1; i++)  {
-		for (size_t k=0; k<sensitivityTimeTrajectoriesStock[i].size(); k++)  {
-			sensitivityTimeTrajectory.push_back((Eigen::MatrixXd(1,1) << sensitivityTimeTrajectoriesStock[i][k]).finished());
-			sensitivityStateTrajectory.push_back(sensitivityStateTrajectoriesStock[i][k]);
-		}
-	}
-
-	std::string resultDir = "/home/farbod/Programs/ct_ws/src/c_ocs2/cereal/test/exp1_test";
-	std::string stateFile = resultDir + "/exp1State.xml";
-	std::string timeFile = resultDir + "/exp1Time.xml";
-	std::string inputFile = resultDir + "/exp1Input.xml";
-	std::string stateSensitivityFile = resultDir + "/exp1StateSensitivity.xml";
-	std::string timeSensitivityFile = resultDir + "/exp1TimeSensitivity.xml";
-
-	{ // we need these brackets to make sure the archive goes out of scope and flushes
-		std::ofstream xmlState(stateFile);
-		cereal::XMLOutputArchive archive_state_xml(xmlState);
-		archive_state_xml(CEREAL_NVP(stateTrajectory));
-
-		std::ofstream xmlTime(timeFile);
-		cereal::XMLOutputArchive archive_time_xml(xmlTime);
-		archive_time_xml(CEREAL_NVP(timeEigenTrajectory));
-
-		std::ofstream xmlInput(inputFile);
-		cereal::XMLOutputArchive archive_input_xml(xmlInput);
-		archive_input_xml(CEREAL_NVP(inputTrajectory));
-
-		std::ofstream xmlStateSensitivity(stateSensitivityFile);
-		cereal::XMLOutputArchive archive_stateSensitivity_xml(xmlStateSensitivity);
-		archive_stateSensitivity_xml(CEREAL_NVP(sensitivityStateTrajectory));
-
-		std::ofstream xmlTimeSensitivity(timeSensitivityFile);
-		cereal::XMLOutputArchive archive_timeSensitivity_xml(xmlTimeSensitivity);
-		archive_timeSensitivity_xml(CEREAL_NVP(sensitivityTimeTrajectory));
-	}
+//	std::cout << "The total cost derivative: " << costFuntionDerivative.transpose() << std::endl;
+//
+//	GSLQP<2,1,2,3>::eigen_scalar_array_t timeEigenTrajectory;
+//	GSLQP<2,1,2,3>::state_vector_array_t stateTrajectory;
+//	GSLQP<2,1,2,3>::control_vector_array_t inputTrajectory;
+//
+//	for (size_t i=0; i<switchingTimes.size()-1; i++)  {
+//
+//		for (size_t k=0; k<timeTrajectoriesStock[i].size(); k++)  {
+//
+//			timeEigenTrajectory.push_back((Eigen::MatrixXd(1,1) << timeTrajectoriesStock[i][k]).finished());
+//			stateTrajectory.push_back(stateTrajectoriesStock[i][k]);
+//			inputTrajectory.push_back(controlTrajectoriesStock[i][k]);
+//		}
+//	}
+//
+//
+//	// Sensitivity2SwitchingTime
+//	std::vector<GSLQP<2,1,2,3>::scalar_array_t> sensitivityTimeTrajectoriesStock;
+//	std::vector<GSLQP<2,1,2,3>::nabla_output_matrix_array_t> sensitivityStateTrajectoriesStock;
+//	std::vector<GSLQP<2,1,2,3>::nabla_input_matrix_array_t> sensitivityInputTrajectoriesStock;
+//	gslqp.getRolloutSensitivity2SwitchingTime(sensitivityTimeTrajectoriesStock, sensitivityStateTrajectoriesStock, sensitivityInputTrajectoriesStock);
+//
+//	GSLQP<2,1,2,3>::eigen_scalar_array_t sensitivityTimeTrajectory;
+//	GSLQP<2,1,2,3>::nabla_output_matrix_array_t sensitivityStateTrajectory;
+//	for (size_t i=0; i<switchingTimes.size()-1; i++)  {
+//		for (size_t k=0; k<sensitivityTimeTrajectoriesStock[i].size(); k++)  {
+//			sensitivityTimeTrajectory.push_back((Eigen::MatrixXd(1,1) << sensitivityTimeTrajectoriesStock[i][k]).finished());
+//			sensitivityStateTrajectory.push_back(sensitivityStateTrajectoriesStock[i][k]);
+//		}
+//	}
+//
+//	std::string resultDir = "/home/farbod/Programs/ct_ws/src/c_ocs2/cereal/test/exp1_test";
+//	std::string stateFile = resultDir + "/exp1State.xml";
+//	std::string timeFile = resultDir + "/exp1Time.xml";
+//	std::string inputFile = resultDir + "/exp1Input.xml";
+//	std::string stateSensitivityFile = resultDir + "/exp1StateSensitivity.xml";
+//	std::string timeSensitivityFile = resultDir + "/exp1TimeSensitivity.xml";
+//
+//	{ // we need these brackets to make sure the archive goes out of scope and flushes
+//		std::ofstream xmlState(stateFile);
+//		cereal::XMLOutputArchive archive_state_xml(xmlState);
+//		archive_state_xml(CEREAL_NVP(stateTrajectory));
+//
+//		std::ofstream xmlTime(timeFile);
+//		cereal::XMLOutputArchive archive_time_xml(xmlTime);
+//		archive_time_xml(CEREAL_NVP(timeEigenTrajectory));
+//
+//		std::ofstream xmlInput(inputFile);
+//		cereal::XMLOutputArchive archive_input_xml(xmlInput);
+//		archive_input_xml(CEREAL_NVP(inputTrajectory));
+//
+//		std::ofstream xmlStateSensitivity(stateSensitivityFile);
+//		cereal::XMLOutputArchive archive_stateSensitivity_xml(xmlStateSensitivity);
+//		archive_stateSensitivity_xml(CEREAL_NVP(sensitivityStateTrajectory));
+//
+//		std::ofstream xmlTimeSensitivity(timeSensitivityFile);
+//		cereal::XMLOutputArchive archive_timeSensitivity_xml(xmlTimeSensitivity);
+//		archive_timeSensitivity_xml(CEREAL_NVP(sensitivityTimeTrajectory));
+//	}
 
 }
 

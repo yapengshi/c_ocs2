@@ -77,6 +77,7 @@ int main (int argc, char* argv[])
 	gslqpOptions.dispayGSLQP_ = 1;
 	gslqpOptions.maxIterationGSLQP_ = 31;
 	gslqpOptions.minRelCostGSLQP_ = 0.1;
+	gslqpOptions.lineSearchByMeritFuntion_ = false;
 
 	// GSLQ
 	GSLQP<6,4,6,2> gslqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);

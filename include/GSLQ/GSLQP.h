@@ -11,6 +11,7 @@
 #include <vector>
 #include <array>
 #include <algorithm>
+#include <cstddef>
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
 
@@ -144,7 +145,6 @@ public:
       nablaSevTrajectoryStock_(NUM_SUBSYSTEMS),
       nablaSmTrajectoryStock_(NUM_SUBSYSTEMS),
       switchingTimes_(NUM_SUBSYSTEMS+1),
-      nominalRolloutIsUpdated_(false),
       options_(options)
 	{
 
@@ -204,9 +204,10 @@ public:
 			const std::vector<constraint1_vector_array_t>& EvTrajectoryStock,
 			const std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> > >&  lagrangeTrajectoriesStock,
 			const scalar_t& totalCost,
-			scalar_t& meritFuntionValue);
+			scalar_t& meritFuntionValue,
+			scalar_t& constraintISE);
 
-	void calculateConstraintISE(const std::vector<scalar_array_t>& timeTrajectoriesStock,
+	double calculateConstraintISE(const std::vector<scalar_array_t>& timeTrajectoriesStock,
 			const std::vector<std::vector<size_t>>& nc1TrajectoriesStock,
 			const std::vector<constraint1_vector_array_t>& EvTrajectoriesStock,
 			scalar_t& constraintISE);
@@ -224,7 +225,7 @@ public:
 	void getNominalTrajectories(std::vector<scalar_array_t>& nominalTimeTrajectoriesStock,
 			std::vector<state_vector_array_t>& nominalStateTrajectoriesStock,
 			std::vector<control_vector_array_t>& nominalInputTrajectoriesStock,
-			std::vector<output_vector_array_t>& nominalOutputTrajectoriesStock = std::vector<output_vector_array_t>());
+			std::vector<output_vector_array_t>& nominalOutputTrajectoriesStock);
 
 	void run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes);
 
@@ -236,7 +237,7 @@ protected:
 
 	void approximateOptimalControlProblem();
 
-	void calculateControllerLagrangian(std::vector<controller_t>& controllersStock,
+	void calculateControllerAndLagrangian(std::vector<controller_t>& controllersStock,
 			std::vector<lagrange_t>& lagrangeMultiplierFunctionsStock,
 			std::vector<control_vector_array_t>& feedForwardConstraintInputStock,
 			bool firstCall=true);
@@ -250,9 +251,9 @@ protected:
 			scalar_t& learningRateStar,
 			scalar_t maxLearningRateStar=1.0);
 
-	void transformeLocalValueFuntion2Global();
+	void transformLocalValueFuntion2Global();
 
-	void transformeLocalValueFuntionDerivative2Global();
+	void transformLocalValueFuntionDerivative2Global();
 
 	void rolloutSensitivity2SwitchingTime(bool nablaSvUpdated);
 
@@ -271,6 +272,8 @@ private:
 	std::vector<std::shared_ptr<ODE45<STATE_DIM> > > subsystemSimulatorsStockPtr_;
 
 	scalar_t nominalTotalCost_;
+	scalar_t nominalTotalMerit_;
+	scalar_t nominalConstraint1ISE_;
 	std::vector<controller_t> nominalControllersStock_;
 	std::vector<scalar_array_t> nominalTimeTrajectoriesStock_;
 	std::vector<state_vector_array_t>   nominalStateTrajectoriesStock_;
@@ -332,9 +335,7 @@ private:
 
 	scalar_array_t switchingTimes_;
 	state_vector_t initState_;
-
-	bool nominalRolloutIsUpdated_;
-
+	size_t iteration_;
 	Options_t options_;
 };
 

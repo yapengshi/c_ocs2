@@ -70,8 +70,7 @@ public:
 	typedef std::vector<eigen_scalar_t, Eigen::aligned_allocator<eigen_scalar_t> > eigen_scalar_array_t;
 
 	template <int DIM>
-	class LinearFunction_t {
-	public:
+	struct LinearFunction_t {
 		scalar_array_t time_;
 		std::vector<Eigen::Matrix<double, DIM, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, DIM, 1>> > uff_;
 		std::vector<Eigen::Matrix<double, DIM, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, DIM, 1>> > deltaUff_;
@@ -83,16 +82,19 @@ public:
 		Options() :
 			maxIterationGSLQP_(10),
 			minLearningRateGSLQP_(0.05),
+			maxLearningRateGSLQP_(1.0),
 			minRelCostGSLQP_(1e-3),
 			meritFunctionRho_(1.0),
+			constraintStepSize_(1.0),
+			lineSearchByMeritFuntion_(false),
 			dispayGSLQP_(false),
 			warmStartGSLQP_(false),
 
 			AbsTolODE_(1e-9),
 			RelTolODE_(1e-6),
 			simulationIsConstrained_(false),
-			minAbsConstraint1RMSE_(1e-3),
-			minRelConstraint1RMSE_(1e-3),
+			minAbsConstraint1ISE_(1e-3),
+			minRelConstraint1ISE_(1e-3),
 
 			displayIPOPT_(true),
 			tolIPOPT_(1e-2),
@@ -103,16 +105,19 @@ public:
 
 		size_t maxIterationGSLQP_;
 		double minLearningRateGSLQP_;
+		double maxLearningRateGSLQP_;
 		double minRelCostGSLQP_;
 		double meritFunctionRho_;
+		double constraintStepSize_;
+		bool lineSearchByMeritFuntion_;
 		bool dispayGSLQP_;
 		bool warmStartGSLQP_;
 
 		double AbsTolODE_;
 		double RelTolODE_;
 		bool simulationIsConstrained_;
-		double minAbsConstraint1RMSE_;
-		double minRelConstraint1RMSE_;
+		double minAbsConstraint1ISE_;
+		double minRelConstraint1ISE_;
 
 		bool displayIPOPT_;
 		double tolIPOPT_;

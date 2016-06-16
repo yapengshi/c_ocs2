@@ -73,8 +73,12 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	GSLQP<2,2,2,3>::Options_t gslqpOptions;
 	gslqpOptions.dispayGSLQP_ = 1;
-	gslqpOptions.maxIterationGSLQP_ = 50;
+	gslqpOptions.maxIterationGSLQP_ = 30;
 	gslqpOptions.meritFunctionRho_ = 2000.0;
+	gslqpOptions.constraintStepSize_ = 0.2;
+	gslqpOptions.lineSearchByMeritFuntion_ = true;
+//	gslqpOptions.minAbsConstraint1ISE_ = 1e-5;
+//	gslqpOptions.minRelConstraint1ISE_ = 1e-5;
 	if (argc>1) gslqpOptions.meritFunctionRho_ = std::atof(argv[1]);
 
 	// GSLQ

@@ -72,6 +72,7 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	GSLQP<2,1,2,2>::Options_t gslqpOptions;
 	gslqpOptions.dispayGSLQP_ = 1;
+	gslqpOptions.lineSearchByMeritFuntion_ = false;
 
 	// GSLQ
 	GSLQP<2,1,2,2> gslqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);

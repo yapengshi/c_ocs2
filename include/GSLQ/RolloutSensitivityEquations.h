@@ -61,10 +61,10 @@ public:
 	}
 
 	void setData(const size_t& activeSubsystem, const scalar_array_t& switchingTimes,
-			const std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> >& subsystemDynamicsPtr, controller_t* const controllerPtr,
-			scalar_array_t* const timeTrajectoryPtr, state_vector_array_t* const stateTrajectoryPtr, control_vector_array_t* const inputTrajectoryPtr,
-			state_matrix_array_t* const AmTrajectoryPtr, control_gain_matrix_array_t* const BmTrajectoryPtr,
-			scalar_array_t* const nablaLvTimeTrajectoryPtr=NULL, nabla_input_matrix_array_t* const nablaLvTrajectoryPtr=NULL)  {
+			const std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> >& subsystemDynamicsPtr, const controller_t* controllerPtr,
+			const scalar_array_t* timeTrajectoryPtr, const state_vector_array_t* stateTrajectoryPtr, const control_vector_array_t* inputTrajectoryPtr,
+			const state_matrix_array_t* AmTrajectoryPtr, const control_gain_matrix_array_t* BmTrajectoryPtr,
+			const scalar_array_t* nablaLvTimeTrajectoryPtr=NULL, const nabla_input_matrix_array_t* nablaLvTrajectoryPtr=NULL)  {
 
 		if (nablaLvTimeTrajectoryPtr==NULL && nablaLvTrajectoryPtr==NULL)
 			nablaLvIsSet = false;

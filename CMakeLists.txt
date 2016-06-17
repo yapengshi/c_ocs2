@@ -17,8 +17,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 ## ipopot specific configuration ##
 ###################################
 
-#SET(IPOPT_SOURCE_DIR "/home/farbod/Programs/catkin_ws/src/ipopt")
-SET(IPOPT_SOURCE_DIR "/home/gimarkus/ipopt/CoinIpopt")
+SET(IPOPT_SOURCE_DIR "/home/farbod/Programs/catkin_ws/src/ipopt")
+#SET(IPOPT_SOURCE_DIR "/home/gimarkus/ipopt/CoinIpopt")
 
 
 link_directories(${IPOPT_SOURCE_DIR}/build/lib)

@@ -284,7 +284,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getNominalTrajecto
 		std::vector<control_vector_array_t>& nominalInputTrajectoriesStock,
 		std::vector<output_vector_array_t>& nominalOutputTrajectoriesStock)   {
 
-	getNominalTrajectories(nominalTimeTrajectoriesStock, nominalStateTrajectoriesStock,
+	slqp_.getNominalTrajectories(nominalTimeTrajectoriesStock, nominalStateTrajectoriesStock,
 			nominalInputTrajectoriesStock, nominalOutputTrajectoriesStock);
 }
 

@@ -6,6 +6,8 @@
  */
 
 
+namespace ocs2{
+
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
@@ -612,4 +614,6 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 	slqp_.transformLocalValueFuntion2Global();
 	transformLocalValueFuntionDerivative2Global();
 }
+
+} // namespace ocs2
 

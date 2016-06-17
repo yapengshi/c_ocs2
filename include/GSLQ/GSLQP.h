@@ -5,8 +5,8 @@
  *      Author: farbod
  */
 
-#ifndef GSLQP_H_
-#define GSLQP_H_
+#ifndef GSLQP_OCS2_H_
+#define GSLQP_OCS2_H_
 
 #include <vector>
 #include <array>
@@ -29,6 +29,9 @@
 #include "GSLQ/FullSequentialRiccatiEquations.h"
 #include "GSLQ/RolloutSensitivityEquations.h"
 #include "GSLQ/SLQP.h"
+
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 class GSLQP
@@ -208,6 +211,8 @@ private:
 	state_vector_t initState_;
 	Options_t options_;
 };
+
+} // namespace ocs2
 
 #include "implementation/GSLQP.h"
 

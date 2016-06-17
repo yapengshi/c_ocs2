@@ -5,10 +5,12 @@
  *      Author: farbod
  */
 
-#ifndef QUADRATICCOSTFUNCTION_H_
-#define QUADRATICCOSTFUNCTION_H_
+#ifndef QUADRATICCOSTFUNCTION_OCS2_H_
+#define QUADRATICCOSTFUNCTION_OCS2_H_
 
 #include "costs/CostFunctionBaseOCS2.h"
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t CONTROL_DIM>
 class QuadraticCostFunction : public CostFunctionBaseOCS2< STATE_DIM, CONTROL_DIM >
@@ -111,5 +113,6 @@ protected:
 
 };
 
+} // namespace ocs2
 
 #endif /* QUADRATICCOSTFUNCTION_H_ */

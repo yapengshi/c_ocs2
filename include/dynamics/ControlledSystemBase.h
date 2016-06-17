@@ -5,8 +5,8 @@
  *      Author: farbod
  */
 
-#ifndef CONTROLLEDSYSTEMBASE_H_
-#define CONTROLLEDSYSTEMBASE_H_
+#ifndef CONTROLLEDSYSTEMBASE_OCS2_H_
+#define CONTROLLEDSYSTEMBASE_OCS2_H_
 
 #include <cstring>
 #include <vector>
@@ -16,6 +16,8 @@
 #include "Dimensions.h"
 #include "SystemBase.h"
 #include "misc/LinearInterpolation.h"
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM=STATE_DIM>
 class ControlledSystemBase : public SystemBase<STATE_DIM>
@@ -129,5 +131,6 @@ protected:
 	LinearInterpolation<control_feedback_t, Eigen::aligned_allocator<control_feedback_t> > linInterpolateK_;
 };
 
+} // namespace ocs2
 
-#endif /* CONTROLLEDSYSTEMBASE_H_ */
+#endif

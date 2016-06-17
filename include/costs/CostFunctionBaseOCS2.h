@@ -10,6 +10,8 @@
 
 #include "Dimensions.h"
 
+namespace ocs2{
+
 template <size_t STATE_DIM, size_t CONTROL_DIM>
 class CostFunctionBaseOCS2
 {
@@ -59,6 +61,7 @@ protected:
 	control_vector_t u_;
 };
 
+} // namespace ocs2
 
 
 #endif /* COSTFUNCTIONBASE_OCS2_H_ */

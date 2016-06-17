@@ -5,8 +5,8 @@
  *      Author: farbod
  */
 
-#ifndef ROLLOUTSENSITIVITYEQUATIONS_H_
-#define ROLLOUTSENSITIVITYEQUATIONS_H_
+#ifndef ROLLOUTSENSITIVITYEQUATIONS_OCS2_H_
+#define ROLLOUTSENSITIVITYEQUATIONS_OCS2_H_
 
 #include <functional>
 
@@ -15,6 +15,9 @@
 #include "dynamics/ControlledSystemBase.h"
 
 #include "misc/LinearInterpolation.h"
+
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 class RolloutSensitivityEquations : public SystemBase<(NUM_SUBSYSTEMS-1)*OUTPUT_DIM>
@@ -172,5 +175,6 @@ private:
 
 };
 
+} // namespace ocs2
 
 #endif /* ROLLOUTSENSITIVITYEQUATIONS_H_ */

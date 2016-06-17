@@ -15,6 +15,9 @@
 #include "GSLQ/GLQP.h"
 #include "GSLQ/GSLQP.h"
 
+
+namespace ocs2{
+
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 class LeastSquareCost : public ceres::SizedCostFunction<1, NUM_Subsystems-1>
 {
@@ -123,5 +126,7 @@ private:
 
 };
 
+
+} // namespace ocs2
 
 #endif /* LEASTSQUARECOST_H_ */

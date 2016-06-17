@@ -12,6 +12,9 @@
 
 #include "ocs2/IpoptCostFunntion.h"
 
+
+namespace ocs2{
+
 using namespace Ipopt;
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
@@ -134,6 +137,7 @@ private:
 
 };
 
+} // namespace ocs2
 
 #include "implementation/OCS2Ipopt.h"
 

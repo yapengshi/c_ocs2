@@ -5,11 +5,14 @@
  *      Author: farbod
  */
 
-#ifndef GSLQPSOLVER_H_
-#define GSLQPSOLVER_H_
+#ifndef GSLQPSOLVER_OCS2_H_
+#define GSLQPSOLVER_OCS2_H_
 
 #include "GSLQ/GLQP.h"
 #include "GSLQ/GSLQP.h"
+
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
 class GSLQPSolver
@@ -103,6 +106,8 @@ private:
 	std::vector<controller_t> controllersStock_;
 
 };
+
+} // namespace ocs2
 
 #include "implementation/GSLQPSolver.h"
 

@@ -5,13 +5,15 @@
  *      Author: farbod
  */
 
-#ifndef DIMENSIONS_H_
-#define DIMENSIONS_H_
+#ifndef DIMENSIONS_OCS2_H_
+#define DIMENSIONS_OCS2_H_
 
 #include <vector>
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
 
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM=STATE_DIM>
 class Dimensions
@@ -132,5 +134,7 @@ private:
 };
 
 using HyQDimensions = Dimensions<36,12>;
+
+} // namespace ocs2
 
 #endif /* DIMENSIONS_H_ */

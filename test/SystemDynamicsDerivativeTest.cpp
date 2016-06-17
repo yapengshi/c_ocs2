@@ -15,6 +15,7 @@
 #include <gtest/gtest.h>
 
 
+using namespace ocs2;
 
 TEST(SystemDynamicsDerivativeTest, Test1)
 {

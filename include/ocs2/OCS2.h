@@ -13,6 +13,9 @@
 
 #include "ocs2/LeastSquareCost.h"
 
+namespace ocs2{
+
+}
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 class OCS2
 {
@@ -115,5 +118,7 @@ private:
 	Options_t options_;
 
 };
+
+} // namespace ocs2
 
 #endif /* OCS2_H_ */

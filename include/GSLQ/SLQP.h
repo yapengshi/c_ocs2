@@ -5,8 +5,8 @@
  *      Author: farbod
  */
 
-#ifndef SLQP_H_
-#define SLQP_H_
+#ifndef SLQP_OCS2_H_
+#define SLQP_OCS2_H_
 
 #include <vector>
 #include <array>
@@ -28,6 +28,8 @@
 #include "GSLQ/SequentialErrorEquation.h"
 #include "GSLQ/GSLQP.h"
 
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 class SLQP
@@ -281,6 +283,8 @@ public:
 	template <size_t GSLQP_STATE_DIM, size_t GSLQP_INPUT_DIM, size_t GSLQP_OUTPUT_DIM, size_t GSLQP_NUM_SUBSYSTEMS>
 	friend class GSLQP;
 };
+
+} // namespace ocs2
 
 #include "implementation/SLQP.h"
 

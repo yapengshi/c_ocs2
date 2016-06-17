@@ -20,6 +20,8 @@
 
 #include <PathTweaker.h>
 
+using namespace ocs2;
+
 class SecondOrderSystem : public ControlledSystemBase<2,1>
 {
 public:

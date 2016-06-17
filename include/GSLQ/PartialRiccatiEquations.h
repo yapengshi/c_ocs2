@@ -5,10 +5,13 @@
  *      Author: farbod
  */
 
-#ifndef PARTIALRICCATIEQUATIONS_H_
-#define PARTIALRICCATIEQUATIONS_H_
+#ifndef PARTIALRICCATIEQUATIONS_OCS2_H_
+#define PARTIALRICCATIEQUATIONS_OCS2_H_
 
 #include "dynamics/SystemBase.h"
+
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 class PartialRiccatiEquations : public SystemBase<STATE_DIM*STATE_DIM+STATE_DIM+1>
@@ -142,6 +145,6 @@ private:
 
 };
 
-
+} // namespace ocs2
 
 #endif /* PARTIALRICCATIEQUATIONS_H_ */

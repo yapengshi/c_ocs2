@@ -5,14 +5,17 @@
  *      Author: farbod
  */
 
-#ifndef SEQUENTIALERROREQUATION_H_
-#define SEQUENTIALERROREQUATION_H_
+#ifndef SEQUENTIALERROREQUATION_OCS2_H_
+#define SEQUENTIALERROREQUATION_OCS2_H_
 
 #include "Dimensions.h"
 
 #include "dynamics/SystemBase.h"
 
 #include "misc/LinearInterpolation.h"
+
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 class SequentialErrorEquation : public SystemBase<OUTPUT_DIM>
@@ -70,6 +73,6 @@ private:
 
 };
 
-
+} // namespace ocs2
 
 #endif /* SEQUENTIALERROREQUATION_H_ */

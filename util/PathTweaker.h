@@ -11,6 +11,8 @@
 #include <string>
 
 
+namespace ocs2{
+
 class PathTweaker
 {
 public:
@@ -34,3 +36,6 @@ private:
 	boost::filesystem::path executable_path_;
 	boost::filesystem::path catkin_root_path_;
 };
+
+
+} //namespace ocs2

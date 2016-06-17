@@ -19,6 +19,8 @@
 #include "ocs2/OCS2Ipopt.h"
 
 
+using namespace ocs2;
+
 int main (int argc, char* argv[])
 {
 	// subsystem dynamics

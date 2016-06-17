@@ -5,8 +5,8 @@
  *      Author: farbod
  */
 
-#ifndef GLQP_H_
-#define GLQP_H_
+#ifndef GLQP_OCS2_H_
+#define GLQP_OCS2_H_
 
 #include <iostream>
 #include <vector>
@@ -25,6 +25,8 @@
 
 #include "GSLQ/PartialRiccatiEquations.h"
 
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
 class GLQP
@@ -190,7 +192,8 @@ private:
 
 };
 
-#include "implementation/GLQP.h"
+} // namespace ocs2
 
+#include "implementation/GLQP.h"
 
 #endif /* GLQP_H_ */

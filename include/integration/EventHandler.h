@@ -5,9 +5,10 @@
  *      Author: neunertm
  */
 
-#ifndef OCS2EVENTHANDLER_H_
-#define OCS2EVENTHANDLER_H_
+#ifndef OCS2_EVENTHANDLER_H_
+#define OCS2_EVENTHANDLER_H_
 
+namespace ocs2{
 
 template <size_t STATE_DIM>
 class EventHandler
@@ -25,5 +26,6 @@ public:
 private:
 };
 
+} // namespace ocs2
 
 #endif /* OCS2EVENTHANDLER_H_ */

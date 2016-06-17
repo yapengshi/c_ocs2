@@ -5,13 +5,15 @@
  *      Author: neunertm
  */
 
-#ifndef OCS2OBSERVER_H_
-#define OCS2OBSERVER_H_
+#ifndef OCS2_OBSERVER_H_
+#define OCS2_OBSERVER_H_
 
 #include <limits>
 #include "EventHandler.h"
 #include "dynamics/SystemBase.h"
 
+
+namespace ocs2{
 
 template <size_t STATE_DIM>
 class IntegratorBase;
@@ -74,5 +76,6 @@ private:
 };
 
 
+} // namespace ocs2
 
 #endif /* OCS2OBSERVER_H_ */

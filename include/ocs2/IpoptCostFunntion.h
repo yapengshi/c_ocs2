@@ -16,6 +16,8 @@
 #include "GSLQ/GLQP.h"
 #include "GSLQ/GSLQP.h"
 
+namespace ocs2{
+
 using namespace Ipopt;
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
@@ -173,6 +175,8 @@ private:
 	std::vector<Eigen::Matrix<double,NumParameters_,1>, Eigen::aligned_allocator<Eigen::Matrix<double,NumParameters_,1> > > parameterBag_;
 	std::vector<std::vector<controller_t> > controllersStockBag_;
 };
+
+} // namespace ocs2
 
 #include "implementation/IpoptCostFunntion.h"
 

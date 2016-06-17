@@ -5,10 +5,13 @@
  *      Author: farbod
  */
 
-#ifndef EXP2_H_
-#define EXP2_H_
+#ifndef EXP2_OCS2_H_
+#define EXP2_OCS2_H_
 
 #include "GSLQ/GLQP.h"
+
+
+namespace ocs2{
 
 /******************************************************************************************************/
 /******************************************************************************************************/
@@ -148,5 +151,7 @@ public:
 	std::shared_ptr<CostFunctionBaseOCS2<2,1> > clone() const { return std::make_shared<EXP2_CostFunction2>(*this); };
 
 };
+
+} // namespace ocs2
 
 #endif /* EXP2_H_ */

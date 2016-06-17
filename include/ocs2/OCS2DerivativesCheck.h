@@ -8,8 +8,10 @@
 #ifndef OCS2DERIVATIVESCHECK_H_
 #define OCS2DERIVATIVESCHECK_H_
 
-
 #include "GSLQ/GSLQPSolver.h"
+
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
 class OCS2DerivativesCheck
@@ -117,5 +119,6 @@ private:
 
 };
 
+} // namespace ocs2
 
 #endif /* OCS2DERIVATIVESCHECK_H_ */

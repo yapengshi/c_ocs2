@@ -14,7 +14,11 @@ template <size_t STATE_DIM, size_t CONTROL_DIM>
 class CostFunctionBase
 {
 public:
+
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	typedef Dimensions<STATE_DIM, CONTROL_DIM> DIMENSIONS;
+
 	typedef typename DIMENSIONS::scalar_t       scalar_t;
 	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
 	typedef typename DIMENSIONS::state_vector_t       state_vector_t;
@@ -27,6 +31,8 @@ public:
 
 	CostFunctionBase() {};
 	virtual ~CostFunctionBase() {};
+
+	virtual std::shared_ptr<CostFunctionBase<STATE_DIM, CONTROL_DIM> > clone() const = 0;
 
 	virtual void setCurrentStateAndControl(const scalar_t& t, const state_vector_t& x, const control_vector_t& u) {
 		t_ = t;
@@ -46,8 +52,6 @@ public:
 	virtual void terminalCost(scalar_t& Phi) = 0;
 	virtual void terminalCostStateDerivative(state_vector_t& dPhidx) = 0;
 	virtual void terminalCostStateSecondDerivative(state_matrix_t& dPhidxx) = 0;
-
-	virtual std::shared_ptr<CostFunctionBase<STATE_DIM, CONTROL_DIM> > clone() const = 0;
 
 protected:
 	scalar_t t_;

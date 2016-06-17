@@ -8,6 +8,8 @@
 #include <iostream>
 #include <cstdlib>
 
+#include <PathTweaker.h>
+
 #include <fstream>
 #include <cereal/archives/xml.hpp>
 #include <cereal/types/vector.hpp>
@@ -15,6 +17,7 @@
 
 #include "test/EXP3.h"
 #include "GSLQ/GLQP.h"
+
 
 int main (int argc, char* argv[])
 {
@@ -150,7 +153,13 @@ int main (int argc, char* argv[])
 		}
 	}
 
-	std::string resultDir = "/home/farbod/Programs/ct_ws/src/c_ocs2/cereal/test/exp1_test";
+
+	PathTweaker pathTweaker(argv);
+
+	std::string resultDir = pathTweaker.getDirectory() +"/src/c_ocs2/cereal/test/exp3_test";
+
+	std::cout << "Saving to directory " << resultDir << std::endl;
+
 	std::string stateFile = resultDir + "/exp1State.xml";
 	std::string timeFile = resultDir + "/exp1Time.xml";
 	std::string inputFile = resultDir + "/exp1Input.xml";

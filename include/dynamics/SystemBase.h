@@ -13,8 +13,11 @@ template <size_t STATE_DIM>
 class SystemBase
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	SystemBase()
 		: numFunctionCalls_(0) {}
+
 	virtual ~SystemBase() {}
 
 	size_t getNumFunctionCalls() {return numFunctionCalls_;}

@@ -2,7 +2,8 @@
  * SystemDynamicsDerivativeTest.cpp
  *
  *  Created on: Jan 13, 2016
- *      Author: farbod
+ *  Updated on June 07, 2016
+ *      Author: farbod, mgiftthaler
  */
 
 #include <iostream>
@@ -11,9 +12,15 @@
 
 #include "test/EXP1.h"
 
+#include <gtest/gtest.h>
 
-int main(int argc, char* argv[])
+
+
+TEST(SystemDynamicsDerivativeTest, Test1)
 {
+	std::cout << "SYSTEM DYNAMICS DERIVATIVE TEST"  << std::endl;
+	std::cout << "========================================" << std::endl;
+	std::cout << "========================================" << std::endl;
 
 	typedef Dimensions<2, 1> DIMENSIONS;
 
@@ -82,8 +89,17 @@ int main(int argc, char* argv[])
 		}
 	}
 
-
 	if (numErrorsA == 0)  std::cout << "#### State derivative is correct." << std::endl;
 	if (numErrorsB == 0)  std::cout << "#### Input derivative is correct." << std::endl;
 
+	ASSERT_EQ(0, numErrorsA);
+	ASSERT_EQ(0, numErrorsB);
+}
+
+
+
+int main(int argc, char** argv)
+{
+	testing::InitGoogleTest(&argc, argv);
+	return RUN_ALL_TESTS();
 }

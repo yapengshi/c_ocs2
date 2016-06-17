@@ -24,11 +24,14 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM=STATE_DIM>
 class SystemDynamicsLinearizer : public DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM>
 {
 public:
+
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	typedef DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> Base;
 	typedef typename Base::scalar_t scalar_t;
 	typedef typename Base::state_vector_t state_vector_t;
 	typedef typename Base::state_matrix_t state_matrix_t;
-	typedef typename Base::control_vector_t      control_vector_t;
+	typedef typename Base::control_vector_t control_vector_t;
 	typedef typename Base::control_gain_matrix_t control_gain_matrix_t;
 
 
@@ -111,7 +114,6 @@ public:
 		A = C * tempA * C.transpose();
 
 	}
-
 
 	virtual void getDerivativesControl(control_gain_matrix_t& B) override  {
 

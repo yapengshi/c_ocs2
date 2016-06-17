@@ -18,6 +18,9 @@
 #include "GSLQ/GLQP.h"
 #include "GSLQ/SLQP.h"
 
+#include <PathTweaker.h>
+
+
 int main (int argc, char* argv[])
 {
 	// subsystem dynamics
@@ -125,11 +128,11 @@ int main (int argc, char* argv[])
 	double rolloutCost;
 	gslqp.calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
 
-	// value funtion
+	// value function
 	double totalCost;
 	gslqp.getValueFuntion(0.0, initState, totalCost);
 
-	// value funtion derivative
+	// value function derivative
 	Eigen::Matrix<double,2,1> costFuntionDerivative;
 	gslqp.getCostFuntionDerivative(initState, costFuntionDerivative);
 
@@ -176,7 +179,13 @@ int main (int argc, char* argv[])
 		}
 	}
 
-	std::string resultDir = "/home/farbod/Programs/ct_ws/src/c_ocs2/cereal/test/exp1_test";
+
+	PathTweaker pathTweaker(argv);
+
+	std::string resultDir = pathTweaker.getDirectory() +"/src/c_ocs2/cereal/test/exp1_test";
+
+	std::cout << "Saving to directory " << resultDir << std::endl;
+
 	std::string stateFile = resultDir + "/exp1State.xml";
 	std::string timeFile = resultDir + "/exp1Time.xml";
 	std::string inputFile = resultDir + "/exp1Input.xml";

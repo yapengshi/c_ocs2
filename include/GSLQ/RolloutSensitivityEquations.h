@@ -20,6 +20,8 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBS
 class RolloutSensitivityEquations : public SystemBase<(NUM_SUBSYSTEMS-1)*OUTPUT_DIM>
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	typedef Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;

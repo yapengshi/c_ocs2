@@ -18,6 +18,9 @@ template <typename Data_T, class Alloc=std::allocator<Data_T> >
 class LinearInterpolation
 {
 public:
+
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	LinearInterpolation()
 		: index_(0),
 		  timeStampPtr_(NULL),
@@ -43,7 +46,7 @@ public:
 		reset();
 	}
 
-	void reset()	{index_=0;}
+	void reset(){index_=0;}
 
 	void interpolate(const double& enquiryTime, Data_T& enquiryData, int greatestLessTimeStampIndex = -1) {
 

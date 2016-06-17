@@ -17,6 +17,9 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM=STATE_DIM>
 class DerivativesBase
 {
 public:
+
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	typedef Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::scalar_t scalar_t;
 	typedef typename DIMENSIONS::state_vector_t   state_vector_t;
@@ -49,7 +52,7 @@ public:
 			const scalar_t& finalTime=0, const char* algorithmName=NULL)
 	{}
 
-	virtual void getDerivativeState(state_matrix_t& A) = 0;
+	virtual void getDerivativeState(state_matrix_t& A) = 0;  //FIXME: consistentcy in naming
 	virtual void getDerivativesControl(control_gain_matrix_t& B) = 0;
 	virtual void getConstraint1DerivativesState(constraint1_state_matrix_t& C) {}
 	virtual void getConstraint1DerivativesControl(constraint1_control_matrix_t& D) {}

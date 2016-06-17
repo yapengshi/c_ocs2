@@ -29,7 +29,10 @@ public:
 			const std::shared_ptr<EventHandler<STATE_DIM> >& eventHandler = nullptr
 			)
 		: IntegratorBase<STATE_DIM>(system, eventHandler)
-	{ setupSystem(); }
+	{
+		setupSystem();
+	}
+
 
 	// Equidistant integration based on number of time steps and step length
 	bool integrate(
@@ -105,12 +108,8 @@ public:
 		 return true;
 	 }
 
+
 private:
-	 void initialize(const typename Base::State_T& initialState, const double& t, double dt)
-	 {
-		initializeStepper(initialState, t, dt);
-		Base::observer_.reset();
-	 }
 
 	 void setupSystem()
 	 {
@@ -122,9 +121,16 @@ private:
 	 	};
 	 }
 
+	 void initialize(const typename Base::State_T& initialState, const double& t, double dt)
+	 {
+		initializeStepper(initialState, t, dt);
+		Base::observer_.reset();
+	 }
+
+
 	// functionality to reset stepper.
 	// in the general case, do not reset
-	 typedef boost::numeric::odeint::dense_output_runge_kutta <
+	typedef boost::numeric::odeint::dense_output_runge_kutta <
 	 			boost::numeric::odeint::controlled_runge_kutta <
 	 				boost::numeric::odeint::runge_kutta_dopri5 <
 	 					Eigen::Matrix<double, STATE_DIM, 1>,
@@ -133,11 +139,14 @@ private:
 	 					double,
 	 					boost::numeric::odeint::vector_space_algebra > > > rk5;
 
+
 	template <typename S = Stepper>
 	typename std::enable_if<std::is_same<S, rk5>::value, void>::type
-	initializeStepper(const typename Base::State_T& initialState, const double& t, double dt) {
+	initializeStepper(const typename Base::State_T& initialState, const double& t, double dt)
+	{
 		stepper_.initialize(initialState, t, dt);
 	}
+
 
 	template <typename S = Stepper>
 	typename std::enable_if<!std::is_same<S, rk5>::value, void>::type
@@ -146,6 +155,7 @@ private:
 
 	// Member Variables
 	std::function<void (const Eigen::Matrix<double, STATE_DIM, 1>&, Eigen::Matrix<double, STATE_DIM, 1>&, double)> systemFunction_;
+
 	Stepper stepper_;
 
 };

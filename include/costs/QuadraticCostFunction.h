@@ -41,7 +41,7 @@ public:
 
 	virtual ~QuadraticCostFunction() {}
 
-	virtual void setCurrentStateAndControl(const scaler_t& t, const state_vector_t& x, const control_vector_t& u) {
+	virtual void setCurrentStateAndControl(const scalar_t& t, const state_vector_t& x, const control_vector_t& u) {
 
 		CostFunctionBase< STATE_DIM, CONTROL_DIM >::setCurrentStateAndControl(t, x, u);
 		x_deviation_ = x - x_nominal_;

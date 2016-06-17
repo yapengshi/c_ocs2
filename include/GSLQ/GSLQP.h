@@ -34,6 +34,8 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBS
 class GSLQP
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	typedef SequentialErrorEquation<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> ErrorEquation_t;
 	typedef FullSequentialRiccatiEquations<OUTPUT_DIM, INPUT_DIM, NUM_SUBSYSTEMS> FullRiccatiEquations_t;
 

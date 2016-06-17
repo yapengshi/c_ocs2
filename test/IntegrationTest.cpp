@@ -2,7 +2,8 @@
  * IntegrationTest.cpp
  *
  *  Created on: Dec 30, 2015
- *      Author: farbod
+ *  Updated on Jun 07,2016
+ *      Author: farbod, mgiftthaler
  */
 
 #include <memory>
@@ -15,6 +16,9 @@
 #include "integration/Integrator.h"
 #include "dynamics/ControlledSystemBase.h"
 
+#include <gtest/gtest.h>
+
+#include <PathTweaker.h>
 
 class SecondOrderSystem : public ControlledSystemBase<2,1>
 {
@@ -48,8 +52,12 @@ private:
 
 
 
-int main (int argc, char* argv[])
+TEST(IntegrationTest, SecondOrderSystem)
 {
+	std::cout << "INTEGRATION TEST"  << std::endl;
+	std::cout << "========================================" << std::endl;
+	std::cout << "========================================" << std::endl;
+
 	std::shared_ptr<SecondOrderSystem> sys = std::make_shared<SecondOrderSystem>();
 
 	SecondOrderSystem::scalar_array_t cntTimeStamp {0, 10};
@@ -79,12 +87,17 @@ int main (int argc, char* argv[])
 	ode45.integrate(x0, 0.0, 10.0, stateTrajectory, timeTrajectory);
 
 	timeEigenTrajectory.resize(timeTrajectory.size());
-	for (size_t i=0; i<timeTrajectory.size(); i++) {
+	for (size_t i=0; i<timeTrajectory.size(); i++)
+	{
 		std::cout << "At time " <<  timeTrajectory[i] << "\t state is: " << stateTrajectory[i].transpose() << std::endl;
 		timeEigenTrajectory[i](0) = timeTrajectory[i];
 	}
 
-	std::string resultDir = "/home/farbod/Programs/ct_ws/src/c_ocs2/cereal/test/integration_test";
+
+	PathTweaker pathTweaker(argv);
+
+	std::string resultDir = pathTweaker.getDirectory() +"/src/c_ocs2/cereal/test/integration_test";
+
 	std::string secondOrderStateFile = resultDir + "/secondOrderState.xml";
 	std::string secondOrderTimeFile = resultDir + "/secondOrderTime.xml";
 
@@ -99,5 +112,14 @@ int main (int argc, char* argv[])
 		archive_secondOrderTime_xml(CEREAL_NVP(timeEigenTrajectory));
 	}
 
+	ASSERT_LT(timeTrajectory.back()-10.0, 1e-6);
+	ASSERT_LT(stateTrajectory.back()[1]-1.0, 1e-3);
+
+}
+
+int main(int argc, char** argv)
+{
+	testing::InitGoogleTest(&argc, argv);
+	return RUN_ALL_TESTS();
 }
 

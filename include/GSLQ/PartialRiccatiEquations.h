@@ -14,6 +14,8 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_Subsystems>
 class PartialRiccatiEquations : public SystemBase<STATE_DIM*STATE_DIM+STATE_DIM+1>
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	enum { S_DIM_ = STATE_DIM*STATE_DIM+STATE_DIM+1 };
 	typedef Dimensions<STATE_DIM, INPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;

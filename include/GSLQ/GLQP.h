@@ -30,6 +30,8 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subs
 class GLQP
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	const bool INFO_ON_ = false;
 	typedef PartialRiccatiEquations<OUTPUT_DIM, INPUT_DIM, NUM_Subsystems> RiccatiEquations_t;
 	//

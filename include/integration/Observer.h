@@ -20,6 +20,9 @@ template <size_t STATE_DIM>
 class Observer
 {
 public:
+
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
 	typedef std::vector<double> TimeTrajectory_T;
 	typedef Eigen::Matrix<double,STATE_DIM,1> State_T;
 	typedef std::vector<State_T, Eigen::aligned_allocator<State_T> > StateTrajectory_T;

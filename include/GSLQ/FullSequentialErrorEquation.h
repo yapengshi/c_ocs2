@@ -20,6 +20,8 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_SUBSYSTEMS>
 class FullSequentialErrorEquation : public SystemBase<NUM_SUBSYSTEMS*STATE_DIM>
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
 	enum { S_DIM_ = STATE_DIM*STATE_DIM+STATE_DIM+1 };
 	typedef Eigen::Matrix<double,S_DIM_,1> s_vector_t;
 	typedef Eigen::Matrix<double,NUM_SUBSYSTEMS*S_DIM_,1> all_s_vector_t;

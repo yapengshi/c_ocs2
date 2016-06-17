@@ -19,7 +19,7 @@
 
 #include "dynamics/ControlledSystemBase.h"
 #include "dynamics/DerivativesBase.h"
-#include "costs/CostFunctionBase.h"
+#include "costs/CostFunctionBaseOCS2.h"
 
 #include "integration/Integrator.h"
 #include "misc/LinearInterpolation.h"
@@ -93,7 +93,7 @@ public:
 
 	GSLQP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDynamicsPtr,
 			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDerivativesPtr,
-			const std::vector<std::shared_ptr<CostFunctionBase<OUTPUT_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
+			const std::vector<std::shared_ptr<CostFunctionBaseOCS2<OUTPUT_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
 			const std::vector<controller_t>& initialControllersStock,
 			const std::vector<size_t>& systemStockIndex,
 			const Options_t& options = Options_t::Options())

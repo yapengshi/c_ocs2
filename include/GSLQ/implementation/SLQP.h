@@ -1207,18 +1207,18 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 		if (options_.dispayGSLQP_)  std::cerr << "\n#### Iteration " <<  iteration_ << std::endl;
 
 		// linearizing the dynamics and quadratizing the cost function along nominal trajectories
-		approximateOptimalControlProblem();
+		approximateOptimalControlProblem(); // todo parallelize
 
 		// solve Riccati equations
-		solveSequentialRiccatiEquations(1.0 /*nominal learningRate*/);
+		solveSequentialRiccatiEquations(1.0 /*nominal learningRate*/); //todo do not touch
 
 		// calculate controller and lagrange multiplier
 		std::vector<control_vector_array_t> feedForwardConstraintInputStock(NUM_SUBSYSTEMS);
-		calculateControllerAndLagrangian(nominalControllersStock_, lagrangeControllerStock_, feedForwardConstraintInputStock, ~nominalLagrangeMultiplierUpdated);
+		calculateControllerAndLagrangian(nominalControllersStock_, lagrangeControllerStock_, feedForwardConstraintInputStock, ~nominalLagrangeMultiplierUpdated); // todo parallelize
 		nominalLagrangeMultiplierUpdated = true;
 
 		// finding the optimal learningRate
-		lineSearch(feedForwardConstraintInputStock, learningRateStar, options_.maxLearningRateGSLQP_);
+		lineSearch(feedForwardConstraintInputStock, learningRateStar, options_.maxLearningRateGSLQP_); // todo parallelize
 
 		// calculates type-1 constraint ISE and maximum norm
 		double constraint1MaxNorm = calculateConstraintISE(nominalTimeTrajectoriesStock_, nc1TrajectoriesStock_, EvTrajectoryStock_, nominalConstraint1ISE_);

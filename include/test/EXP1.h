@@ -126,7 +126,7 @@ public:
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-class EXP1_CostFunction1 : public CostFunctionBase<2,1>
+class EXP1_CostFunction1 : public CostFunctionBaseOCS2<2,1>
 {
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -147,14 +147,14 @@ public:
 	void terminalCostStateDerivative(state_vector_t& dPhidx)  { dPhidx.setZero(); }
 	void terminalCostStateSecondDerivative(state_matrix_t& dPhidxx)  { dPhidxx.setZero(); }
 
-	std::shared_ptr<CostFunctionBase<2,1> > clone() const { return std::make_shared<EXP1_CostFunction1>(*this); };
+	std::shared_ptr<CostFunctionBaseOCS2<2,1> > clone() const { return std::make_shared<EXP1_CostFunction1>(*this); };
 };
 
 
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-class EXP1_CostFunction2 : public CostFunctionBase<2,1>
+class EXP1_CostFunction2 : public CostFunctionBaseOCS2<2,1>
 {
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -175,14 +175,14 @@ public:
 	void terminalCostStateDerivative(state_vector_t& dPhidx)  { dPhidx.setZero(); }
 	void terminalCostStateSecondDerivative(state_matrix_t& dPhidxx)  { dPhidxx.setZero(); }
 
-	std::shared_ptr<CostFunctionBase<2,1> > clone() const { return std::make_shared<EXP1_CostFunction2>(*this); };
+	std::shared_ptr<CostFunctionBaseOCS2<2,1> > clone() const { return std::make_shared<EXP1_CostFunction2>(*this); };
 
 };
 
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-class EXP1_CostFunction3 : public CostFunctionBase<2,1>
+class EXP1_CostFunction3 : public CostFunctionBaseOCS2<2,1>
 {
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -203,7 +203,7 @@ public:
 	void terminalCostStateDerivative(state_vector_t& dPhidx)  { dPhidx << (x_(0)-1.0), (x_(1)+1.0); }
 	void terminalCostStateSecondDerivative(state_matrix_t& dPhidxx)  { dPhidxx << 1.0, 0.0, 0.0, 1.0; }
 
-	std::shared_ptr<CostFunctionBase<2,1> > clone() const { return std::make_shared<EXP1_CostFunction3>(*this); };
+	std::shared_ptr<CostFunctionBaseOCS2<2,1> > clone() const { return std::make_shared<EXP1_CostFunction3>(*this); };
 
 };
 

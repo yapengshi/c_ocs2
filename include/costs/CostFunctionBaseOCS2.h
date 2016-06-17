@@ -1,17 +1,17 @@
 /*
- * CostFunctionBase.h
+ * CostFunctionBaseOCS2.h
  *
  *  Created on: Jan 3, 2016
  *      Author: farbod
  */
 
-#ifndef COSTFUNCTIONBASE_H_
-#define COSTFUNCTIONBASE_H_
+#ifndef COSTFUNCTIONBASE_OCS2_H_
+#define COSTFUNCTIONBASE_OCS2_H_
 
 #include "Dimensions.h"
 
 template <size_t STATE_DIM, size_t CONTROL_DIM>
-class CostFunctionBase
+class CostFunctionBaseOCS2
 {
 public:
 
@@ -29,10 +29,10 @@ public:
 	typedef typename DIMENSIONS::control_matrix_t control_matrix_t;
 	typedef typename DIMENSIONS::control_feedback_t control_feedback_t;
 
-	CostFunctionBase() {};
-	virtual ~CostFunctionBase() {};
+	CostFunctionBaseOCS2() {};
+	virtual ~CostFunctionBaseOCS2() {};
 
-	virtual std::shared_ptr<CostFunctionBase<STATE_DIM, CONTROL_DIM> > clone() const = 0;
+	virtual std::shared_ptr<CostFunctionBaseOCS2<STATE_DIM, CONTROL_DIM> > clone() const = 0;
 
 	virtual void setCurrentStateAndControl(const scalar_t& t, const state_vector_t& x, const control_vector_t& u) {
 		t_ = t;
@@ -61,4 +61,4 @@ protected:
 
 
 
-#endif /* COSTFUNCTIONBASE_H_ */
+#endif /* COSTFUNCTIONBASE_OCS2_H_ */

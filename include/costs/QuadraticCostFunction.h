@@ -8,10 +8,10 @@
 #ifndef QUADRATICCOSTFUNCTION_H_
 #define QUADRATICCOSTFUNCTION_H_
 
-#include "costs/CostFunctionBase.h"
+#include "costs/CostFunctionBaseOCS2.h"
 
 template <size_t STATE_DIM, size_t CONTROL_DIM>
-class QuadraticCostFunction : public CostFunctionBase< STATE_DIM, CONTROL_DIM >
+class QuadraticCostFunction : public CostFunctionBaseOCS2< STATE_DIM, CONTROL_DIM >
 {
 public:
 

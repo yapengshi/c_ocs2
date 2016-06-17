@@ -28,7 +28,7 @@ int main (int argc, char* argv[])
 	std::vector<std::shared_ptr<DerivativesBase<6,4> > > subsystemDerivativesPtr {std::make_shared<EXP4_SysDerivative>(), std::make_shared<EXP4_SysDerivative>()};
 
 	// subsystem cost functions
-	std::vector<std::shared_ptr<CostFunctionBase<6,4> > > subsystemCostFunctionsPtr {std::make_shared<EXP4_CostFunction>(), std::make_shared<EXP4_CostFunction>()};
+	std::vector<std::shared_ptr<CostFunctionBaseOCS2<6,4> > > subsystemCostFunctionsPtr {std::make_shared<EXP4_CostFunction>(), std::make_shared<EXP4_CostFunction>()};
 
 
 	/******************************************************************************************************/

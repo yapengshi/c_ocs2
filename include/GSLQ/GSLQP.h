@@ -29,6 +29,7 @@
 #include "GSLQ/FullSequentialRiccatiEquations.h"
 #include "GSLQ/RolloutSensitivityEquations.h"
 #include "GSLQ/SLQP.h"
+#include "GSLQ/SolveBVP.h"
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 class GSLQP

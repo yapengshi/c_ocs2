@@ -12,6 +12,7 @@
 #include "misc/LinearInterpolation.h"
 #include <gtest/gtest.h>
 
+using namespace ocs2;
 
 TEST(InterplationTest, Linear)
 {

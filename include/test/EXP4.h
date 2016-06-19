@@ -12,6 +12,8 @@
 
 #include "GSLQ/GSLQP.h"
 
+namespace ocs2{
+
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
@@ -73,7 +75,7 @@ public:
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-class EXP4_CostFunction : public CostFunctionBase<6,4>
+class EXP4_CostFunction : public CostFunctionBaseOCS2<6,4>
 {
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -104,7 +106,7 @@ public:
 	void terminalCostStateDerivative(state_vector_t& dPhidx)  { dPhidx = QFinal_*(x_-xFinal_); }
 	void terminalCostStateSecondDerivative(state_matrix_t& dPhidxx)  { dPhidxx = QFinal_; }
 
-	std::shared_ptr<CostFunctionBase<6,4> > clone() const { return std::make_shared<EXP4_CostFunction>(*this); };
+	std::shared_ptr<CostFunctionBaseOCS2<6,4> > clone() const { return std::make_shared<EXP4_CostFunction>(*this); };
 
 private:
 	state_vector_t xFinal_;
@@ -113,3 +115,5 @@ private:
 };
 
 #endif /* EXP4_H_ */
+
+} // namespace ocs2

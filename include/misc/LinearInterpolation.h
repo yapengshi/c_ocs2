@@ -5,14 +5,17 @@
  *      Author: farbod
  */
 
-#ifndef LINEARINTERPOLATION_H_
-#define LINEARINTERPOLATION_H_
+#ifndef LINEARINTERPOLATION_OCS2_H_
+#define LINEARINTERPOLATION_OCS2_H_
 
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
 
 #include <memory>
 #include <vector>
+
+
+namespace ocs2{
 
 template <typename Data_T, class Alloc=std::allocator<Data_T> >
 class LinearInterpolation
@@ -135,5 +138,6 @@ private:
 };
 
 
+} // namespace ocs2
 
 #endif /* LINEARINTERPOLATION_H_ */

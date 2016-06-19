@@ -5,13 +5,16 @@
  *      Author: farbod
  */
 
-#ifndef EXP3_H_
-#define EXP3_H_
+#ifndef EXP3_OCS2_H_
+#define EXP3_OCS2_H_
 
 
 #include <cmath>
 
 #include "GSLQ/GSLQP.h"
+
+
+namespace ocs2{
 
 /******************************************************************************************************/
 /******************************************************************************************************/
@@ -189,7 +192,7 @@ public:
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-class EXP3_CostFunction1 : public CostFunctionBase<2,2>
+class EXP3_CostFunction1 : public CostFunctionBaseOCS2<2,2>
 {
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -210,7 +213,7 @@ public:
 	void terminalCostStateDerivative(state_vector_t& dPhidx)  { dPhidx.setZero(); }
 	void terminalCostStateSecondDerivative(state_matrix_t& dPhidxx)  { dPhidxx.setZero(); }
 
-	std::shared_ptr<CostFunctionBase<2,2> > clone() const { return std::make_shared<EXP3_CostFunction1>(*this); };
+	std::shared_ptr<CostFunctionBaseOCS2<2,2> > clone() const { return std::make_shared<EXP3_CostFunction1>(*this); };
 
 private:
 	double alpha_ = 0.01;
@@ -220,7 +223,7 @@ private:
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-class EXP3_CostFunction2 : public CostFunctionBase<2,2>
+class EXP3_CostFunction2 : public CostFunctionBaseOCS2<2,2>
 {
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -241,7 +244,7 @@ public:
 	void terminalCostStateDerivative(state_vector_t& dPhidx)  { dPhidx.setZero(); }
 	void terminalCostStateSecondDerivative(state_matrix_t& dPhidxx)  { dPhidxx.setZero(); }
 
-	std::shared_ptr<CostFunctionBase<2,2> > clone() const { return std::make_shared<EXP3_CostFunction2>(*this); };
+	std::shared_ptr<CostFunctionBaseOCS2<2,2> > clone() const { return std::make_shared<EXP3_CostFunction2>(*this); };
 
 private:
 	double alpha_ = 0.01;
@@ -251,7 +254,7 @@ private:
 /******************************************************************************************************/
 /******************************************************************************************************/
 
-class EXP3_CostFunction3 : public CostFunctionBase<2,2>
+class EXP3_CostFunction3 : public CostFunctionBaseOCS2<2,2>
 {
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -272,13 +275,15 @@ public:
 	void terminalCostStateDerivative(state_vector_t& dPhidx)  { dPhidx << (x_(0)-1.0), (x_(1)+1.0); }
 	void terminalCostStateSecondDerivative(state_matrix_t& dPhidxx)  { dPhidxx << 1.0, 0.0, 0.0, 1.0; }
 
-	std::shared_ptr<CostFunctionBase<2,2> > clone() const { return std::make_shared<EXP3_CostFunction3>(*this); };
+	std::shared_ptr<CostFunctionBaseOCS2<2,2> > clone() const { return std::make_shared<EXP3_CostFunction3>(*this); };
 
 private:
 	double alpha_ = 0.01;
 
 };
 
+
+} // namespace ocs2
 
 
 #endif /* EXP3_H_ */

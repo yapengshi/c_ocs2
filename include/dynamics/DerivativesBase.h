@@ -5,13 +5,16 @@
  *      Author: farbod
  */
 
-#ifndef DERIVATIVESBASE_H_
-#define DERIVATIVESBASE_H_
+#ifndef DERIVATIVESBASE_OCS2_H_
+#define DERIVATIVESBASE_OCS2_H_
 
 #include <memory>
 #include <cstring>
 
 #include "Dimensions.h"
+
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM=STATE_DIM>
 class DerivativesBase
@@ -66,4 +69,6 @@ protected:
 	output_vector_t y_;
 };
 
-#endif /* DERIVATIVESBASE_H_ */
+} // namespace ocs2
+
+#endif /* DERIVATIVESBASE_OCS2_H_ */

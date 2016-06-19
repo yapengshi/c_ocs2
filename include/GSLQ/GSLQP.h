@@ -5,8 +5,8 @@
  *      Author: farbod
  */
 
-#ifndef GSLQP_H_
-#define GSLQP_H_
+#ifndef GSLQP_OCS2_H_
+#define GSLQP_OCS2_H_
 
 #include <vector>
 #include <array>
@@ -19,7 +19,7 @@
 
 #include "dynamics/ControlledSystemBase.h"
 #include "dynamics/DerivativesBase.h"
-#include "costs/CostFunctionBase.h"
+#include "costs/CostFunctionBaseOCS2.h"
 
 #include "integration/Integrator.h"
 #include "misc/LinearInterpolation.h"
@@ -30,6 +30,9 @@
 #include "GSLQ/RolloutSensitivityEquations.h"
 #include "GSLQ/SLQP.h"
 #include "GSLQ/SolveBVP.h"
+
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 class GSLQP
@@ -94,7 +97,7 @@ public:
 
 	GSLQP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDynamicsPtr,
 			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDerivativesPtr,
-			const std::vector<std::shared_ptr<CostFunctionBase<OUTPUT_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
+			const std::vector<std::shared_ptr<CostFunctionBaseOCS2<OUTPUT_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
 			const std::vector<controller_t>& initialControllersStock,
 			const std::vector<size_t>& systemStockIndex,
 			const Options_t& options = Options_t::Options())
@@ -209,6 +212,8 @@ private:
 	state_vector_t initState_;
 	Options_t options_;
 };
+
+} // namespace ocs2
 
 #include "implementation/GSLQP.h"
 

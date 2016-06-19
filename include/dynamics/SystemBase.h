@@ -5,9 +5,11 @@
  *      Author: neunertm
  */
 
-#ifndef SYSTEMBASE_H_
-#define SYSTEMBASE_H_
+#ifndef SYSTEMBASE_OCS2_H_
+#define SYSTEMBASE_OCS2_H_
 
+
+namespace ocs2{
 
 template <size_t STATE_DIM>
 class SystemBase
@@ -33,6 +35,6 @@ protected:
 private:
 };
 
-
+} // namespace ocs2
 
 #endif /* SYSTEMBASE_H_ */

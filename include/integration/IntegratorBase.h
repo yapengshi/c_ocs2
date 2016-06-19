@@ -5,14 +5,17 @@
  *      Author: farbodf
  */
 
-#ifndef OCS2INTEGRATORBASE_H_
-#define OCS2INTEGRATORBASE_H_
+#ifndef OCS2_INTEGRATORBASE_H_
+#define OCS2_INTEGRATORBASE_H_
 
 #include <limits>
 
 #include "dynamics/SystemBase.h"
 #include "Observer.h"
 #include "EventHandler.h"
+
+
+namespace ocs2{
 
 template <size_t STATE_DIM>
 class IntegratorBase
@@ -101,6 +104,6 @@ protected:
 	std::shared_ptr<EventHandler<STATE_DIM> > eventHandler_;
 };
 
-
+} // namespace ocs2
 
 #endif /* OCS2INTEGRATORBASE_H_ */

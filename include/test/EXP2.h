@@ -5,10 +5,13 @@
  *      Author: farbod
  */
 
-#ifndef EXP2_H_
-#define EXP2_H_
+#ifndef EXP2_OCS2_H_
+#define EXP2_OCS2_H_
 
 #include "GSLQ/GLQP.h"
+
+
+namespace ocs2{
 
 /******************************************************************************************************/
 /******************************************************************************************************/
@@ -95,7 +98,7 @@ public:
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-class EXP2_CostFunction1 : public CostFunctionBase<2,1>
+class EXP2_CostFunction1 : public CostFunctionBaseOCS2<2,1>
 {
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -116,7 +119,7 @@ public:
 	void terminalCostStateDerivative(state_vector_t& dPhidx)  { dPhidx.setZero(); }
 	void terminalCostStateSecondDerivative(state_matrix_t& dPhidxx)  { dPhidxx.setZero(); }
 
-	std::shared_ptr<CostFunctionBase<2,1> > clone() const { return std::make_shared<EXP2_CostFunction1>(*this); };
+	std::shared_ptr<CostFunctionBaseOCS2<2,1> > clone() const { return std::make_shared<EXP2_CostFunction1>(*this); };
 };
 
 
@@ -124,7 +127,7 @@ public:
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-class EXP2_CostFunction2 : public CostFunctionBase<2,1>
+class EXP2_CostFunction2 : public CostFunctionBaseOCS2<2,1>
 {
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -145,8 +148,10 @@ public:
 	void terminalCostStateDerivative(state_vector_t& dPhidx)  { dPhidx << (x_(0)-4.0), (x_(1)-2.0); }
 	void terminalCostStateSecondDerivative(state_matrix_t& dPhidxx)  { dPhidxx.setIdentity(); }
 
-	std::shared_ptr<CostFunctionBase<2,1> > clone() const { return std::make_shared<EXP2_CostFunction2>(*this); };
+	std::shared_ptr<CostFunctionBaseOCS2<2,1> > clone() const { return std::make_shared<EXP2_CostFunction2>(*this); };
 
 };
+
+} // namespace ocs2
 
 #endif /* EXP2_H_ */

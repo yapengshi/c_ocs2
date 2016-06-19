@@ -11,6 +11,7 @@
 
 #include "test/EXP3.h"
 
+using namespace ocs2;
 
 int main(int argc, char* argv[])
 {

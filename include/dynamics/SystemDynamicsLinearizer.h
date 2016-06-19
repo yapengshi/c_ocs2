@@ -9,8 +9,8 @@
  *  For second order systems, we set the upper part of the derivative matrices analytically to the correct values.
  */
 
-#ifndef SYSTEMDYNAMICSLINEARIZER_H_
-#define SYSTEMDYNAMICSLINEARIZER_H_
+#ifndef SYSTEMDYNAMICSLINEARIZER_OCS2_H_
+#define SYSTEMDYNAMICSLINEARIZER_OCS2_H_
 
 #include <cmath>
 #include <algorithm>
@@ -19,6 +19,8 @@
 #include "dynamics/ControlledSystemBase.h"
 #include "dynamics/DerivativesBase.h"
 
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM=STATE_DIM>
 class SystemDynamicsLinearizer : public DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM>
@@ -183,6 +185,6 @@ private:
 
 };
 
-
+} // namespace ocs2
 
 #endif /* SYSTEMDYNAMICSLINEARIZER_H_ */

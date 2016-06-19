@@ -8,8 +8,10 @@
 #ifndef OCS2DERIVATIVESCHECK_H_
 #define OCS2DERIVATIVESCHECK_H_
 
-
 #include "GSLQ/GSLQPSolver.h"
+
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
 class OCS2DerivativesCheck
@@ -45,7 +47,7 @@ public:
 
 	OCS2DerivativesCheck(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM> > >& subsystemDynamicsPtr,
 			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM> > >& subsystemDerivativesPtr,
-			const std::vector<std::shared_ptr<CostFunctionBase<STATE_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
+			const std::vector<std::shared_ptr<CostFunctionBaseOCS2<STATE_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
 			const state_vector_array_t&   stateOperatingPoints,
 			const control_vector_array_t& inputOperatingPoints,
 			const std::vector<size_t>& systemStockIndex)
@@ -117,5 +119,6 @@ private:
 
 };
 
+} // namespace ocs2
 
 #endif /* OCS2DERIVATIVESCHECK_H_ */

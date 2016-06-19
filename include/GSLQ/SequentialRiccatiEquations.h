@@ -5,14 +5,17 @@
  *      Author: farbod
  */
 
-#ifndef SEQUENTIALRICCATIEQUATIONS_H_
-#define SEQUENTIALRICCATIEQUATIONS_H_
+#ifndef SEQUENTIALRICCATIEQUATIONS_OCS2_H_
+#define SEQUENTIALRICCATIEQUATIONS_OCS2_H_
 
 #include "Dimensions.h"
 
 #include "dynamics/SystemBase.h"
 
 #include "misc/LinearInterpolation.h"
+
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 class SequentialRiccatiEquations : public SystemBase<OUTPUT_DIM*OUTPUT_DIM+OUTPUT_DIM+1>
@@ -189,5 +192,6 @@ private:
 
 };
 
+}
 
 #endif /* SEQUENTIALRICCATIEQUATIONS_H_ */

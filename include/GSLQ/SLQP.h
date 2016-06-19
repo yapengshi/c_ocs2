@@ -5,8 +5,8 @@
  *      Author: farbod
  */
 
-#ifndef SLQP_H_
-#define SLQP_H_
+#ifndef SLQP_OCS2_H_
+#define SLQP_OCS2_H_
 
 #include <vector>
 #include <array>
@@ -19,7 +19,7 @@
 
 #include "dynamics/ControlledSystemBase.h"
 #include "dynamics/DerivativesBase.h"
-#include "costs/CostFunctionBase.h"
+#include "costs/CostFunctionBaseOCS2.h"
 
 #include "integration/Integrator.h"
 #include "misc/LinearInterpolation.h"
@@ -28,6 +28,8 @@
 #include "GSLQ/SequentialErrorEquation.h"
 #include "GSLQ/GSLQP.h"
 
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 class SLQP
@@ -72,7 +74,7 @@ public:
 
 	SLQP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDynamicsPtr,
 			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDerivativesPtr,
-			const std::vector<std::shared_ptr<CostFunctionBase<OUTPUT_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
+			const std::vector<std::shared_ptr<CostFunctionBaseOCS2<OUTPUT_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
 			const std::vector<controller_t>& initialControllersStock,
 			const std::vector<size_t>& systemStockIndex,
 			const Options_t& options = Options_t::Options())
@@ -228,7 +230,7 @@ protected:
 private:
 	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > > subsystemDynamicsPtrStock_;
 	std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > > subsystemDerivativesPtrStock_;
-	std::vector<std::shared_ptr<CostFunctionBase<OUTPUT_DIM, INPUT_DIM> > > subsystemCostFunctionsPtrStock_;
+	std::vector<std::shared_ptr<CostFunctionBaseOCS2<OUTPUT_DIM, INPUT_DIM> > > subsystemCostFunctionsPtrStock_;
 
 	std::vector<std::shared_ptr<ODE45<STATE_DIM> > > subsystemSimulatorsStockPtr_;
 
@@ -289,6 +291,8 @@ public:
 	template <size_t GSLQP_STATE_DIM, size_t GSLQP_INPUT_DIM, size_t GSLQP_OUTPUT_DIM, size_t GSLQP_NUM_SUBSYSTEMS>
 	friend class GSLQP;
 };
+
+} // namespace ocs2
 
 #include "implementation/SLQP.h"
 

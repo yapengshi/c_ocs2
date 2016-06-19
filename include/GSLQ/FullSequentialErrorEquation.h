@@ -5,8 +5,8 @@
  *      Author: farbod
  */
 
-#ifndef FULLSEQUENTIALERROREQUATION_H_
-#define FULLSEQUENTIALERROREQUATION_H_
+#ifndef FULLSEQUENTIALERROREQUATION_OCS2_H_
+#define FULLSEQUENTIALERROREQUATION_OCS2_H_
 
 #include <array>
 
@@ -15,6 +15,9 @@
 #include "dynamics/SystemBase.h"
 
 #include "misc/LinearInterpolation.h"
+
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_SUBSYSTEMS>
 class FullSequentialErrorEquation : public SystemBase<NUM_SUBSYSTEMS*STATE_DIM>
@@ -248,6 +251,6 @@ private:
 
 };
 
-
+} // namespace ocs2
 
 #endif /* FULLSEQUENTIALERROREQUATION_H_ */

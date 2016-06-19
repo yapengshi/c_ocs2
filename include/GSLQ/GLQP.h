@@ -5,8 +5,8 @@
  *      Author: farbod
  */
 
-#ifndef GLQP_H_
-#define GLQP_H_
+#ifndef GLQP_OCS2_H_
+#define GLQP_OCS2_H_
 
 #include <iostream>
 #include <vector>
@@ -18,13 +18,15 @@
 
 #include "dynamics/ControlledSystemBase.h"
 #include "dynamics/DerivativesBase.h"
-#include "costs/CostFunctionBase.h"
+#include "costs/CostFunctionBaseOCS2.h"
 
 #include "integration/Integrator.h"
 #include "misc/LinearInterpolation.h"
 
 #include "GSLQ/PartialRiccatiEquations.h"
 
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
 class GLQP
@@ -59,7 +61,7 @@ public:
 
 	GLQP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDynamicsPtr,
 			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDerivativesPtr,
-			const std::vector<std::shared_ptr<CostFunctionBase<OUTPUT_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
+			const std::vector<std::shared_ptr<CostFunctionBaseOCS2<OUTPUT_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
 			const state_vector_array_t&   stateOperatingPoints,
 			const control_vector_array_t& inputOperatingPoints,
 			const std::vector<size_t>& systemStockIndex)
@@ -157,7 +159,7 @@ protected:
 private:
 	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > > subsystemDynamicsPtrStock_;
 	std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > > subsystemDerivativesPtrStock_;
-	std::vector<std::shared_ptr<CostFunctionBase<OUTPUT_DIM, INPUT_DIM> > > subsystemCostFunctionsPtrStock_;
+	std::vector<std::shared_ptr<CostFunctionBaseOCS2<OUTPUT_DIM, INPUT_DIM> > > subsystemCostFunctionsPtrStock_;
 
 	state_vector_array_t   stateOperatingPointsStock_;
 	control_vector_array_t inputOperatingPointsStock_;
@@ -190,7 +192,8 @@ private:
 
 };
 
-#include "implementation/GLQP.h"
+} // namespace ocs2
 
+#include "implementation/GLQP.h"
 
 #endif /* GLQP_H_ */

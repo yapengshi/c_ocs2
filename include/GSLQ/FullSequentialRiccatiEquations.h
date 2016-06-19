@@ -5,8 +5,8 @@
  *      Author: farbod
  */
 
-#ifndef FULLSEQUENTIALRICCATIEQUATIONS_H_
-#define FULLSEQUENTIALRICCATIEQUATIONS_H_
+#ifndef FULLSEQUENTIALRICCATIEQUATIONS_OCS2_H_
+#define FULLSEQUENTIALRICCATIEQUATIONS_OCS2_H_
 
 #include <array>
 
@@ -15,6 +15,9 @@
 #include "dynamics/SystemBase.h"
 
 #include "misc/LinearInterpolation.h"
+
+
+namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t NUM_SUBSYSTEMS>
 class FullSequentialRiccatiEquations : public SystemBase<NUM_SUBSYSTEMS*(STATE_DIM*STATE_DIM+STATE_DIM+1)>
@@ -253,5 +256,6 @@ private:
 
 };
 
+} // namespace ocs2
 
 #endif /* FULLSEQUENTIALRICCATIEQUATIONS_H_ */

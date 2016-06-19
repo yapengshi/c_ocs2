@@ -17,6 +17,8 @@
 #include "IntegratorBase.h"
 
 
+namespace ocs2{
+
 template <size_t STATE_DIM, class Stepper>
 class Integrator : public IntegratorBase<STATE_DIM>
 {
@@ -213,6 +215,6 @@ using ODE45 = Integrator<
 				>
 			>;
 
-
+} // namespace ocs2
 
 #endif /* OCS2INTEGRATOR_H_ */

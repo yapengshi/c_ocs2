@@ -626,54 +626,102 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 //
 //	if (options_.dispayGSLQP_)  std::cerr << "\n#### Calculating cost function sensitivity ..." << std::endl;
 //
-	for (size_t j=0; j<3; j++) {
-		// calculate nominal rollout sensitivity to switching times
-		bool nablaSvUpdated = ((j==0) ? false : true);
-		rolloutSensitivity2SwitchingTime(nablaSvUpdated);
+//	for (size_t j=0; j<3; j++) {
+//		// calculate nominal rollout sensitivity to switching times
+//		bool nablaSvUpdated = ((j==0) ? false : true);
+//		rolloutSensitivity2SwitchingTime(nablaSvUpdated);
+//
+//		// solve Riccati equations
+//		solveFullSequentialRiccatiEquations(0.0 /*learningRateStar*/); // prevents the changes in the nominal trajectories and just update the gains
+//	}
+//
+//	// transform from local value function and local derivatives to global representation
+////	slqp_.transformLocalValueFuntion2Global();
+//	transformLocalValueFuntionDerivative2Global();
 
-		// solve Riccati equations
-		solveFullSequentialRiccatiEquations(0.0 /*learningRateStar*/); // prevents the changes in the nominal trajectories and just update the gains
+	// calculate the BVP coefficients
+	std::vector<state_vector_array_t> bvpGvPositivetraTrajectoryStock_(NUM_SUBSYSTEMS);
+	std::vector<state_vector_array_t> bvpGvNegativetraTrajectoryStock_(NUM_SUBSYSTEMS);
+	std::vector<state_vector_array_t> bvpQvPositivetraTrajectoryStock_(NUM_SUBSYSTEMS);
+	std::vector<state_vector_array_t> bvpQvNegativetraTrajectoryStock_(NUM_SUBSYSTEMS);
+	for (size_t i=0; i<NUM_SUBSYSTEMS; i++) {
+
+		size_t N = slqp_.nominalTimeTrajectoriesStock_[i].size();
+		bvpGvPositivetraTrajectoryStock_[i].resize(N);
+		bvpGvNegativetraTrajectoryStock_[i].resize(N);
+		bvpQvPositivetraTrajectoryStock_[i].resize(N);
+		bvpQvNegativetraTrajectoryStock_[i].resize(N);
+
+		slqp_.subsystemDynamicsPtrStock_[i]->initializeModel(slqp_.nominalTimeTrajectoriesStock_[i].front(),
+				slqp_.nominalStateTrajectoriesStock_[i].front(), slqp_.nominalTimeTrajectoriesStock_[i].back(), "GSLQP");
+
+		double scalingFactor = 1/(switchingTimes_[i+1]-switchingTimes_[i]);
+		for (size_t k=0; k<N; k++) {
+			const scalar_t& 	    t = slqp_.nominalTimeTrajectoriesStock_[i][k];
+			const state_vector_t&   x = slqp_.nominalStateTrajectoriesStock_[i][k];
+			const control_vector_t& u = slqp_.nominalInputTrajectoriesStock_[i][k];
+			state_vector_t dxdt;
+			slqp_.subsystemDynamicsPtrStock_[i]->computeDerivative(t, x, u, dxdt);
+			bvpGvPositivetraTrajectoryStock_[i][k] = scalingFactor * slqp_.subsystemDynamicsPtrStock_[i]->computeOutputStateDerivative(t, x, u) * dxdt;
+			bvpGvNegativetraTrajectoryStock_[i][k] = -bvpGvPositivetraTrajectoryStock_[i][k];
+
+			bvpQvPositivetraTrajectoryStock_[i][k] = scalingFactor * (slqp_.QvTrajectoryStock_[i][k]+
+					slqp_.AmTrajectoryStock_[i][k].transpose()*slqp_.nominalcostateTrajectoriesStock_[i][k]);
+			bvpQvNegativetraTrajectoryStock_[i][k] = -bvpQvPositivetraTrajectoryStock_[i][k];
+		}
 	}
 
-	// transform from local value function and local derivatives to global representation
-//	slqp_.transformLocalValueFuntion2Global();
-	transformLocalValueFuntionDerivative2Global();
 
-//	for (size_t i=0; i<NUM_SUBSYSTEMS; i++) {
-//		for (size_t k=0; k<slqp_.nominalTimeTrajectoriesStock_[i].size(); )
-//	}
-//
-//
-//	SolveBVP<OUTPUT_DIM, INPUT_DIM> bvpSolver;
-//	std::vector<state_matrix_array_t> MmTrajectoriesStock(NUM_SUBSYSTEMS);
-//	std::vector<state_vector_array_t> SvTrajectoriesStock(NUM_SUBSYSTEMS);
-//	state_vector_t SvFinal = slqp_.QvFinal_;
-//	state_matrix_t MmFinal = slqp_.QmFinal_;
-//	for (int i=NUM_SUBSYSTEMS-1; i>=0; i--) {
-//
-//		bvpSolver.setData(&slqp_.nominalTimeTrajectoriesStock_[i],
-//				&slqp_.AmConstrainedTrajectoryStock_[i], NULL,  &slqp_.BmTrajectoryStock_[i], NULL,
-//				&slqp_.QvConstrainedTrajectoryStock_[i], &slqp_.QmConstrainedTrajectoryStock_[i], &slqp_.PmTrajectoryStock_[i],
-//				&slqp_.RvTrajectoryStock_[i], &slqp_.RmConstrainedTrajectoryStock_[i], &slqp_.RmInverseTrajectoryStock_[i]);
-//
-//		bvpSolver.solve(slqp_.SsTimeTrajectoryStock_[i], SvFinal, MmFinal,
-//				MmTrajectoriesStock[i], SvTrajectoriesStock[i],
-//				options_.AbsTolODE_, options_.RelTolODE_);
-//
-//		SvFinal = SvTrajectoriesStock[i].front();
-//		MmFinal = MmTrajectoriesStock[i].front();
-//
-//		for (size_t k=0; k<slqp_.SsTimeTrajectoryStock_[i].size(); k++) {
-//			if (!MmTrajectoriesStock[i][k].isApprox(slqp_.SmTrajectoryStock_[i][k], 1e-3)) {
-//				std::cout << "Mm[" << i << "][" << k << "]\n" <<  MmTrajectoriesStock[i][k] << std::endl;
-//				std::cout << "Sm[" << i << "][" << k << "]\n" <<  slqp_.SmTrajectoryStock_[i][k] << std::endl;
-//			}
-//			if (!SvTrajectoriesStock[i][k].isApprox(slqp_.SvTrajectoryStock_[i][k], 1e-3)) {
-//				std::cout << "Sv[" << i << "][" << k << "]\n" <<  SvTrajectoriesStock[i][k] << std::endl;
-//				std::cout << "Sv[" << i << "][" << k << "]\n" <<  slqp_.SvTrajectoryStock_[i][k] << std::endl;
-//			}
-//		}
-//	}
-//
+	for (int j=0; j<NUM_SUBSYSTEMS; j++)  {
+
+		ocs2::SolveBVP<OUTPUT_DIM, INPUT_DIM> bvpSolver;
+		std::vector<state_matrix_array_t> MmTrajectoriesStock(NUM_SUBSYSTEMS);
+		std::vector<state_vector_array_t> SvTrajectoriesStock(NUM_SUBSYSTEMS);
+		state_vector_t SvFinal = slqp_.QvFinal_;
+		state_matrix_t MmFinal = state_matrix_t::Zero();
+
+		for (int i=NUM_SUBSYSTEMS-1; i>=0; i--) {
+
+			const state_vector_array_t* GvPtr;
+			const state_vector_array_t* QvPtr;
+			if (j==i) {
+				GvPtr = &bvpGvPositivetraTrajectoryStock_[i];
+				QvPtr = &bvpQvPositivetraTrajectoryStock_[i];
+			} else if (j==i-1) {
+				GvPtr = &bvpGvNegativetraTrajectoryStock_[i];
+				QvPtr = &bvpQvNegativetraTrajectoryStock_[i];
+			} else {
+				GvPtr = NULL;
+				QvPtr = NULL;
+			}
+
+
+			bvpSolver.setData(&slqp_.nominalTimeTrajectoriesStock_[i],
+					&slqp_.AmTrajectoryStock_[i], NULL,  &slqp_.BmTrajectoryStock_[i], GvPtr,
+					QvPtr, &slqp_.QmTrajectoryStock_[i], &slqp_.PmTrajectoryStock_[i],
+					&slqp_.RvTrajectoryStock_[i], &slqp_.RmTrajectoryStock_[i], &slqp_.RmInverseTrajectoryStock_[i]);
+
+			bvpSolver.solve(slqp_.SsTimeTrajectoryStock_[i], SvFinal, MmFinal,
+					MmTrajectoriesStock[i], SvTrajectoriesStock[i],
+					options_.AbsTolODE_, options_.RelTolODE_);
+
+			SvFinal = SvTrajectoriesStock[i].front();
+			MmFinal = MmTrajectoriesStock[i].front();
+
+			for (size_t k=0; k<slqp_.SsTimeTrajectoryStock_[i].size(); k++) {
+				if (!MmTrajectoriesStock[i][k].isApprox(slqp_.SmTrajectoryStock_[i][k], 1e-3)) {
+					std::cout << "Mm[" << i << "][" << k << "]\n" <<  MmTrajectoriesStock[i][k] << std::endl;
+					std::cout << "Sm[" << i << "][" << k << "]\n" <<  slqp_.SmTrajectoryStock_[i][k] << std::endl;
+				}
+				if (!SvTrajectoriesStock[i][k].isApprox(slqp_.SvTrajectoryStock_[i][k], 1e-3)) {
+					std::cout << "Sv[" << i << "][" << k << "]\n" <<  SvTrajectoriesStock[i][k] << std::endl;
+					std::cout << "Sv[" << i << "][" << k << "]\n" <<  slqp_.SvTrajectoryStock_[i][k] << std::endl;
+				}
+			}  // end of k loop
+		}  // end of i loop
+
+
+	} // end of j loop
+
 }
 

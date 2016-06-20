@@ -26,6 +26,8 @@ public:
 
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
+	typedef std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > Ptr;
+
 	typedef Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::scalar_t scalar_t;
 	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;

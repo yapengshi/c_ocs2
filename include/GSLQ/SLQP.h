@@ -39,36 +39,38 @@ public:
 	typedef SequentialErrorEquation<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> ErrorEquation_t;
 
 	typedef Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM> DIMENSIONS;
+
 	typedef typename DIMENSIONS::template LinearFunction_t<Eigen::Dynamic> lagrange_t;
+
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::Options Options_t;
-	typedef typename DIMENSIONS::scalar_t 		scalar_t;
+	typedef typename DIMENSIONS::scalar_t scalar_t;
 	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
-	typedef typename DIMENSIONS::eigen_scalar_t       eigen_scalar_t;
+	typedef typename DIMENSIONS::eigen_scalar_t eigen_scalar_t;
 	typedef typename DIMENSIONS::eigen_scalar_array_t eigen_scalar_array_t;
-	typedef typename DIMENSIONS::state_vector_t 	  state_vector_t;
+	typedef typename DIMENSIONS::state_vector_t state_vector_t;
 	typedef typename DIMENSIONS::state_vector_array_t state_vector_array_t;
-	typedef typename DIMENSIONS::output_vector_t 	   output_vector_t;
+	typedef typename DIMENSIONS::output_vector_t output_vector_t;
 	typedef typename DIMENSIONS::output_vector_array_t output_vector_array_t;
-	typedef typename DIMENSIONS::control_vector_t 		control_vector_t;
+	typedef typename DIMENSIONS::control_vector_t control_vector_t;
 	typedef typename DIMENSIONS::control_vector_array_t control_vector_array_t;
-	typedef typename DIMENSIONS::control_feedback_t 	  control_feedback_t;
+	typedef typename DIMENSIONS::control_feedback_t control_feedback_t;
 	typedef typename DIMENSIONS::control_feedback_array_t control_feedback_array_t;
-	typedef typename DIMENSIONS::state_matrix_t 	  state_matrix_t;
+	typedef typename DIMENSIONS::state_matrix_t state_matrix_t;
 	typedef typename DIMENSIONS::state_matrix_array_t state_matrix_array_t;
-	typedef typename DIMENSIONS::control_matrix_t 		control_matrix_t;
+	typedef typename DIMENSIONS::control_matrix_t control_matrix_t;
 	typedef typename DIMENSIONS::control_matrix_array_t control_matrix_array_t;
-	typedef typename DIMENSIONS::control_gain_matrix_t 		 control_gain_matrix_t;
+	typedef typename DIMENSIONS::control_gain_matrix_t control_gain_matrix_t;
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
-	typedef typename DIMENSIONS::constraint1_vector_t       constraint1_vector_t;
+	typedef typename DIMENSIONS::constraint1_vector_t constraint1_vector_t;
 	typedef typename DIMENSIONS::constraint1_vector_array_t constraint1_vector_array_t;
-	typedef typename DIMENSIONS::constraint1_matrix_t       constraint1_matrix_t;
+	typedef typename DIMENSIONS::constraint1_matrix_t constraint1_matrix_t;
 	typedef typename DIMENSIONS::constraint1_matrix_array_t constraint1_matrix_array_t;
-	typedef typename DIMENSIONS::constraint1_state_matrix_t       constraint1_state_matrix_t;
+	typedef typename DIMENSIONS::constraint1_state_matrix_t constraint1_state_matrix_t;
 	typedef typename DIMENSIONS::constraint1_state_matrix_array_t constraint1_state_matrix_array_t;
-	typedef typename DIMENSIONS::constraint1_control_matrix_t       constraint1_control_matrix_t;
+	typedef typename DIMENSIONS::constraint1_control_matrix_t constraint1_control_matrix_t;
 	typedef typename DIMENSIONS::constraint1_control_matrix_array_t constraint1_control_matrix_array_t;
-	typedef typename DIMENSIONS::control_constraint1_matrix_t       control_constraint1_matrix_t;
+	typedef typename DIMENSIONS::control_constraint1_matrix_t control_constraint1_matrix_t;
 	typedef typename DIMENSIONS::control_constraint1_matrix_array_t control_constraint1_matrix_array_t;
 
 
@@ -117,11 +119,12 @@ public:
       SveTrajectoryStock_(NUM_SUBSYSTEMS),
       SmTrajectoryStock_(NUM_SUBSYSTEMS),
       switchingTimes_(NUM_SUBSYSTEMS+1),
+      iteration_(0),
       options_(options)
 	{
 
 		if (subsystemDynamicsPtr.size() != subsystemDerivativesPtr.size())
-			throw std::runtime_error("Number of subsystem derivaties is not equal to the number of subsystems.");
+			throw std::runtime_error("Number of subsystem derivatives is not equal to the number of subsystems.");
 		if (subsystemDynamicsPtr.size() != subsystemCostFunctionsPtr.size())
 			throw std::runtime_error("Number of cost functions is not equal to the number of subsystems.");
 		if (subsystemDynamicsPtr.size()-1 < *std::max_element(systemStockIndex.begin(), systemStockIndex.end()))
@@ -185,7 +188,7 @@ public:
 
 	void getController(std::vector<controller_t>& controllersStock);
 
-	void getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion);
+	void getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion); // todo: getValueFunction
 
 	void getNominalTrajectories(std::vector<scalar_array_t>& nominalTimeTrajectoriesStock,
 			std::vector<state_vector_array_t>& nominalStateTrajectoriesStock,

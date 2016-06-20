@@ -28,7 +28,8 @@ namespace ocs2{
 
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state_vector_t& initState,
+void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
+		const state_vector_t& initState,
 		const std::vector<controller_t>& controllersStock,
 		std::vector<scalar_array_t>& timeTrajectoriesStock,
 		std::vector<state_vector_array_t>& stateTrajectoriesStock,
@@ -44,8 +45,8 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state
 	outputTrajectoriesStock.resize(NUM_SUBSYSTEMS);
 
 	state_vector_t x0 = initState;
-	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
-
+	for (int i=0; i<NUM_SUBSYSTEMS; i++)
+	{
 		timeTrajectoriesStock[i].clear();
 		stateTrajectoriesStock[i].clear();
 
@@ -54,20 +55,25 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state
 
 		// initialize subsystem i
 		subsystemDynamicsPtrStock_[i]->initializeModel(switchingTimes_[i], x0, switchingTimes_[i+1], "GSLPQ");
+
 		// set controller for subsystem i
 		subsystemDynamicsPtrStock_[i]->setController(controllersStock[i]);
+
 		// simulate subsystem i
-		subsystemSimulatorsStockPtr_[i]->integrate(x0, switchingTimes_[i], switchingTimes_[i+1],
+		subsystemSimulatorsStockPtr_[i]->integrate(
+				x0, switchingTimes_[i], switchingTimes_[i+1],
 				stateTrajectoriesStock[i], timeTrajectoriesStock[i],
 				1e-3, options_.AbsTolODE_, options_.RelTolODE_, maxNumSteps);
 
 		if (stateTrajectoriesStock[i].back() != stateTrajectoriesStock[i].back())
 				throw std::runtime_error("System became unstable during the SLQP rollout.");
 
+
 		// compute control trajectory for subsystem i
 		inputTrajectoriesStock[i].resize(timeTrajectoriesStock[i].size());
 		outputTrajectoriesStock[i].resize(timeTrajectoriesStock[i].size());
-		for (int k=0; k<timeTrajectoriesStock[i].size(); k++) {
+		for (int k=0; k<timeTrajectoriesStock[i].size(); k++)
+		{
 			subsystemDynamicsPtrStock_[i]->computeOutput(timeTrajectoriesStock[i][k], stateTrajectoriesStock[i][k], outputTrajectoriesStock[i][k]);
 			subsystemDynamicsPtrStock_[i]->computeInput(timeTrajectoriesStock[i][k], outputTrajectoriesStock[i][k], inputTrajectoriesStock[i][k]);
 		}
@@ -79,8 +85,10 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state
 
 
 /******************************************************************************************************/
+// rolling out, where output trajectories are of no interest.
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state_vector_t& initState,
+void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
+		const state_vector_t& initState,
 		const std::vector<controller_t>& controllersStock,
 		std::vector<scalar_array_t>& timeTrajectoriesStock,
 		std::vector<state_vector_array_t>& stateTrajectoriesStock,
@@ -91,9 +99,11 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state
 			stateTrajectoriesStock, inputTrajectoriesStock, outputTrajectoriesStock);
 }
 
+
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state_vector_t& initState,
+void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
+		const state_vector_t& initState,
 		const std::vector<controller_t>& controllersStock,
 		std::vector<scalar_array_t>& timeTrajectoriesStock,
 		std::vector<state_vector_array_t>& stateTrajectoriesStock,
@@ -102,8 +112,12 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state
 		std::vector<std::vector<size_t> >& nc1TrajectoriesStock,
 		std::vector<constraint1_vector_array_t>& EvTrajectoryStock)  {
 
+	// STEP1 : perform normal rollout
 	rollout(initState, controllersStock,
 			timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock, outputTrajectoriesStock);
+
+
+	// STEP2 : calculate constraint violations
 
 	// constraint type 1 computations which consists of number of active constraints at each time point
 	// and the value of the constraint (if the rollout is constrained the value is always zero otherwise
@@ -111,17 +125,19 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state
 	nc1TrajectoriesStock.resize(NUM_SUBSYSTEMS);
 	EvTrajectoryStock.resize(NUM_SUBSYSTEMS);
 
-	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
-
+	for (int i=0; i<NUM_SUBSYSTEMS; i++)
+	{
 		size_t N = timeTrajectoriesStock[i].size();
 		nc1TrajectoriesStock[i].resize(N);
 		EvTrajectoryStock[i].resize(N);
 
 		// compute constraint1 trajectory for subsystem i
-		for (int k=0; k<N; k++) {
-			subsystemDynamicsPtrStock_[i]->computeConstriant1(timeTrajectoriesStock[i][k],
-					stateTrajectoriesStock[i][k], inputTrajectoriesStock[i][k],
+		for (int k=0; k<N; k++)
+		{
+			subsystemDynamicsPtrStock_[i]->computeConstriant1(
+					timeTrajectoriesStock[i][k], stateTrajectoriesStock[i][k], inputTrajectoriesStock[i][k],
 					nc1TrajectoriesStock[i][k], EvTrajectoryStock[i][k]);
+
 			if (nc1TrajectoriesStock[i][k] > INPUT_DIM)
 				throw std::runtime_error("Number of active type-1 constraints should be less-equal to the number of input dimension.");
 		}  // end of k loop
@@ -335,9 +351,10 @@ double SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateConstrai
  * 			quadratized final cost
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimalControlProblem()  {
-
-	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
+void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimalControlProblem()
+{
+	for (int i=0; i<NUM_SUBSYSTEMS; i++)
+	{
 
 		// initialize subsystem i dynamics derivatives
 		subsystemDerivativesPtrStock_[i]->initializeModel(nominalTimeTrajectoriesStock_[i].front(),
@@ -358,8 +375,9 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimalC
 		RmInverseTrajectoryStock_[i].resize(N);
 		PmTrajectoryStock_[i].resize(N);
 
-		for (int k=0; k<N; k++) {
-
+		for (int k=0; k<N; k++)
+		{
+			// LINEARIZE SYSTEM DYNAMICS AND CONSTRAINTS
 			subsystemDerivativesPtrStock_[i]->setCurrentStateAndControl(nominalTimeTrajectoriesStock_[i][k],
 					nominalStateTrajectoriesStock_[i][k], nominalInputTrajectoriesStock_[i][k], nominalOutputTrajectoriesStock_[i][k]);
 			subsystemDerivativesPtrStock_[i]->getDerivativeState(AmTrajectoryStock_[i][k]);
@@ -370,6 +388,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimalC
 				subsystemDerivativesPtrStock_[i]->getConstraint1DerivativesControl(DmTrajectoryStock_[i][k]);
 			}
 
+			// QUADRATIC APPROXIMATION TO THE COST FUNCTION
 			subsystemCostFunctionsPtrStock_[i]->setCurrentStateAndControl(nominalTimeTrajectoriesStock_[i][k],
 					nominalOutputTrajectoriesStock_[i][k], nominalInputTrajectoriesStock_[i][k]);
 			subsystemCostFunctionsPtrStock_[i]->evaluate(qTrajectoryStock_[i][k](0));
@@ -381,6 +400,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimalC
 			subsystemCostFunctionsPtrStock_[i]->stateControlDerivative(PmTrajectoryStock_[i][k]);
 
 		}
+
 
 		if (i==NUM_SUBSYSTEMS-1)  {
 			subsystemCostFunctionsPtrStock_[i]->terminalCost(qFinal_(0));
@@ -1189,13 +1209,17 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 	rollout(initState_, nominalControllersStock_,
 			nominalTimeTrajectoriesStock_, nominalStateTrajectoriesStock_, nominalInputTrajectoriesStock_, nominalOutputTrajectoriesStock_,
 			nc1TrajectoriesStock_, EvTrajectoryStock_);
+
 	// initial controller cost
 	calculateCostFunction(nominalTimeTrajectoriesStock_, nominalOutputTrajectoriesStock_, nominalInputTrajectoriesStock_,
 			nominalTotalCost_);
+
 	// initial controller merit
 	nominalTotalMerit_ = nominalTotalCost_;
+
 	// initial controller constraint type-1 ISE
 	calculateConstraintISE(nominalTimeTrajectoriesStock_, nc1TrajectoriesStock_, EvTrajectoryStock_, nominalConstraint1ISE_);
+
 	// display
 	if (options_.dispayGSLQP_)  std::cerr << "\n#### Initial controller: \n cost: " << nominalTotalCost_ << " \t constraint ISE: " << nominalConstraint1ISE_ << std::endl;
 
@@ -1216,7 +1240,8 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 
 		// calculate controller and lagrange multiplier
 		std::vector<control_vector_array_t> feedForwardConstraintInputStock(NUM_SUBSYSTEMS);
-		calculateControllerAndLagrangian(nominalControllersStock_, lagrangeControllerStock_, feedForwardConstraintInputStock, ~nominalLagrangeMultiplierUpdated); // todo parallelize
+		calculateControllerAndLagrangian(nominalControllersStock_, lagrangeControllerStock_,
+				feedForwardConstraintInputStock, ~nominalLagrangeMultiplierUpdated); // todo parallelize
 		nominalLagrangeMultiplierUpdated = true;
 
 		// finding the optimal learningRate

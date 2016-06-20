@@ -25,33 +25,48 @@ public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
 	LinearInterpolation()
-		: index_(0),
-		  timeStampPtr_(NULL),
-		  dataPtr_(NULL)
+
+	: index_(0),
+	  zeroFuntion_(false),
+	  timeStampPtr_(NULL),
+	  dataPtr_(NULL)
 	{}
 
 	LinearInterpolation(const std::vector<double>* timeStampPtr, const std::vector<Data_T,Alloc>* dataPtr)
-		: index_(0),
-		  timeStampPtr_(timeStampPtr),
-		  dataPtr_(dataPtr)
+
+	: index_(0),
+	  zeroFuntion_(false),
+	  timeStampPtr_(timeStampPtr),
+	  dataPtr_(dataPtr)
 	{}
 
-
-	void setData(const std::vector<Data_T,Alloc>* dataPtr)	{
-
-		dataPtr_ = dataPtr;
-		reset();
+	void reset()  {
+		index_ = 0;
+		zeroFuntion_ = false;
 	}
 
 	void setTimeStamp(const std::vector<double>* timeStampPtr)	{
-
-		timeStampPtr_ = timeStampPtr;
 		reset();
+		timeStampPtr_ = timeStampPtr;
 	}
 
-	void reset(){index_=0;}
+	void setData(const std::vector<Data_T,Alloc>* dataPtr)	{
+		reset();
+		dataPtr_ = dataPtr;
+	}
+
+	void setZero()	{
+		reset();
+		zeroFuntion_ = true;
+	}
+
 
 	void interpolate(const double& enquiryTime, Data_T& enquiryData, int greatestLessTimeStampIndex = -1) {
+
+		if (zeroFuntion_==true)  {
+			enquiryData.setZero();
+			return;
+		}
 
 		if (timeStampPtr_==NULL)  throw std::runtime_error("timeStampPtr is not initialized.");
 		if (dataPtr_==NULL)       throw std::runtime_error("dataPtr is not initialized.");
@@ -64,7 +79,6 @@ public:
 			return;
 		}
 
-//		std::cout << "INDEX: " << index_;
 		size_t ind;
 		if (greatestLessTimeStampIndex == -1)
 			ind = find(enquiryTime);
@@ -72,7 +86,6 @@ public:
 			ind = greatestLessTimeStampIndex;
 			index_ = greatestLessTimeStampIndex;
 		}
-//		std::cout << " --> " << ind << std::endl;
 
 		if (enquiryTime<timeStampPtr_->front()) {
 			enquiryData = dataPtr_->front();
@@ -84,8 +97,6 @@ public:
 			return;
 		}
 
-//		if (dataPtr_->size() <= ind+1)
-//			std::cout << " --> " << ind << std::endl;
 		double alpha = (enquiryTime-timeStampPtr_->at(ind+1)) / (timeStampPtr_->at(ind)-timeStampPtr_->at(ind+1));
 		enquiryData = alpha*dataPtr_->at(ind) + (1-alpha)*dataPtr_->at(ind+1);
 	}
@@ -119,6 +130,7 @@ protected:
 
 private:
 	size_t index_;
+	bool zeroFuntion_;
 
 	const std::vector<double>* timeStampPtr_;
 	const std::vector<Data_T,Alloc>* dataPtr_;

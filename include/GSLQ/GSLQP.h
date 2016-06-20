@@ -29,6 +29,7 @@
 #include "GSLQ/FullSequentialRiccatiEquations.h"
 #include "GSLQ/RolloutSensitivityEquations.h"
 #include "GSLQ/SLQP.h"
+#include "GSLQ/SolveBVP.h"
 
 
 namespace ocs2{

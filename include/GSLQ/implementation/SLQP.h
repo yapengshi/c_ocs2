@@ -725,6 +725,63 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateRolloutLag
 /******************************************************************************************************/
 /******************************************************************************************************/
 /*
+ * compute the co-state over the given rollout
+ * 		inputs:
+ * 			+ timeTrajectoriesStock: rollout simulated time steps
+ * 			+ outputTrajectoriesStock: rollout outputs
+ *
+ * 		outputs:
+ * 			+ costateTrajectoriesStock: co-state vector for the given trajectory
+ */
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateRolloutCostate(
+		const std::vector<scalar_array_t>& timeTrajectoriesStock,
+		const std::vector<output_vector_array_t>& outputTrajectoriesStock,
+		std::vector<output_vector_array_t>& costateTrajectoriesStock)  {
+
+
+	LinearInterpolation<state_matrix_t,Eigen::aligned_allocator<state_matrix_t> >   SmFunc;
+	LinearInterpolation<output_vector_t,Eigen::aligned_allocator<output_vector_t> > SvFunc;
+	LinearInterpolation<output_vector_t,Eigen::aligned_allocator<output_vector_t> > nominalOutputFunc;
+
+	costateTrajectoriesStock.resize(NUM_SUBSYSTEMS);
+
+	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
+
+		SmFunc.setTimeStamp(&SsTimeTrajectoryStock_[i]);
+		SmFunc.setData(&SmTrajectoryStock_[i]);
+		SvFunc.setTimeStamp(&SsTimeTrajectoryStock_[i]);
+		SvFunc.setData(&SvTrajectoryStock_[i]);
+		nominalOutputFunc.setTimeStamp(&nominalTimeTrajectoriesStock_[i]);
+		nominalOutputFunc.setData(&nominalOutputTrajectoriesStock_[i]);
+
+		size_t N = timeTrajectoriesStock[i].size();
+		costateTrajectoriesStock[i].resize(N);
+
+		for (int k=0; k<N; k++) {
+
+			const double& t = timeTrajectoriesStock[i][k];
+
+			state_matrix_t Sm;
+			SmFunc.interpolate(t, Sm);
+			size_t greatestLessTimeStampIndex = SmFunc.getGreatestLessTimeStampIndex();
+			output_vector_t Sv;
+			SvFunc.interpolate(t, Sv, greatestLessTimeStampIndex);
+
+			output_vector_t nominalOutput;
+			nominalOutputFunc.interpolate(t, nominalOutput);
+
+			costateTrajectoriesStock[i][k] = Sv + Sm*(outputTrajectoriesStock[i][k]-nominalOutput);
+
+		}  // end of k loop
+	}  // end of i loop
+}
+
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+/*
  * line search on the feedforwrd parts of the controller and lagrange multipliers.
  * Based on the option flag lineSearchByMeritFuntion_ it uses two different approaches for line search:
  * 		+ lineSearchByMeritFuntion_=TRUE: it uses the merit function to choose the best stepSize for the
@@ -958,14 +1015,44 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getValueFuntion(con
 	state_matrix_t Sm;
 	LinearInterpolation<state_matrix_t,Eigen::aligned_allocator<state_matrix_t> > SmFunc(&SsTimeTrajectoryStock_[activeSubsystem], &SmTrajectoryStock_[activeSubsystem]);
 	SmFunc.interpolate(time, Sm);
+	size_t greatestLessTimeStampIndex = SmFunc.getGreatestLessTimeStampIndex();
 	output_vector_t Sv;
 	LinearInterpolation<output_vector_t,Eigen::aligned_allocator<output_vector_t> > SvFunc(&SsTimeTrajectoryStock_[activeSubsystem], &SvTrajectoryStock_[activeSubsystem]);
-	SvFunc.interpolate(time, Sv);
+	SvFunc.interpolate(time, Sv, greatestLessTimeStampIndex);
 	eigen_scalar_t s;
 	LinearInterpolation<eigen_scalar_t,Eigen::aligned_allocator<eigen_scalar_t> > sFunc(&SsTimeTrajectoryStock_[activeSubsystem], &sTrajectoryStock_[activeSubsystem]);
-	sFunc.interpolate(time, s);
+	sFunc.interpolate(time, s, greatestLessTimeStampIndex);
 
-	valueFuntion = (s + output.transpose()*Sv + 0.5*output.transpose()*Sm*output).eval()(0);
+	output_vector_t xNomilnal;
+	LinearInterpolation<output_vector_t,Eigen::aligned_allocator<output_vector_t> > xNominalFunc(&nominalTimeTrajectoriesStock_[activeSubsystem], &nominalOutputTrajectoriesStock_[activeSubsystem]);
+	xNominalFunc.interpolate(time, xNomilnal);
+
+	output_vector_t deltaX = output-xNomilnal;
+	valueFuntion = (s + deltaX.transpose()*Sv + 0.5*deltaX.transpose()*Sm*deltaX).eval()(0);
+}
+
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+/*
+ * calculate the cost function at the initial time
+ * 		inputs
+ * 			+ initOutput: initial output
+ *
+ * 		output:
+ * 			+ cost function value
+ */
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getCostFuntion(const output_vector_t& initOutput, scalar_t& costFunction)  {
+
+	const state_matrix_t&  Sm = SmTrajectoryStock_[0][0];
+	const output_vector_t& Sv = SvTrajectoryStock_[0][0];
+	const eigen_scalar_t&  s  = sTrajectoryStock_[0][0];
+
+	output_vector_t deltaX = initOutput-nominalOutputTrajectoriesStock_[0][0];
+
+	costFunction = (s + deltaX.transpose()*Sv + 0.5*deltaX.transpose()*Sm*deltaX).eval()(0);
 }
 
 
@@ -1266,8 +1353,19 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 		}
 	}  // end of while loop
 
-	// transform from local value function to global representation
-	transformLocalValueFuntion2Global();
+
+	// linearizing the dynamics and quadratizing the cost function along nominal trajectories
+	approximateOptimalControlProblem();
+
+	// solve Riccati equations with learningRate zero
+	solveSequentialRiccatiEquations(0.0 /*learningRate*/);
+
+	// calculate the nominal co-state
+	calculateRolloutCostate(nominalTimeTrajectoriesStock_, nominalOutputTrajectoriesStock_,
+			nominalcostateTrajectoriesStock_);
+
+//	// transform from local value function to global representation
+//	transformLocalValueFuntion2Global();
 
 	// display
 	if (options_.dispayGSLQP_ )  {

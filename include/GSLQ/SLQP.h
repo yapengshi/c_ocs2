@@ -90,6 +90,7 @@ public:
       nominalStateTrajectoriesStock_(NUM_SUBSYSTEMS),
       nominalInputTrajectoriesStock_(NUM_SUBSYSTEMS),
       nominalOutputTrajectoriesStock_(NUM_SUBSYSTEMS),
+      nominalcostateTrajectoriesStock_(NUM_SUBSYSTEMS),
       nominalLagrangeTrajectoriesStock_(NUM_SUBSYSTEMS),
       lagrangeControllerStock_(NUM_SUBSYSTEMS),
       AmTrajectoryStock_(NUM_SUBSYSTEMS),
@@ -190,6 +191,8 @@ public:
 
 	void getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion); // todo: getValueFunction
 
+	void getCostFuntion(const output_vector_t& initOutput, scalar_t& costFunction);
+
 	void getNominalTrajectories(std::vector<scalar_array_t>& nominalTimeTrajectoriesStock,
 			std::vector<state_vector_array_t>& nominalStateTrajectoriesStock,
 			std::vector<control_vector_array_t>& nominalInputTrajectoriesStock,
@@ -212,6 +215,10 @@ protected:
 			const std::vector<output_vector_array_t>& outputTrajectoriesStock,
 			const std::vector<lagrange_t>& lagrangeMultiplierFunctionsStock,
 			std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> > >&  lagrangeTrajectoriesStock);
+
+	void calculateRolloutCostate(const std::vector<scalar_array_t>& timeTrajectoriesStock,
+			const std::vector<output_vector_array_t>& outputTrajectoriesStock,
+			std::vector<output_vector_array_t>& costateTrajectoriesStock);
 
 	void lineSearch(const std::vector<control_vector_array_t>& feedForwardConstraintInputStock,
 			scalar_t& learningRateStar,
@@ -238,6 +245,7 @@ private:
 	std::vector<state_vector_array_t>   nominalStateTrajectoriesStock_;
 	std::vector<control_vector_array_t> nominalInputTrajectoriesStock_;
 	std::vector<output_vector_array_t>  nominalOutputTrajectoriesStock_;
+	std::vector<output_vector_array_t>  nominalcostateTrajectoriesStock_;
 	std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> > >  nominalLagrangeTrajectoriesStock_;
 
 	std::vector<lagrange_t> lagrangeControllerStock_;

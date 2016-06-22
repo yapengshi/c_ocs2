@@ -128,6 +128,15 @@ public:
 		double minAcceptedSwitchingTimeDifference_;
 	};
 
+	struct MP_Options{
+		MP_Options()
+		{
+			nThreads_ = 1;
+			debugPrintMP_ = false;
+		}
+		size_t nThreads_;
+		bool debugPrintMP_;
+	};
 
 private:
 

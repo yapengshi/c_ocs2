@@ -1,8 +1,8 @@
 /*
- * Implementation of SLQP.h
+ * Implementation of SLQP_MP.h
  *
- *  Created on: Jan 5, 2016
- *      Author: farbod
+ *  Created on: Jun 20, 2016
+ *      Author: farbod, markus
  */
 
 
@@ -14,107 +14,110 @@ namespace ocs2{
 /*
  * Forward integrate the system dynamics with given controller:
  * 		inputs:
- * 			+ initState: initial state at time switchingTimes_[0]
- * 			+ controllersStock: controller for each subsystem
+ * 			+ threadId: 		identifier of chosen thread
+ * 			+ initState: 		initial state at time switchingTimes_[0]
+ * 			+ controller_local: controller for each subsystem
  * 		outputs:
- * 			+ timeTrajectoriesStock:  rollout simulated time steps
- * 			+ stateTrajectoriesStock: rollout states
- * 			+ inputTrajectoriesStock: rollout control inputs
- * 			+ (optional) outputTrajectoriesStock: rollout outputs
- * 			+ (optional) nc1TrajectoriesStock: number of active constraints at each time step
+ * 			+ t_local: 			rollout simulated time steps
+ * 			+ x_local: 			rollout states
+ * 			+ u_local: 			rollout control inputs
+ * 			+ (optional) y_local: rollout outputs
+ * 			+ (optional) nc1TrajectoriesStock: 	number of active constraints at each time step
  * 			+ (optional) EvTrajectoryStock: value of the constraint (if the rollout is constrained the value is
  * 											always zero otherwise it is nonzero)
  */
 
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
+		const size_t threadId,
 		const state_vector_t& initState,
-		const std::vector<controller_t>& controllersStock,
-		std::vector<scalar_array_t>& timeTrajectoriesStock,
-		std::vector<state_vector_array_t>& stateTrajectoriesStock,
-		std::vector<control_vector_array_t>& inputTrajectoriesStock,
-		std::vector<output_vector_array_t>& outputTrajectoriesStock)  {
+		const std::vector<controller_t>& controller_local,
+		std::vector<scalar_array_t>& t_local,
+		std::vector<state_vector_array_t>& x_local,
+		std::vector<control_vector_array_t>& u_local,
+		std::vector<output_vector_array_t>& y_local)
+		{
 
-	if (controllersStock.size() != NUM_SUBSYSTEMS)
-		throw std::runtime_error("controllersStock has less controllers then the number of subsystems");
+	if (controller_local.size() != NUM_SUBSYSTEMS)
+		throw std::runtime_error("controller_local has less controllers then the number of subsystems");
 
-	timeTrajectoriesStock.resize(NUM_SUBSYSTEMS);
-	stateTrajectoriesStock.resize(NUM_SUBSYSTEMS);
-	inputTrajectoriesStock.resize(NUM_SUBSYSTEMS);
-	outputTrajectoriesStock.resize(NUM_SUBSYSTEMS);
+	t_local.resize(NUM_SUBSYSTEMS);
+	x_local.resize(NUM_SUBSYSTEMS);
+	u_local.resize(NUM_SUBSYSTEMS);
+	y_local.resize(NUM_SUBSYSTEMS);
 
 	state_vector_t x0 = initState;
 	for (int i=0; i<NUM_SUBSYSTEMS; i++)
 	{
-		timeTrajectoriesStock[i].clear();
-		stateTrajectoriesStock[i].clear();
+		t_local[i].clear();
+		x_local[i].clear();
 
 		size_t maxNumSteps = 4*(switchingTimes_[i+1]-switchingTimes_[i])/0.001;
 		maxNumSteps = ((1000>maxNumSteps) ? 1000 : maxNumSteps);
 
 		// initialize subsystem i
-		subsystemDynamicsPtrStock_[i]->initializeModel(switchingTimes_[i], x0, switchingTimes_[i+1], "GSLPQ");
+		dynamics_[threadId][i]->initializeModel(switchingTimes_[i], x0, switchingTimes_[i+1], "GSLPQ");
 
 		// set controller for subsystem i
-		subsystemDynamicsPtrStock_[i]->setController(controllersStock[i]);
+		dynamics_[threadId][i]->setController(controller_local[i]);
 
 		// simulate subsystem i
-		subsystemSimulatorsStockPtr_[i]->integrate(
+		integratorsODE45_[threadId][i]->integrate(
 				x0, switchingTimes_[i], switchingTimes_[i+1],
-				stateTrajectoriesStock[i], timeTrajectoriesStock[i],
+				x_local[i], t_local[i],
 				1e-3, options_.AbsTolODE_, options_.RelTolODE_, maxNumSteps);
 
-		if (stateTrajectoriesStock[i].back() != stateTrajectoriesStock[i].back())
-				throw std::runtime_error("System became unstable during the SLQP rollout.");
+		if (x_local[i].back() != x_local[i].back())
+			throw std::runtime_error("System became unstable during the SLQP_MP rollout.");
 
 
 		// compute control trajectory for subsystem i
-		inputTrajectoriesStock[i].resize(timeTrajectoriesStock[i].size());
-		outputTrajectoriesStock[i].resize(timeTrajectoriesStock[i].size());
-		for (int k=0; k<timeTrajectoriesStock[i].size(); k++)
+		u_local[i].resize(t_local[i].size());
+		y_local[i].resize(t_local[i].size());
+		for (int k=0; k<t_local[i].size(); k++)
 		{
-			subsystemDynamicsPtrStock_[i]->computeOutput(timeTrajectoriesStock[i][k], stateTrajectoriesStock[i][k], outputTrajectoriesStock[i][k]);
-			subsystemDynamicsPtrStock_[i]->computeInput(timeTrajectoriesStock[i][k], outputTrajectoriesStock[i][k], inputTrajectoriesStock[i][k]);
+			dynamics_[threadId][i]->computeOutput(t_local[i][k], x_local[i][k], y_local[i][k]);
+			dynamics_[threadId][i]->computeInput(t_local[i][k], y_local[i][k], u_local[i][k]);
 		}
 
 		// reset the initial state
-		x0 = stateTrajectoriesStock[i].back();
+		x0 = x_local[i].back();
 	}
-}
+		}
 
 
 /******************************************************************************************************/
 // rolling out, where output trajectories are of no interest.
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
+		const size_t threadId,
 		const state_vector_t& initState,
-		const std::vector<controller_t>& controllersStock,
-		std::vector<scalar_array_t>& timeTrajectoriesStock,
-		std::vector<state_vector_array_t>& stateTrajectoriesStock,
-		std::vector<control_vector_array_t>& inputTrajectoriesStock)  {
+		const std::vector<controller_t>& controller_local,
+		std::vector<scalar_array_t>& t_local,
+		std::vector<state_vector_array_t>& x_local,
+		std::vector<control_vector_array_t>& u_local)  {
 
-	std::vector<output_vector_array_t> outputTrajectoriesStock;
-	rollout(initState, controllersStock, timeTrajectoriesStock,
-			stateTrajectoriesStock, inputTrajectoriesStock, outputTrajectoriesStock);
+	std::vector<output_vector_array_t> y_local;
+	rollout(threadId, initState, controller_local, t_local, x_local, u_local, y_local);
 }
 
 
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
+		const size_t threadId,
 		const state_vector_t& initState,
-		const std::vector<controller_t>& controllersStock,
-		std::vector<scalar_array_t>& timeTrajectoriesStock,
-		std::vector<state_vector_array_t>& stateTrajectoriesStock,
-		std::vector<control_vector_array_t>& inputTrajectoriesStock,
-		std::vector<output_vector_array_t>& outputTrajectoriesStock,
+		const std::vector<controller_t>& controller_local,
+		std::vector<scalar_array_t>& t_local,
+		std::vector<state_vector_array_t>& x_local,
+		std::vector<control_vector_array_t>& u_local,
+		std::vector<output_vector_array_t>& y_local,
 		std::vector<std::vector<size_t> >& nc1TrajectoriesStock,
 		std::vector<constraint1_vector_array_t>& EvTrajectoryStock)  {
 
 	// STEP1 : perform normal rollout
-	rollout(initState, controllersStock,
-			timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock, outputTrajectoriesStock);
+	rollout(threadId, initState, controller_local, t_local, x_local, u_local, y_local);
 
 
 	// STEP2 : calculate constraint violations
@@ -127,15 +130,15 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
 
 	for (int i=0; i<NUM_SUBSYSTEMS; i++)
 	{
-		size_t N = timeTrajectoriesStock[i].size();
+		size_t N = t_local[i].size();
 		nc1TrajectoriesStock[i].resize(N);
 		EvTrajectoryStock[i].resize(N);
 
 		// compute constraint1 trajectory for subsystem i
 		for (int k=0; k<N; k++)
 		{
-			subsystemDynamicsPtrStock_[i]->computeConstriant1(
-					timeTrajectoriesStock[i][k], stateTrajectoriesStock[i][k], inputTrajectoriesStock[i][k],
+			dynamics_[threadId][i]->computeConstriant1(
+					t_local[i][k], x_local[i][k], u_local[i][k],
 					nc1TrajectoriesStock[i][k], EvTrajectoryStock[i][k]);
 
 			if (nc1TrajectoriesStock[i][k] > INPUT_DIM)
@@ -160,14 +163,15 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
  * 			+ totalCost: the total cost of the trajectory
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateCostFunction(
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateCostFunction(
 		const std::vector<scalar_array_t>& timeTrajectoriesStock,
 		const std::vector<output_vector_array_t>& outputTrajectoriesStock,
 		const std::vector<control_vector_array_t>& inputTrajectoriesStock,
 		scalar_t& totalCost)  {
 
 	totalCost = 0.0;
-	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
+	for (int i=0; i<NUM_SUBSYSTEMS; i++)
+	{
 
 		// integrates the intermediate cost using the trapezoidal approximation method
 		scalar_t currentIntermediateCost;
@@ -175,25 +179,27 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateCostFuncti
 		for (int k=0; k<timeTrajectoriesStock[i].size()-1; k++) {
 
 			if (k==0) {
-				subsystemCostFunctionsPtrStock_[i]->setCurrentStateAndControl(timeTrajectoriesStock[i][k], outputTrajectoriesStock[i][k], inputTrajectoriesStock[i][k]);
-				subsystemCostFunctionsPtrStock_[i]->evaluate(currentIntermediateCost);
-			} else {
+				costFunctions_[mp_options_.nThreads_][i]->setCurrentStateAndControl(timeTrajectoriesStock[i][k], outputTrajectoriesStock[i][k], inputTrajectoriesStock[i][k]);
+				costFunctions_[mp_options_.nThreads_][i]->evaluate(currentIntermediateCost);
+			} else
+			{
 				currentIntermediateCost = nextIntermediateCost;
 			}
 
 			// feed next state and control to cost function
-			subsystemCostFunctionsPtrStock_[i]->setCurrentStateAndControl(timeTrajectoriesStock[i][k+1], outputTrajectoriesStock[i][k+1], inputTrajectoriesStock[i][k+1]);
+			costFunctions_[mp_options_.nThreads_][i]->setCurrentStateAndControl(timeTrajectoriesStock[i][k+1], outputTrajectoriesStock[i][k+1], inputTrajectoriesStock[i][k+1]);
 			// evaluate intermediate cost for next time step
-			subsystemCostFunctionsPtrStock_[i]->evaluate(nextIntermediateCost);
+			costFunctions_[mp_options_.nThreads_][i]->evaluate(nextIntermediateCost);
 
 			totalCost += 0.5*(currentIntermediateCost+nextIntermediateCost)*(timeTrajectoriesStock[i][k+1]-timeTrajectoriesStock[i][k]);
 		}  // end of k loop
 
 		// terminal cost
-		if (i==NUM_SUBSYSTEMS-1)  {
+		if (i==NUM_SUBSYSTEMS-1)
+		{
 			scalar_t finalCost;
-			subsystemCostFunctionsPtrStock_[i]->setCurrentStateAndControl(timeTrajectoriesStock[i].back(), outputTrajectoriesStock[i].back(), inputTrajectoriesStock[i].back());
-			subsystemCostFunctionsPtrStock_[i]->terminalCost(finalCost);
+			costFunctions_[mp_options_.nThreads_][i]->setCurrentStateAndControl(timeTrajectoriesStock[i].back(), outputTrajectoriesStock[i].back(), inputTrajectoriesStock[i].back());
+			costFunctions_[mp_options_.nThreads_][i]->terminalCost(finalCost);
 			totalCost += finalCost;
 		}
 
@@ -218,7 +224,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateCostFuncti
  * 			+ constraintISE: integral of Square Error (ISE)
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateMeritFunction(
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateMeritFunction(
 		const std::vector<scalar_array_t>& timeTrajectoriesStock,
 		const std::vector<std::vector<size_t> >& nc1TrajectoriesStock,
 		const std::vector<constraint1_vector_array_t>& EvTrajectoryStock,
@@ -272,7 +278,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateMeritFunct
  * 			+ maximum constraint norm
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-double SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateConstraintISE(
+double SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateConstraintISE(
 		const std::vector<scalar_array_t>& timeTrajectoriesStock,
 		const std::vector<std::vector<size_t>>& nc1TrajectoriesStock,
 		const std::vector<constraint1_vector_array_t>& EvTrajectoriesStock,
@@ -324,8 +330,8 @@ double SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateConstrai
  * 		+ linearized system model
  * 		+ dxdt = Am(t)x(t) + Bm(t)u(t)
  * 		+ s.t. Cm(t)x(t) + Dm(t)t(t) + Ev(t) = 0
- * 		+ AmTrajectoryStock_: Am matrix
- * 		+ BmTrajectoryStock_: Bm matrix
+ * 		+ A_: Am matrix
+ * 		+ B_: Bm matrix
  * 		+ CmTrajectoryStock_: Cm matrix
  * 		+ DmTrajectoryStock_: Dm matrix
  * 		+ EvTrajectoryStock_: Ev vector
@@ -351,70 +357,22 @@ double SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateConstrai
  * 			quadratized final cost
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimalControlProblem()
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimalControlProblem()
 {
 	for (int i=0; i<NUM_SUBSYSTEMS; i++)
 	{
+		subsystemProcessed_ = i;
 
-		// initialize subsystem i dynamics derivatives
-		subsystemDerivativesPtrStock_[i]->initializeModel(nominalTimeTrajectoriesStock_[i].front(),
-				nominalStateTrajectoriesStock_[i].front(), nominalTimeTrajectoriesStock_[i].back(), "GSLPQ");
-
-		int N = nominalTimeTrajectoriesStock_[i].size();
-
-		AmTrajectoryStock_[i].resize(N);
-		BmTrajectoryStock_[i].resize(N);
-		CmTrajectoryStock_[i].resize(N);
-		DmTrajectoryStock_[i].resize(N);
-
-		qTrajectoryStock_[i].resize(N);
-		QvTrajectoryStock_[i].resize(N);
-		QmTrajectoryStock_[i].resize(N);
-		RvTrajectoryStock_[i].resize(N);
-		RmTrajectoryStock_[i].resize(N);
-		RmInverseTrajectoryStock_[i].resize(N);
-		PmTrajectoryStock_[i].resize(N);
-
-		for (int k=0; k<N; k++)
-		{
-			// LINEARIZE SYSTEM DYNAMICS AND CONSTRAINTS
-			subsystemDerivativesPtrStock_[i]->setCurrentStateAndControl(nominalTimeTrajectoriesStock_[i][k],
-					nominalStateTrajectoriesStock_[i][k], nominalInputTrajectoriesStock_[i][k], nominalOutputTrajectoriesStock_[i][k]);
-			subsystemDerivativesPtrStock_[i]->getDerivativeState(AmTrajectoryStock_[i][k]);
-			subsystemDerivativesPtrStock_[i]->getDerivativesControl(BmTrajectoryStock_[i][k]);
-			// if constraint type 1 is active
-			if (nc1TrajectoriesStock_[i][k] > 0) {
-				subsystemDerivativesPtrStock_[i]->getConstraint1DerivativesState(CmTrajectoryStock_[i][k]);
-				subsystemDerivativesPtrStock_[i]->getConstraint1DerivativesControl(DmTrajectoryStock_[i][k]);
-			}
-
-			// QUADRATIC APPROXIMATION TO THE COST FUNCTION
-			subsystemCostFunctionsPtrStock_[i]->setCurrentStateAndControl(nominalTimeTrajectoriesStock_[i][k],
-					nominalOutputTrajectoriesStock_[i][k], nominalInputTrajectoriesStock_[i][k]);
-			subsystemCostFunctionsPtrStock_[i]->evaluate(qTrajectoryStock_[i][k](0));
-			subsystemCostFunctionsPtrStock_[i]->stateDerivative(QvTrajectoryStock_[i][k]);
-			subsystemCostFunctionsPtrStock_[i]->stateSecondDerivative(QmTrajectoryStock_[i][k]);
-			subsystemCostFunctionsPtrStock_[i]->controlDerivative(RvTrajectoryStock_[i][k]);
-			subsystemCostFunctionsPtrStock_[i]->controlSecondDerivative(RmTrajectoryStock_[i][k]);
-			RmInverseTrajectoryStock_[i][k] = RmTrajectoryStock_[i][k].inverse();
-			subsystemCostFunctionsPtrStock_[i]->stateControlDerivative(PmTrajectoryStock_[i][k]);
-
-		}
-
-
-		if (i==NUM_SUBSYSTEMS-1)  {
-			subsystemCostFunctionsPtrStock_[i]->terminalCost(qFinal_(0));
-			subsystemCostFunctionsPtrStock_[i]->terminalCostStateDerivative(QvFinal_);
-			subsystemCostFunctionsPtrStock_[i]->terminalCostStateSecondDerivative(QmFinal_);
-			// making sure that Qm remains PSD
-			makePSD(QmFinal_);
-		}
+		std::cout << "starting approximation of system "<< i << " out of " << (size_t) NUM_SUBSYSTEMS-1 << std::endl; // todo remove
+		approximateSubsystemLQ();
+		std::cout << "ended approximation of system "<< i << std::endl; // todo remove
 	}
 
+	// todo: continue parallelization here
 	// constrained coefficients
 	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
 
-		int N = nominalTimeTrajectoriesStock_[i].size();
+		int N = t_[i].size();
 
 		RmConstrainedTrajectoryStock_[i].resize(N);
 		DmDagerTrajectoryStock_[i].resize(N);
@@ -436,7 +394,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimalC
 				CmProjectedTrajectoryStock_[i][k].setZero();
 				DmProjectedTrajectoryStock_[i][k].setZero();
 
-				AmConstrainedTrajectoryStock_[i][k] = AmTrajectoryStock_[i][k];
+				AmConstrainedTrajectoryStock_[i][k] = A_[i][k];
 				QmConstrainedTrajectoryStock_[i][k] = QmTrajectoryStock_[i][k];
 				QvConstrainedTrajectoryStock_[i][k] = QvTrajectoryStock_[i][k];
 				RmConstrainedTrajectoryStock_[i][k] = RmTrajectoryStock_[i][k];
@@ -457,7 +415,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimalC
 				control_matrix_t DmNullSpaceProjection = control_matrix_t::Identity() - DmProjectedTrajectoryStock_[i][k];
 				state_matrix_t   PmTransDmDagerCm = PmTrajectoryStock_[i][k].transpose()*CmProjectedTrajectoryStock_[i][k];
 
-				AmConstrainedTrajectoryStock_[i][k] = AmTrajectoryStock_[i][k] - BmTrajectoryStock_[i][k]*CmProjectedTrajectoryStock_[i][k];
+				AmConstrainedTrajectoryStock_[i][k] = A_[i][k] - B_[i][k]*CmProjectedTrajectoryStock_[i][k];
 				QmConstrainedTrajectoryStock_[i][k] = QmTrajectoryStock_[i][k] + Cm.transpose()*RmProjected*Cm - PmTransDmDagerCm - PmTransDmDagerCm.transpose();
 				QvConstrainedTrajectoryStock_[i][k] = QvTrajectoryStock_[i][k] - CmProjectedTrajectoryStock_[i][k].transpose()*RvTrajectoryStock_[i][k];
 				RmConstrainedTrajectoryStock_[i][k] = DmNullSpaceProjection.transpose() * RmTrajectoryStock_[i][k] * DmNullSpaceProjection;
@@ -489,7 +447,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimalC
  *			             lagrangeMultiplierFunctionsStock's feedforward part.
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControllerAndLagrangian(
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControllerAndLagrangian(
 		std::vector<controller_t>& controllersStock,
 		std::vector<lagrange_t>& lagrangeMultiplierFunctionsStock,
 		std::vector<control_vector_array_t>& feedForwardConstraintInputStock,
@@ -518,43 +476,43 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateController
 
 		// functions for controller and lagrane multiplier
 
-		nominalOutputFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		nominalOutputFunc.setData( &(nominalOutputTrajectoriesStock_[i]) );
+		nominalOutputFunc.setTimeStamp( &(t_[i]) );
+		nominalOutputFunc.setData( &(y_[i]) );
 
-		nominalInputFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		nominalInputFunc.setData( &(nominalInputTrajectoriesStock_[i]) );
+		nominalInputFunc.setTimeStamp( &(t_[i]) );
+		nominalInputFunc.setData( &(u_[i]) );
 
-		BmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		BmFunc.setData( &(BmTrajectoryStock_[i]) );
+		BmFunc.setTimeStamp( &(t_[i]) );
+		BmFunc.setData( &(B_[i]) );
 
-		PmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		PmFunc.setTimeStamp( &(t_[i]) );
 		PmFunc.setData( &(PmTrajectoryStock_[i]) );
 
-		RmInverseFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		RmInverseFunc.setTimeStamp( &(t_[i]) );
 		RmInverseFunc.setData( &(RmInverseTrajectoryStock_[i]) );
 
-		RvFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		RvFunc.setTimeStamp( &(t_[i]) );
 		RvFunc.setData( &(RvTrajectoryStock_[i]) );
 
-		EvProjectedFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		EvProjectedFunc.setTimeStamp( &(t_[i]) );
 		EvProjectedFunc.setData( &(EvProjectedTrajectoryStock_[i]) );
 
-		CmProjectedFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		CmProjectedFunc.setTimeStamp( &(t_[i]) );
 		CmProjectedFunc.setData( &(CmProjectedTrajectoryStock_[i]) );
 
-		DmProjectedFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		DmProjectedFunc.setTimeStamp( &(t_[i]) );
 		DmProjectedFunc.setData( &(DmProjectedTrajectoryStock_[i]) );
 
 		// functions for lagrane multiplier only
 
-		RmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		RmFunc.setTimeStamp( &(t_[i]) );
 		RmFunc.setData( &(RmTrajectoryStock_[i]) );
 
-		DmDagerFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+		DmDagerFunc.setTimeStamp( &(t_[i]) );
 		DmDagerFunc.setData( &(DmDagerTrajectoryStock_[i]) );
 
 		if (firstCall==false) {
-			nominalLagrangeMultiplierFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
+			nominalLagrangeMultiplierFunc.setTimeStamp( &(t_[i]) );
 			nominalLagrangeMultiplierFunc.setData( &(nominalLagrangeTrajectoriesStock_[i]) );
 		}
 
@@ -618,7 +576,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateController
 					throw std::runtime_error("feedForwardConstraintInput is unstable.");
 			}
 			catch(const std::exception& error)  {
-			    std::cerr << "what(): " << error.what() << " at time " << controllersStock[i].time_[k] << " [sec]." << std::endl;
+				std::cerr << "what(): " << error.what() << " at time " << controllersStock[i].time_[k] << " [sec]." << std::endl;
 			}
 
 
@@ -682,7 +640,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateController
  * 			+ lagrangeTrajectoriesStock: lagrangeMultiplier value over the given trajectory
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateRolloutLagrangeMultiplier(
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateRolloutLagrangeMultiplier(
 		const std::vector<scalar_array_t>& timeTrajectoriesStock,
 		const std::vector<output_vector_array_t>& outputTrajectoriesStock,
 		const std::vector<lagrange_t>& lagrangeMultiplierFunctionsStock,
@@ -734,20 +692,21 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateRolloutLag
  *
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 		const std::vector<control_vector_array_t>& feedForwardConstraintInputStock,
 		scalar_t& learningRateStar,
 		scalar_t maxLearningRateStar/*=1.0*/)  {
 
 	// display
-	if (options_.dispayGSLQP_)  {
+	if (options_.dispayGSLQP_)
+	{
 		// less-equal operator for eigen vectors
 		auto eigenVectorLessEqual = [] (const control_vector_t& u1, const control_vector_t& u2){ return u1.norm() < u2.norm(); };
 
 		std::vector<control_vector_t> maxDeltaUffStock(NUM_SUBSYSTEMS);
 		std::vector<control_vector_t> maxDeltaUffeStock(NUM_SUBSYSTEMS);
 		for (size_t i=0; i<NUM_SUBSYSTEMS; i++)  {
-			maxDeltaUffStock[i]  = *std::max_element(nominalControllersStock_[i].deltaUff_.begin(), nominalControllersStock_[i].deltaUff_.template end(), eigenVectorLessEqual);
+			maxDeltaUffStock[i]  = *std::max_element(controllers_[mp_options_.nThreads_][i].deltaUff_.begin(), controllers_[mp_options_.nThreads_][i].deltaUff_.template end(), eigenVectorLessEqual);
 			maxDeltaUffeStock[i] = *std::max_element(feedForwardConstraintInputStock[i].begin(), feedForwardConstraintInputStock[i].end(), eigenVectorLessEqual);
 		}
 		control_vector_t maxDeltaUff  = *std::max_element(maxDeltaUffStock.begin(), maxDeltaUffStock.end(), eigenVectorLessEqual);
@@ -759,30 +718,30 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 
 
 	for (int i=0; i<NUM_SUBSYSTEMS; i++)
-		for (int k=0; k<nominalControllersStock_[i].time_.size(); k++)
+		for (int k=0; k<controllers_[mp_options_.nThreads_][i].time_.size(); k++)
 			if (options_.lineSearchByMeritFuntion_==true)
-				nominalControllersStock_[i].deltaUff_[k] += feedForwardConstraintInputStock[i][k];
+				controllers_[mp_options_.nThreads_][i].deltaUff_[k] += feedForwardConstraintInputStock[i][k];
 			else
-				nominalControllersStock_[i].uff_[k] += options_.constraintStepSize_*feedForwardConstraintInputStock[i][k];
+				controllers_[mp_options_.nThreads_][i].uff_[k] += options_.constraintStepSize_*feedForwardConstraintInputStock[i][k];
 
 	// perform one rollout while the input correction for the type-1 constraint is considered.
-	rollout(initState_, nominalControllersStock_, nominalTimeTrajectoriesStock_,
-			nominalStateTrajectoriesStock_, nominalInputTrajectoriesStock_, nominalOutputTrajectoriesStock_,
+	rollout(mp_options_.nThreads_, initState_, controllers_[mp_options_.nThreads_], t_,
+			x_, u_, y_,
 			nc1TrajectoriesStock_, EvTrajectoryStock_);
-	calculateCostFunction(nominalTimeTrajectoriesStock_, nominalOutputTrajectoriesStock_, nominalInputTrajectoriesStock_,
+	calculateCostFunction(t_, y_, u_,
 			nominalTotalCost_);
 
 	// calculate the merit function
 	if (options_.lineSearchByMeritFuntion_==true) {
 		// calculate the lagrange multiplier with learningRate zero
-		calculateRolloutLagrangeMultiplier(nominalTimeTrajectoriesStock_, nominalOutputTrajectoriesStock_, lagrangeControllerStock_,
+		calculateRolloutLagrangeMultiplier(t_, y_, lagrangeControllerStock_,
 				nominalLagrangeTrajectoriesStock_);
 		// calculate the merit function
-		calculateMeritFunction(nominalTimeTrajectoriesStock_, nc1TrajectoriesStock_, EvTrajectoryStock_, nominalLagrangeTrajectoriesStock_, nominalTotalCost_,
+		calculateMeritFunction(t_, nc1TrajectoriesStock_, EvTrajectoryStock_, nominalLagrangeTrajectoriesStock_, nominalTotalCost_,
 				nominalTotalMerit_, nominalConstraint1ISE_);
 	} else {
 		nominalTotalMerit_ = nominalTotalCost_;
-		calculateConstraintISE(nominalTimeTrajectoriesStock_, nc1TrajectoriesStock_, EvTrajectoryStock_, nominalConstraint1ISE_);
+		calculateConstraintISE(t_, nc1TrajectoriesStock_, EvTrajectoryStock_, nominalConstraint1ISE_);
 	}
 
 	// display
@@ -790,7 +749,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 			" \t constraint ISE: " << nominalConstraint1ISE_ << std::endl;
 
 	scalar_t learningRate = maxLearningRateStar;
-	const std::vector<controller_t> controllersStock = nominalControllersStock_;
+	const std::vector<controller_t> controllersStock = controllers_[mp_options_.nThreads_];
 	const std::vector<lagrange_t> lagrangeMultiplierFunctionsStock = lagrangeControllerStock_;
 
 	// local search forward simulation's variables
@@ -822,7 +781,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 
 		// perform rollout
 		try {
-			rollout(initState_, lsControllersStock, lsTimeTrajectoriesStock, lsStateTrajectoriesStock, lsInputTrajectoriesStock, lsOutputTrajectoriesStock,
+			rollout(mp_options_.nThreads_, initState_, lsControllersStock, lsTimeTrajectoriesStock, lsStateTrajectoriesStock, lsInputTrajectoriesStock, lsOutputTrajectoriesStock,
 					lsNc1TrajectoriesStock, lsEvTrajectoryStock);
 			// calculate rollout cost
 			calculateCostFunction(lsTimeTrajectoriesStock, lsOutputTrajectoriesStock, lsInputTrajectoriesStock, lsTotalCost);
@@ -863,11 +822,11 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 		nominalTotalCost_      = lsTotalCost;
 		nominalTotalMerit_     = lsTotalMerit;
 		nominalConstraint1ISE_ = lsConstraint1ISE;
-		nominalControllersStock_ = lsControllersStock;
-		nominalTimeTrajectoriesStock_  = lsTimeTrajectoriesStock;
-		nominalStateTrajectoriesStock_  = lsStateTrajectoriesStock;
-		nominalInputTrajectoriesStock_  = lsInputTrajectoriesStock;
-		nominalOutputTrajectoriesStock_ = lsOutputTrajectoriesStock;
+		controllers_[mp_options_.nThreads_] = lsControllersStock;
+		t_  = lsTimeTrajectoriesStock;
+		x_  = lsStateTrajectoriesStock;
+		u_  = lsInputTrajectoriesStock;
+		y_ = lsOutputTrajectoriesStock;
 		nc1TrajectoriesStock_ = lsNc1TrajectoriesStock;
 		EvTrajectoryStock_ = lsEvTrajectoryStock;
 		learningRateStar = learningRate;
@@ -879,7 +838,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 
 	// clear the feedforward increments
 	for (size_t i=0; i<NUM_SUBSYSTEMS; i++) {
-		nominalControllersStock_[i].deltaUff_.clear();
+		controllers_[mp_options_.nThreads_][i].deltaUff_.clear();
 		lagrangeControllerStock_[i].deltaUff_.clear();
 	}
 
@@ -899,14 +858,14 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
  * 			+ sTrajectoryStock_
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::transformLocalValueFuntion2Global()  {
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::transformLocalValueFuntion2Global()  {
 
 	LinearInterpolation<output_vector_t,Eigen::aligned_allocator<output_vector_t> > nominalOutputFunc;
 
 	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
 
-		nominalOutputFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		nominalOutputFunc.setData( &(nominalOutputTrajectoriesStock_[i]) );
+		nominalOutputFunc.setTimeStamp( &(t_[i]) );
+		nominalOutputFunc.setData( &(y_[i]) );
 
 		for (int k=0; k<SsTimeTrajectoryStock_[i].size(); k++) {
 
@@ -927,9 +886,9 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::transformLocalValue
  * get the calculated optimal controller structure
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getController(std::vector<controller_t>& controllersStock) {
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getController(std::vector<controller_t>& controllersStock) {
 
-	controllersStock = nominalControllersStock_;
+	controllersStock = controllers_[mp_options_.nThreads_];
 }
 
 
@@ -946,7 +905,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getController(std::
  * 			+ valueFuntion: value function at the inquiry time and output
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion)  {
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion)  {
 
 	int activeSubsystem = -1;
 	for (int i=0; i<NUM_SUBSYSTEMS; i++)  {
@@ -975,21 +934,21 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getValueFuntion(con
 /*
  * get the optimal state, output, and input trajectories
  * 		output
- * 			+ nominalTimeTrajectoriesStock_: optimal time trajectory
- * 			+ nominalStateTrajectoriesStock_: optimal state trajectory
- * 			+ nominalInputTrajectoriesStock_: optimal control input trajectory
- * 			+ nominalOutputTrajectoriesStock_: optimal output trajectory
+ * 			+ t_: optimal time trajectory
+ * 			+ x_: optimal state trajectory
+ * 			+ u_: optimal control input trajectory
+ * 			+ y_: optimal output trajectory
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getNominalTrajectories(std::vector<scalar_array_t>& nominalTimeTrajectoriesStock,
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getNominalTrajectories(std::vector<scalar_array_t>& nominalTimeTrajectoriesStock,
 		std::vector<state_vector_array_t>& nominalStateTrajectoriesStock,
 		std::vector<control_vector_array_t>& nominalInputTrajectoriesStock,
 		std::vector<output_vector_array_t>& nominalOutputTrajectoriesStock)   {
 
-	nominalTimeTrajectoriesStock   = nominalTimeTrajectoriesStock_;
-	nominalStateTrajectoriesStock  = nominalStateTrajectoriesStock_;
-	nominalInputTrajectoriesStock  = nominalInputTrajectoriesStock_;
-	nominalOutputTrajectoriesStock = nominalOutputTrajectoriesStock_;
+	nominalTimeTrajectoriesStock   = t_;
+	nominalStateTrajectoriesStock  = x_;
+	nominalInputTrajectoriesStock  = u_;
+	nominalOutputTrajectoriesStock = y_;
 }
 
 
@@ -1014,7 +973,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getNominalTrajector
  * 			+ sTrajectoryStock_: s scalar
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRiccatiEquations(const scalar_t& learningRate)  {
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRiccatiEquations(const scalar_t& learningRate)  {
 
 	LinearInterpolation<state_matrix_t, Eigen::aligned_allocator<state_matrix_t> > SmFunc;
 
@@ -1027,8 +986,8 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRicc
 		// set data for Riccati equations
 		auto riccatiEquationsPtr = std::make_shared<RiccatiEquations_t>();
 		riccatiEquationsPtr->setData(learningRate, i, switchingTimes_[i], switchingTimes_[i+1],
-				&nominalTimeTrajectoriesStock_[i],
-				&AmConstrainedTrajectoryStock_[i], &BmTrajectoryStock_[i],
+				&t_[i],
+				&AmConstrainedTrajectoryStock_[i], &B_[i],
 				&qTrajectoryStock_[i], &QvConstrainedTrajectoryStock_[i], &QmConstrainedTrajectoryStock_[i],
 				&RvTrajectoryStock_[i], &RmInverseTrajectoryStock_[i], &RmConstrainedTrajectoryStock_[i], &PmTrajectoryStock_[i]);
 
@@ -1094,17 +1053,17 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRicc
 		SmFunc.setTimeStamp( &(SsTimeTrajectoryStock_[i]) );
 		SmFunc.setData( &(SmTrajectoryStock_[i]) );
 
-		output_vector_array_t GvTrajectory(nominalTimeTrajectoriesStock_[i].size());
-		state_matrix_array_t  GmTrajectory(nominalTimeTrajectoriesStock_[i].size());
+		output_vector_array_t GvTrajectory(t_[i].size());
+		state_matrix_array_t  GmTrajectory(t_[i].size());
 
-		for (int k=0; k<nominalTimeTrajectoriesStock_[i].size(); k++) {
+		for (int k=0; k<t_[i].size(); k++) {
 			state_matrix_t Sm;
-			SmFunc.interpolate(nominalTimeTrajectoriesStock_[i][k], Sm);
+			SmFunc.interpolate(t_[i][k], Sm);
 
-			control_feedback_t Lm = RmInverseTrajectoryStock_[i][k]*(PmTrajectoryStock_[i][k]+BmTrajectoryStock_[i][k].transpose()*Sm);
+			control_feedback_t Lm = RmInverseTrajectoryStock_[i][k]*(PmTrajectoryStock_[i][k]+B_[i][k].transpose()*Sm);
 
 			GmTrajectory[k] = AmConstrainedTrajectoryStock_[i][k] -
-					BmTrajectoryStock_[i][k]*RmInverseTrajectoryStock_[i][k]*RmConstrainedTrajectoryStock_[i][k]*Lm;
+					B_[i][k]*RmInverseTrajectoryStock_[i][k]*RmConstrainedTrajectoryStock_[i][k]*Lm;
 
 			GvTrajectory[k] = (CmProjectedTrajectoryStock_[i][k]-DmProjectedTrajectoryStock_[i][k]*Lm).transpose()*
 					RmTrajectoryStock_[i][k]*EvProjectedTrajectoryStock_[i][k];
@@ -1114,7 +1073,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRicc
 		// set data for error equations
 		auto errorEquationPtr = std::make_shared<ErrorEquation_t>();
 		errorEquationPtr->setData(i, switchingTimes_[i], switchingTimes_[i+1],
-				&nominalTimeTrajectoriesStock_[i], &GvTrajectory, &GmTrajectory);
+				&t_[i], &GvTrajectory, &GmTrajectory);
 
 		// integrating the Riccati equations
 		ODE45<OUTPUT_DIM> errorOde45(errorEquationPtr);
@@ -1151,7 +1110,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRicc
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 template <typename Derived>
-bool SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::makePSD(Eigen::MatrixBase<Derived>& squareMatrix) {
+bool SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::makePSD(Eigen::MatrixBase<Derived>& squareMatrix) {
 
 	if (squareMatrix.rows() != squareMatrix.cols())  throw std::runtime_error("Not a square matrix: makePSD() method is for square matrix.");
 
@@ -1167,8 +1126,8 @@ bool SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::makePSD(Eigen::Matr
 
 	if (hasNegativeEigenValue)
 		squareMatrix = eig.eigenvectors() * lambda.asDiagonal() * eig.eigenvectors().inverse();
-//	else
-//		squareMatrix = 0.5*(squareMatrix+squareMatrix.transpose()).eval();
+	//	else
+	//		squareMatrix = 0.5*(squareMatrix+squareMatrix.transpose()).eval();
 
 	return hasNegativeEigenValue;
 }
@@ -1181,7 +1140,7 @@ bool SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::makePSD(Eigen::Matr
  * run the SLQP algorithm for a given state and switching times
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes)  {
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes)  {
 
 	if (switchingTimes.size() != NUM_SUBSYSTEMS+1)
 		throw std::runtime_error("Number of switching times should be one plus the number of subsystems.");
@@ -1190,7 +1149,8 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 	initState_ = initState;
 
 	// display
-	if (options_.dispayGSLQP_) {
+	if (options_.dispayGSLQP_)
+	{
 		std::cerr << "\n#### SLQP solver starts with switching times [" << switchingTimes[0];
 		for (size_t i=1; i<=NUM_SUBSYSTEMS; i++)   std::cerr << ", " << switchingTimes[i];
 		std::cerr << "] ..." << std::endl << std::endl;
@@ -1206,19 +1166,20 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 	bool nominalLagrangeMultiplierUpdated = false;
 
 	// initial controller rollout
-	rollout(initState_, nominalControllersStock_,
-			nominalTimeTrajectoriesStock_, nominalStateTrajectoriesStock_, nominalInputTrajectoriesStock_, nominalOutputTrajectoriesStock_,
+	rollout(mp_options_.nThreads_,
+			initState_,
+			controllers_[mp_options_.nThreads_],
+			t_, x_, u_, y_,
 			nc1TrajectoriesStock_, EvTrajectoryStock_);
 
 	// initial controller cost
-	calculateCostFunction(nominalTimeTrajectoriesStock_, nominalOutputTrajectoriesStock_, nominalInputTrajectoriesStock_,
-			nominalTotalCost_);
+	calculateCostFunction(t_, y_, u_, nominalTotalCost_); // todo: parallelize ?
 
 	// initial controller merit
 	nominalTotalMerit_ = nominalTotalCost_;
 
 	// initial controller constraint type-1 ISE
-	calculateConstraintISE(nominalTimeTrajectoriesStock_, nc1TrajectoriesStock_, EvTrajectoryStock_, nominalConstraint1ISE_);
+	calculateConstraintISE(t_, nc1TrajectoriesStock_, EvTrajectoryStock_, nominalConstraint1ISE_);
 
 	// display
 	if (options_.dispayGSLQP_)  std::cerr << "\n#### Initial controller: \n cost: " << nominalTotalCost_ << " \t constraint ISE: " << nominalConstraint1ISE_ << std::endl;
@@ -1233,14 +1194,14 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 		if (options_.dispayGSLQP_)  std::cerr << "\n#### Iteration " <<  iteration_ << std::endl;
 
 		// linearizing the dynamics and quadratizing the cost function along nominal trajectories
-		approximateOptimalControlProblem(); // todo parallelize
+		approximateOptimalControlProblem(); // todo parallelize, part 1 done
 
 		// solve Riccati equations
 		solveSequentialRiccatiEquations(1.0 /*nominal learningRate*/); //todo do not touch
 
 		// calculate controller and lagrange multiplier
 		std::vector<control_vector_array_t> feedForwardConstraintInputStock(NUM_SUBSYSTEMS);
-		calculateControllerAndLagrangian(nominalControllersStock_, lagrangeControllerStock_,
+		calculateControllerAndLagrangian(controllers_[mp_options_.nThreads_], lagrangeControllerStock_,
 				feedForwardConstraintInputStock, ~nominalLagrangeMultiplierUpdated); // todo parallelize
 		nominalLagrangeMultiplierUpdated = true;
 
@@ -1248,7 +1209,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 		lineSearch(feedForwardConstraintInputStock, learningRateStar, options_.maxLearningRateGSLQP_); // todo parallelize
 
 		// calculates type-1 constraint ISE and maximum norm
-		double constraint1MaxNorm = calculateConstraintISE(nominalTimeTrajectoriesStock_, nc1TrajectoriesStock_, EvTrajectoryStock_, nominalConstraint1ISE_);
+		double constraint1MaxNorm = calculateConstraintISE(t_, nc1TrajectoriesStock_, EvTrajectoryStock_, nominalConstraint1ISE_);
 
 		// loop variables
 		iteration_++;
@@ -1288,6 +1249,235 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 			std::cerr << "Maximum number of iterations has reached." << std::endl;
 	}
 
+}
+
+
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::launchWorkerThreads()
+{
+	workersActive_ = true;
+	workerTask_ = IDLE;
+
+	for (size_t i=0; i < mp_options_.nThreads_; i++)
+	{
+		workerThreads_.push_back(std::thread(&SLQP_MP::threadWork, this, i));
+	}
+}
+
+
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_t threadId)
+{
+	if(mp_options_.debugPrintMP_)
+	{
+		std::cout<<"[Thread "<<threadId<<"]: launched"<<std::endl;
+	}
+
+	WORKER_STATE lastCompletedTask = IDLE;
+
+	while(workersActive_)
+	{
+		if(mp_options_.debugPrintMP_)
+		{
+			std::cout<<"[Thread "<<threadId<<"]: last completed job was: "<<lastCompletedTask<<std::endl;
+			std::cout<<"[Thread "<<threadId<<"]: current job is: "<<workerTask_<<std::endl;
+		}
+
+
+		// if job completed in time or IDLE then wait
+		if (lastCompletedTask == workerTask_|| workerTask_ == IDLE)
+		{
+			std::cout << "entering wait condition" << std::endl;	// todo remove
+
+			std::cout << "workerTask_ " << workerTask_ << std::endl;
+			std::cout << "lastCompletedTask " << lastCompletedTask << std::endl;
+
+
+			std::unique_lock<std::mutex> waitLock(workerWakeUpMutex_);
+			workerWakeUpCondition_.wait(waitLock, [this, lastCompletedTask]{
+				return (workerTask_ != IDLE && ((lastCompletedTask != workerTask_) || (lastCompletedTask == workerTask_ && subsystemProcessed_ <= NUM_SUBSYSTEMS-1)));
+			});
+
+			waitLock.unlock();
+
+			std::cout << "workerTask_ " << workerTask_ << std::endl;
+			std::cout << "lastCompletedTask " << lastCompletedTask << std::endl;
+
+			std::cout << "leaving wait condition" << std::endl;
+
+		}
+
+		if(mp_options_.debugPrintMP_){
+			std::cout<<"[Thread "<<threadId<<"]: woke up!"<<std::endl;
+		}
+
+		if (!workersActive_)
+			break;
+
+		switch(workerTask_)
+		{
+		case LINE_SEARCH:
+		{
+			std::cout << "line_search to be implemented" << std::endl;
+			exit(0);
+			//			if(mp_options_.debugPrintMP_){
+			//			std::cout<<"[Thread "<<threadId<<"]: now doing line search!"<<std::endl;}
+			//
+			//			lineSearchWorker(threadId);
+			//			lastCompletedTask = LINE_SEARCH;
+			break;
+		}
+		case APPROXIMATE_LQ:
+		{
+			if(mp_options_.debugPrintMP_){
+				std::cout<<"[Thread "<<threadId<<"]: now doing linearization!"<<std::endl;}
+
+			approximateSubsystemLQWorker(threadId);
+			lastCompletedTask = APPROXIMATE_LQ;
+			break;
+		}
+		case SHUTDOWN:
+		{
+			if(mp_options_.debugPrintMP_){
+				std::cout<<"[Thread "<<threadId<<"]: now shutting down!"<<std::endl;}
+			return;
+			break;
+		}
+		}
+		if(mp_options_.debugPrintMP_){
+			std::cout<<"[Thread "<<threadId<<"]: done with job. Will wait for next now!"<<std::endl;}
+	}
+}
+
+
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsystemLQ()
+{
+	const size_t& i = subsystemProcessed_;
+
+	// initialize subsystem i dynamics derivatives
+	for(size_t j = 0; j< mp_options_.nThreads_; j++)
+	{
+		linearizedSystems_[j][i]->initializeModel(t_[i].front(), x_[i].front(), t_[i].back(), "GSLPQ");
+	}
+
+	kTaken_ = 0;
+	kCompleted_ = 0;
+	KMax_subsystem_  = t_[i].size();
+
+
+	A_[i].resize(KMax_subsystem_);
+	B_[i].resize(KMax_subsystem_);
+	CmTrajectoryStock_[i].resize(KMax_subsystem_);
+	DmTrajectoryStock_[i].resize(KMax_subsystem_);
+
+	qTrajectoryStock_[i].resize(KMax_subsystem_);
+	QvTrajectoryStock_[i].resize(KMax_subsystem_);
+	QmTrajectoryStock_[i].resize(KMax_subsystem_);
+	RvTrajectoryStock_[i].resize(KMax_subsystem_);
+	RmTrajectoryStock_[i].resize(KMax_subsystem_);
+	RmInverseTrajectoryStock_[i].resize(KMax_subsystem_);
+	PmTrajectoryStock_[i].resize(KMax_subsystem_);
+
+
+	if(mp_options_.debugPrintMP_)
+	{
+		std::cout<<"[MP]: Waking up workers to do linearisation for subsystem "<< i << std::endl;
+	}
+
+	workerTask_ = APPROXIMATE_LQ;
+
+	workerWakeUpCondition_.notify_all();
+
+	if(mp_options_.debugPrintMP_)
+	{
+		std::cout<<"[MP]: Will sleep now until we have linearized dynamics of subsystem "<< i <<std::endl;
+	}
+
+	std::unique_lock<std::mutex> waitLock(kCompletedMutex_);
+	kCompletedCondition_.wait(waitLock, [this]{return kCompleted_.load() >= KMax_subsystem_;});
+	waitLock.unlock();
+
+	workerTask_ = IDLE;
+
+	if(mp_options_.debugPrintMP_)
+	{
+		std::cout<<"[MP]: Back to main thread, should have linearized dynamics now of subsystem " << i <<std::endl;
+	}
+
+
+	if (i==NUM_SUBSYSTEMS-1)
+	{
+		if(mp_options_.debugPrintMP_)
+		{
+			std::cout<<"[MP]: Approximating terminal cost, subsystem  "<< i << std::endl;
+		}
+
+		costFunctions_[mp_options_.nThreads_][i]->setCurrentStateAndControl(t_[i].back(), y_[i].back(), u_[i].back());
+
+		costFunctions_[mp_options_.nThreads_][i]->terminalCost(qFinal_(0));
+		costFunctions_[mp_options_.nThreads_][i]->terminalCostStateDerivative(QvFinal_);
+		costFunctions_[mp_options_.nThreads_][i]->terminalCostStateSecondDerivative(QmFinal_);
+
+		// making sure that Qm remains PSD
+		makePSD(QmFinal_);
+	}
+}
+
+
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsystemLQWorker(size_t threadId)
+{
+	while(true)
+	{
+		size_t k = kTaken_++;
+
+		if(mp_options_.debugPrintMP_)
+		{
+			if (k%10 == 0) //
+				std::cout<<"[Thread "<<threadId<<"]: Start working on index k "<<k<<std::endl;
+		}
+
+		if (k >= KMax_subsystem_)
+		{
+			kCompletedCondition_.notify_all();
+			return;
+		}
+
+		executeApproximateSubsystemLQ(threadId, k);
+
+		kCompleted_++;
+	}
+}
+
+
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeApproximateSubsystemLQ(size_t threadId, size_t k)
+{
+	const size_t& i = subsystemProcessed_;
+
+	// LINEARIZE SYSTEM DYNAMICS AND CONSTRAINTS
+	linearizedSystems_[threadId][i]->setCurrentStateAndControl(t_[i][k], x_[i][k], u_[i][k], y_[i][k]);
+
+	linearizedSystems_[threadId][i]->getDerivativeState(A_[i][k]);
+	linearizedSystems_[threadId][i]->getDerivativesControl(B_[i][k]);
+
+	// if constraint type 1 is active
+	if (nc1TrajectoriesStock_[i][k] > 0)
+	{
+		linearizedSystems_[threadId][i]->getConstraint1DerivativesState(CmTrajectoryStock_[i][k]);
+		linearizedSystems_[threadId][i]->getConstraint1DerivativesControl(DmTrajectoryStock_[i][k]);
+	}
+
+	// QUADRATIC APPROXIMATION TO THE COST FUNCTION
+	costFunctions_[threadId][i]->setCurrentStateAndControl(t_[i][k],y_[i][k], u_[i][k]);
+	costFunctions_[threadId][i]->evaluate(qTrajectoryStock_[i][k](0));
+	costFunctions_[threadId][i]->stateDerivative(QvTrajectoryStock_[i][k]);
+	costFunctions_[threadId][i]->stateSecondDerivative(QmTrajectoryStock_[i][k]);
+	costFunctions_[threadId][i]->controlDerivative(RvTrajectoryStock_[i][k]);
+	costFunctions_[threadId][i]->controlSecondDerivative(RmTrajectoryStock_[i][k]);
+	RmInverseTrajectoryStock_[i][k] = RmTrajectoryStock_[i][k].inverse();
+	costFunctions_[threadId][i]->stateControlDerivative(PmTrajectoryStock_[i][k]);
 }
 
 } // namespace ocs2

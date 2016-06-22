@@ -9,7 +9,8 @@ find_package(Ceres REQUIRED)
 find_package(Boost REQUIRED system filesystem)
 
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wfatal-errors")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -std=c++11 -Wfatal-errors -Wl,--no-as-needed")
+# add flags "-Wl,--no-as-needed" if using gcc 4.8.2 or lower
 #set(CMAKE_BUILD_TYPE DEBUG)
 
 
@@ -78,6 +79,8 @@ include_directories(
 #   src/${PROJECT_NAME}/c_ocs2.cpp
 # ) 
 
+## Declare a cpp executable
+add_executable(exp1_slqp_mp_test src/test/EXP1_SLQP_MP_Test.cpp)
 
 ## Declare a cpp executable
 add_executable(exp1_gslqp_test src/test/EXP1GSLQPTest.cpp)
@@ -110,6 +113,14 @@ add_executable(exp3_numerical_derivative_test src/test/EXP3SystemDynamicsDerivat
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(c_ocs2_node c_ocs2_generate_messages_cpp)
+
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(exp1_slqp_mp_test
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+  pthread
+)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp1_gslqp_test

@@ -46,7 +46,8 @@ int main (int argc, char* argv[])
 	gslqpOptions.maxIterationIPOPT_ = 5;
 	gslqpOptions.warmStartGSLQP_ = true;
 	gslqpOptions.dispayGSLQP_ = false;
-//	gslqpOptions.displayIPOPT_ = false;
+	gslqpOptions.displayIPOPT_ = true;
+	gslqpOptions.useLQForDerivatives_ = false;
 
 
 	/******************************************************************************************************/

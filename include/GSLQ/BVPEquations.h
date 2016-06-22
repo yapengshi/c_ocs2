@@ -60,8 +60,8 @@ public:
 
 	static void convert2Matrix(const full_ode_vector_t& MSv, state_state_matrix_t& Mm, state_vector_t& Sv)  {
 
-		Mm = Eigen::Map<const Eigen::MatrixXd>(MSv.data(),STATE_DIM,STATE_DIM);
-		Sv = Eigen::Map<const Eigen::VectorXd>(MSv.data()+STATE_DIM*STATE_DIM, STATE_DIM);
+		Mm = Eigen::Map<const state_state_matrix_t>(MSv.data(),STATE_DIM,STATE_DIM);
+		Sv = Eigen::Map<const state_vector_t>(MSv.data()+STATE_DIM*STATE_DIM, STATE_DIM);
 	}
 
 	void setData(const double_array_t* timeStampPtr,
@@ -109,6 +109,9 @@ public:
 		state_vector_t Sv;
 		convert2Matrix(MSv, Mm, Sv);
 
+		// numerical consideration
+		makePSD(Mm);
+
 		state_state_matrix_t Am;
 		AmFunc_.interpolate(t, Am);
 		size_t greatestLessTimeStampIndex = AmFunc_.getGreatestLessTimeStampIndex();
@@ -141,7 +144,6 @@ public:
 
 		// Riccati equations for the original system
 		dMmdt = Qm + Am.transpose()*Mm + Mm.transpose()*Am + Mm.transpose()*Om*Mm - Km.transpose()*Rm*Km;
-		dMmdt = 0.5*(dMmdt+dMmdt.transpose()).eval();
 		dSvdt = (Qv+Mm*Gv) + Am.transpose()*Sv + Mm.transpose()*Om*Sv - Km.transpose()*Rm*Lv;
 
 		// Riccati equations for the equivalent system
@@ -151,9 +153,9 @@ public:
 		convert2Vector(dMmdz, dSvdz, derivatives);
 	}
 
-protected:
+
 	template <typename Derived>
-	bool makePSD(Eigen::MatrixBase<Derived>& squareMatrix) {
+	static bool makePSD(Eigen::MatrixBase<Derived>& squareMatrix) {
 
 		if (squareMatrix.rows() != squareMatrix.cols())  throw std::runtime_error("Not a square matrix: makePSD() method is for square matrix.");
 
@@ -164,20 +166,16 @@ protected:
 		for (size_t j=0; j<lambda.size() ; j++)
 			if (lambda(j) < 0.0) {
 				hasNegativeEigenValue = true;
-				lambda(j) = 0.0;
+				lambda(j) = 1e-6;
 			}
 
 		if (hasNegativeEigenValue)
 			squareMatrix = eig.eigenvectors() * lambda.asDiagonal() * eig.eigenvectors().inverse();
-		//	else
-		//		squareMatrix = 0.5*(squareMatrix+squareMatrix.transpose()).eval();
+		else
+			squareMatrix = 0.5*(squareMatrix+squareMatrix.transpose()).eval();
 
 		return hasNegativeEigenValue;
 	}
-
-
-
-
 
 private:
 	double startTime_;

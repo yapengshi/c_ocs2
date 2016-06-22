@@ -809,9 +809,9 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSensitivityBV
 
 		// set the general BVP solver coefficient
 		bvpSolver.setData(&slqp_.nominalTimeTrajectoriesStock_[i],
-				&slqp_.AmTrajectoryStock_[i], NULL,  &slqp_.BmTrajectoryStock_[i], GvPtr,
-				QvPtr, &slqp_.QmTrajectoryStock_[i], &slqp_.PmTrajectoryStock_[i],
-				NULL, &slqp_.RmTrajectoryStock_[i], &slqp_.RmInverseTrajectoryStock_[i]);
+				&slqp_.AmConstrainedTrajectoryStock_[i], NULL,  &slqp_.BmTrajectoryStock_[i], GvPtr,
+				QvPtr, &slqp_.QmConstrainedTrajectoryStock_[i], &slqp_.PmTrajectoryStock_[i],
+				NULL, &slqp_.RmConstrainedTrajectoryStock_[i], &slqp_.RmInverseTrajectoryStock_[i]);
 
 		// solve BVP for the given time trajectory
 		bvpSolver.solve(timeTrajectoriesStock[i], SvFinal, MmFinal,
@@ -824,8 +824,9 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSensitivityBV
 
 		for (size_t k=0; k<timeTrajectoriesStock[i].size(); k++)
 			if (!MmTrajectoriesStock[i][k].isApprox(slqp_.SmTrajectoryStock_[i][k], 1e-3)) {
-				std::cout << "Mm[" << i << "][" << k << "]\n" <<  MmTrajectoriesStock[i][k] << std::endl;
-				std::cout << "Sm[" << i << "][" << k << "]\n" <<  slqp_.SmTrajectoryStock_[i][k] << std::endl;
+				std::cerr << "In solveSensitivityBVP, Mm and Sm do not match." << std::endl;
+				std::cerr << "Mm[" << i << "][" << k << "]\n" <<  MmTrajectoriesStock[i][k] << std::endl;
+				std::cerr << "Sm[" << i << "][" << k << "]\n" <<  slqp_.SmTrajectoryStock_[i][k] << std::endl;
 			}
 
 	}  // end of i loop

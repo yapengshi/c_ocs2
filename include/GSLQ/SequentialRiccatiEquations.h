@@ -106,6 +106,9 @@ public:
 		eigen_scalar_t s;
 		convert2Matrix(allSs, Sm, Sv, s);
 
+		// numerical consideration
+		makePSD(Sm);
+
 		state_matrix_t Am;
 		AmFunc_.interpolate(t, Am);
 		size_t greatestLessTimeStampIndex = AmFunc_.getGreatestLessTimeStampIndex();
@@ -135,7 +138,6 @@ public:
 		control_feedback_t Lm = RmInverse*(Pm+Bm.transpose()*Sm);
 		control_vector_t   Lv = RmInverse*(Rv+Bm.transpose()*Sv);
 		dSmdt = Qm + Am.transpose()*Sm + Sm.transpose()*Am - Lm.transpose()*Rm*Lm;
-		dSmdt = 0.5*(dSmdt+dSmdt.transpose()).eval();
 		dSvdt = Qv + Am.transpose()*Sv - Lm.transpose()*Rm*Lv;
 		dsdt  = q - 0.5*alpha_*(2.0-alpha_)*Lv.transpose()*Rm*Lv;
 
@@ -149,7 +151,7 @@ public:
 
 protected:
 	template <typename Derived>
-	bool makePSD(Eigen::MatrixBase<Derived>& squareMatrix) {
+	static bool makePSD(Eigen::MatrixBase<Derived>& squareMatrix) {
 
 		if (squareMatrix.rows() != squareMatrix.cols())  throw std::runtime_error("Not a square matrix: makePSD() method is for square matrix.");
 
@@ -160,13 +162,13 @@ protected:
 		for (size_t j=0; j<lambda.size() ; j++)
 			if (lambda(j) < 0.0) {
 				hasNegativeEigenValue = true;
-				lambda(j) = 0.0;
+				lambda(j) = 1e-6;
 			}
 
 		if (hasNegativeEigenValue)
 			squareMatrix = eig.eigenvectors() * lambda.asDiagonal() * eig.eigenvectors().inverse();
-		//	else
-		//		squareMatrix = 0.5*(squareMatrix+squareMatrix.transpose()).eval();
+		else
+			squareMatrix = 0.5*(squareMatrix+squareMatrix.transpose()).eval();
 
 		return hasNegativeEigenValue;
 	}

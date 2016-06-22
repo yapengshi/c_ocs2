@@ -139,7 +139,7 @@ bool IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::eval_g
 		switchingTimes[j+1] = x[j];
 
 	for (Index j=0; j<NumConstraints_; j++)
-		g[j] = switchingTimes[j+2] - switchingTimes[j+1];
+		g[j] = switchingTimes[j+2] - switchingTimes[j+1] - options_.minSimulationTimeDuration_;
 
 	return true;
 }
@@ -313,8 +313,8 @@ void IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::solveG
 	// cost function
 	gslqp.getValueFuntion(0.0, initState_, currentTotalCost_);
 
-	// cost function jacobian
-	gslqp.getCostFuntionDerivative(initState_, currentCostFuntionDerivative_);
+	// cost function Jacobian
+	gslqp.getCostFuntionDerivative(currentCostFuntionDerivative_);
 
 	numFuntionCall_++;
 

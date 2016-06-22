@@ -64,7 +64,7 @@ void GSLQPSolver<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::run(const st
 	gslqp.getValueFuntion(0.0, initState, cost_);
 
 	// cost funtion jacobian
-	gslqp.getCostFuntionDerivative(initState, costDerivative_);
+	gslqp.getCostFuntionDerivative(costDerivative_);
 
 	// GSLQP controller
 	gslqp.getController(controllersStock_);

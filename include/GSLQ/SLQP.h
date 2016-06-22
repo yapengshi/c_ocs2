@@ -221,8 +221,6 @@ protected:
 			scalar_t& learningRateStar,
 			scalar_t maxLearningRateStar=1.0);
 
-	void transformLocalValueFuntion2Global();
-
 	template <typename Derived>
 	bool makePSD(Eigen::MatrixBase<Derived>& squareMatrix);
 
@@ -274,7 +272,6 @@ private:
 	std::vector<control_vector_array_t>   EvProjectedTrajectoryStock_;  // DmDager * Ev
 	std::vector<control_feedback_array_t> CmProjectedTrajectoryStock_;  // DmDager * Cm
 	std::vector<control_matrix_array_t>   DmProjectedTrajectoryStock_;  // DmDager * Dm
-
 
 	std::vector<scalar_array_t> 	  SsTimeTrajectoryStock_;
 	std::vector<eigen_scalar_array_t> sTrajectoryStock_;

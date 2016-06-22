@@ -145,7 +145,7 @@ void OCS2Ipopt<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::rolloutSolutio
 			optimizedInputTrajectoriesStock_, optimizedTotalCost_);
 
 	// cost funtion jacobian
-	gslqp.getCostFuntionDerivative(initState_, optimizedTotalCostDerivative_);
+	gslqp.getCostFuntionDerivative(optimizedTotalCostDerivative_);
 }
 
 

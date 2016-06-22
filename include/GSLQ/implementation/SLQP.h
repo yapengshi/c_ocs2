@@ -925,38 +925,6 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 }
 
 
-
-/******************************************************************************************************/
-/******************************************************************************************************/
-/******************************************************************************************************/
-/*
- * transform the local value function to the global one.
- * 		it manipulates the following member variables:
- * 			+ SvTrajectoryStock_
- * 			+ sTrajectoryStock_
- */
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::transformLocalValueFuntion2Global()  {
-
-	LinearInterpolation<output_vector_t,Eigen::aligned_allocator<output_vector_t> > nominalOutputFunc;
-
-	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
-
-		nominalOutputFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-		nominalOutputFunc.setData( &(nominalOutputTrajectoriesStock_[i]) );
-
-		for (int k=0; k<SsTimeTrajectoryStock_[i].size(); k++) {
-
-			output_vector_t nominalOutput;
-			nominalOutputFunc.interpolate(SsTimeTrajectoryStock_[i][k], nominalOutput);
-
-			sTrajectoryStock_[i][k]  += - nominalOutput.transpose()*SvTrajectoryStock_[i][k] + 0.5*nominalOutput.transpose()*SmTrajectoryStock_[i][k]*nominalOutput;
-			SvTrajectoryStock_[i][k] += - SmTrajectoryStock_[i][k]*nominalOutput;
-		}  // end of k loop
-	}  // end of i loop
-}
-
-
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
@@ -1339,7 +1307,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 	calculateRolloutCostate(nominalTimeTrajectoriesStock_, nominalOutputTrajectoriesStock_,
 			nominalcostateTrajectoriesStock_);
 
-//	// transform from local value function to global representation
+//	// transform from local value function to global representation (avoid this function)
 //	transformLocalValueFuntion2Global();
 
 	// display

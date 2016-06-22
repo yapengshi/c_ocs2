@@ -194,9 +194,18 @@ protected:
 
 	void calculateSensitivityControllerFeedback(std::vector<sensitivity_controller_t>& sensitivityControllersStock);
 
-	void calculateSensitivityControllerForward(std::vector<sensitivity_controller_t>& sensitivityControllersStock);
+	void calculateLQSensitivityControllerForward(std::vector<sensitivity_controller_t>& sensitivityControllersStock);
+
+	void calculateBVPSensitivityControllerForward(const size_t& switchingTimeIndex,
+			const std::vector<output_vector_array_t>& SvTrajectoriesStock,
+			std::vector<sensitivity_controller_t>& sensitivityControllersStock);
 
 	void calculateOutputTimeDerivative();
+
+	void solveSensitivityBVP(const size_t& switchingTimeIndex,
+			const std::vector<scalar_array_t>& timeTrajectoriesStock,
+			std::vector<state_matrix_array_t>& MmTrajectoriesStock,
+			std::vector<output_vector_array_t>& SvTrajectoriesStock);
 
 	void calculateBVPCostFunctionDerivative(Eigen::Matrix<double,NUM_SUBSYSTEMS-1,1>& costFunctionDerivative);
 

@@ -1057,6 +1057,9 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRicc
 	typename RiccatiEquations_t::s_vector_t allSsFinal;
 	RiccatiEquations_t::convert2Vector(QmFinal_, QvFinal_, qFinal_, allSsFinal);
 
+	// final value for the last error equation
+	output_vector_t SveFinal = output_vector_t::Zero();
+
 	for (int i=NUM_SUBSYSTEMS-1; i>=0; i--) {
 
 		// set data for Riccati equations
@@ -1113,13 +1116,9 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRicc
 		 * Type_1 constraints error correction compensation
 		 */
 
-		// final value for the last error equation
-		output_vector_t SveFinal = output_vector_t::Zero();
-
-		SveTrajectoryStock_[i].resize(N);
-
 		// Skip calculation of the error correction term Sve if the constrained simulation is used for forward simulation
 		if (options_.simulationIsConstrained_) {
+			SveTrajectoryStock_[i].resize(N);
 			for (int k=0; k<N; k++)
 				SveTrajectoryStock_[i][k].setZero();
 			continue;

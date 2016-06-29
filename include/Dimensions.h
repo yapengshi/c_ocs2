@@ -81,6 +81,7 @@ public:
 	typedef LinearFunction_t<INPUT_DIM> controller_t;
 
 	struct Options {
+	public:
 		Options() :
 			maxIterationGSLQP_(10),
 			minLearningRateGSLQP_(0.05),
@@ -104,6 +105,34 @@ public:
 			maxIterationIPOPT_(20),
 			minAcceptedSwitchingTimeDifference_(0.0)
 		{}
+
+		void print()
+		{
+			std::cout << " #### ========================== Options ============================ ####" << std::endl;
+			std::cout << "maxIterationGSLQP_                 " << maxIterationGSLQP_                  << std::endl;
+			std::cout << "minLearningRateGSLQP_              " << minLearningRateGSLQP_               << std::endl;
+			std::cout << "maxLearningRateGSLQP_              " << maxLearningRateGSLQP_               << std::endl;
+			std::cout << "minRelCostGSLQP_                   " << minRelCostGSLQP_                    << std::endl;
+			std::cout << "meritFunctionRho_                  " << meritFunctionRho_                   << std::endl;
+			std::cout << "constraintStepSize_                " << constraintStepSize_                 << std::endl;
+			std::cout << "lineSearchByMeritFuntion_          " << lineSearchByMeritFuntion_           << std::endl;
+			std::cout << "dispayGSLQP_                       " << dispayGSLQP_                        << std::endl;
+			std::cout << "warmStartGSLQP_                    " << warmStartGSLQP_                     << std::endl;
+            std::cout << "                                   " << ""                                  << std::endl;
+			std::cout << "AbsTolODE_                         " << AbsTolODE_                          << std::endl;
+			std::cout << "RelTolODE_                         " << RelTolODE_                          << std::endl;
+			std::cout << "simulationIsConstrained_           " << simulationIsConstrained_            << std::endl;
+			std::cout << "minAbsConstraint1ISE_              " << minAbsConstraint1ISE_               << std::endl;
+			std::cout << "minRelConstraint1ISE_              " << minRelConstraint1ISE_               << std::endl;
+            std::cout << "                                   " << ""                                  << std::endl;
+			std::cout << "displayIPOPT_                      " << displayIPOPT_                       << std::endl;
+			std::cout << "tolIPOPT_                          " << tolIPOPT_                           << std::endl;
+			std::cout << "acceptableTolIPOPT_                " << acceptableTolIPOPT_                 << std::endl;
+			std::cout << "maxIterationIPOPT_                 " << maxIterationIPOPT_                  << std::endl;
+			std::cout << "minAcceptedSwitchingTimeDifference_" << minAcceptedSwitchingTimeDifference_ << std::endl;
+			std::cout << " #### ============================ end ============================== ####" << std::endl;
+			std::cout << std::endl;
+		}
 
 		size_t maxIterationGSLQP_;
 		double minLearningRateGSLQP_;

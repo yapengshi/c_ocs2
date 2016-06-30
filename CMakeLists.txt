@@ -8,9 +8,7 @@ find_package(catkin REQUIRED COMPONENTS cmake_modules cereal)
 find_package(Ceres REQUIRED)
 find_package(Boost REQUIRED system filesystem)
 
-
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wfatal-errors")
-#set(CMAKE_BUILD_TYPE DEBUG)
 
 
 ###################################

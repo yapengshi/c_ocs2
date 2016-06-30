@@ -139,7 +139,7 @@ private:
 	LinearInterpolation<control_feedback_t,Eigen::aligned_allocator<control_feedback_t> > KmFunc_;
 	LinearInterpolation<nabla_input_matrix_t,Eigen::aligned_allocator<nabla_input_matrix_t> > LvFunc_;
 
-	LinearInterpolation<state_vector_t,Eigen::aligned_allocator<state_vector_t> > outputTimeDevFunc_;
+	LinearInterpolation<output_vector_t,Eigen::aligned_allocator<output_vector_t> > outputTimeDevFunc_;
 
 	LinearInterpolation<state_matrix_t,Eigen::aligned_allocator<state_matrix_t> > AmFunc_;
 	LinearInterpolation<control_gain_matrix_t,Eigen::aligned_allocator<control_gain_matrix_t> > BmFunc_;

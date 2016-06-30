@@ -851,7 +851,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateBVPCostFu
 
 		LinearInterpolation<eigen_scalar_t, Eigen::aligned_allocator<eigen_scalar_t> > qFunc(
 				&slqp_.nominalTimeTrajectoriesStock_[i], &slqp_.qTrajectoryStock_[i]);
-		LinearInterpolation<state_vector_t, Eigen::aligned_allocator<state_vector_t> > QvFunc(
+		LinearInterpolation<output_vector_t, Eigen::aligned_allocator<output_vector_t> > QvFunc(
 				&slqp_.nominalTimeTrajectoriesStock_[i], &slqp_.QvTrajectoryStock_[i]);
 		LinearInterpolation<control_vector_t, Eigen::aligned_allocator<control_vector_t> > RvFunc(
 				&slqp_.nominalTimeTrajectoriesStock_[i], &slqp_.RvTrajectoryStock_[i]);
@@ -863,7 +863,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateBVPCostFu
 
 			const double& t = sensitivityTimeTrajectoryStock_[i][k];
 
-			state_vector_t Qv;
+			output_vector_t Qv;
 			QvFunc.interpolate(t, Qv);
 			size_t greatestLessTimeStampIndex = QvFunc.getGreatestLessTimeStampIndex();
 			control_vector_t Rv;

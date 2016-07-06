@@ -26,8 +26,6 @@
 
 #include "GSLQ/SequentialRiccatiEquations.h"
 #include "GSLQ/SequentialErrorEquation.h"
-#include "GSLQ/GSLQP.h"
-
 
 namespace ocs2{
 

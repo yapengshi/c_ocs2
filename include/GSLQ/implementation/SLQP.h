@@ -53,7 +53,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state
 		maxNumSteps = ((1000>maxNumSteps) ? 1000 : maxNumSteps);
 
 		// initialize subsystem i
-		subsystemDynamicsPtrStock_[i]->initializeModel(switchingTimes_[i], x0, switchingTimes_[i+1], "GSLPQ");
+		subsystemDynamicsPtrStock_[i]->initializeModel(switchingTimes_, x0, i, "GSLPQ");
 		// set controller for subsystem i
 		subsystemDynamicsPtrStock_[i]->setController(controllersStock[i]);
 		// simulate subsystem i
@@ -340,8 +340,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimalC
 	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
 
 		// initialize subsystem i dynamics derivatives
-		subsystemDerivativesPtrStock_[i]->initializeModel(nominalTimeTrajectoriesStock_[i].front(),
-				nominalStateTrajectoriesStock_[i].front(), nominalTimeTrajectoriesStock_[i].back(), "GSLPQ");
+		subsystemDerivativesPtrStock_[i]->initializeModel(switchingTimes_, nominalStateTrajectoriesStock_[i].front(), i, "GSLPQ");
 
 		int N = nominalTimeTrajectoriesStock_[i].size();
 

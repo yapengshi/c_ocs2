@@ -605,8 +605,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rolloutSensitivity
 	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
 
 		// initialize subsystem i
-		slqp_.subsystemDynamicsPtrStock_[i]->initializeModel(slqp_.nominalTimeTrajectoriesStock_[i].front(),
-				slqp_.nominalStateTrajectoriesStock_[i].front(), slqp_.nominalTimeTrajectoriesStock_[i].back(), "GSLQP");
+		slqp_.subsystemDynamicsPtrStock_[i]->initializeModel(switchingTimes_, slqp_.nominalStateTrajectoriesStock_[i].front(), i, "GSLQP");
 
 		rolloutSensitivityEquationsPtr->setData(i, switchingTimes_, &sensitivityControllersStock[i],
 				&slqp_.nominalTimeTrajectoriesStock_[i], &nominalOutputTimeDerivativeTrajectoriesStock_[i],
@@ -720,8 +719,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateOutputTim
 
 	for (size_t i=0; i<NUM_SUBSYSTEMS; i++) {
 
-		slqp_.subsystemDynamicsPtrStock_[i]->initializeModel(slqp_.nominalTimeTrajectoriesStock_[i].front(),
-				slqp_.nominalStateTrajectoriesStock_[i].front(), slqp_.nominalTimeTrajectoriesStock_[i].back(), "GSLQP");
+		slqp_.subsystemDynamicsPtrStock_[i]->initializeModel(switchingTimes_, slqp_.nominalStateTrajectoriesStock_[i].front(), i, "GSLQP");
 
 		size_t N = slqp_.nominalTimeTrajectoriesStock_[i].size();
 		nominalOutputTimeDerivativeTrajectoriesStock_[i].resize(N);

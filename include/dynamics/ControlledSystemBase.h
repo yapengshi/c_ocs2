@@ -97,10 +97,12 @@ public:
 		numConstraint1 = 0;
 	}
 
-	virtual void initializeModel(const scalar_t& initTime, const state_vector_t& initState,
-			const scalar_t& finalTime=0, const char* algorithmName=NULL)
+	virtual void initializeModel(const std::vector<scalar_t>& switchingTimes, const state_vector_t& initState,
+			const size_t& activeSubsystemIndex=0, const char* algorithmName=NULL)
 	{
 		SystemBase<STATE_DIM>::numFunctionCalls_ = 0;
+		if (activeSubsystemIndex>=switchingTimes.size()-1)
+			throw std::runtime_error("activeSubsystemIndex refers to a non-existing subsystem based on the input switchingTimes sequence.");
 	}
 
 	virtual void computeOutput(const scalar_t& t, const state_vector_t& x, output_vector_t& y)

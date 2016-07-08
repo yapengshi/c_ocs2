@@ -43,7 +43,7 @@ void loadMatrix(const std::string& filename, const std::string& matrixName, Eige
 }
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM>
-void loadOptions(const std::string& filename, typename ocs2::GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM,1>::Options_t& opt, bool verbose = true)
+void loadOptions(const std::string& filename, typename ocs2::Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM>::Options& opt, bool verbose = true)
 {
 	boost::property_tree::ptree pt;
 	boost::property_tree::read_info(filename, pt);
@@ -102,6 +102,12 @@ void loadOptions(const std::string& filename, typename ocs2::GSLQP<STATE_DIM, IN
 			std::cout << " #### Option loader : option 'warmStartGSLQP' not specified, using default " << opt.warmStartGSLQP_ << std::endl;
 	}
 
+	try	{opt.useLQForDerivatives_ = (bool) pt.get<int>("ocs2.useLQForDerivatives");}
+	catch (const std::exception& e){
+		if (verbose)
+			std::cout << " #### Option loader : option 'useLQForDerivatives' not specified, using default " << opt.useLQForDerivatives_ << std::endl;
+	}
+
 	try	{opt.AbsTolODE_ = pt.get<double>("ocs2.AbsTolODE");}
 	catch (const std::exception& e){
 		if (verbose)
@@ -118,6 +124,12 @@ void loadOptions(const std::string& filename, typename ocs2::GSLQP<STATE_DIM, IN
 	catch (const std::exception& e){
 		if (verbose)
 			std::cout << " #### Option loader : option 'simulationIsConstrained' not specified, using default " << opt.simulationIsConstrained_ << std::endl;
+	}
+
+	try	{opt.minSimulationTimeDuration_ = pt.get<double>("ocs2.minSimulationTimeDuration");}
+	catch (const std::exception& e){
+		if (verbose)
+			std::cout << " #### Option loader : option 'minSimulationTimeDuration' not specified, using default " << opt.minSimulationTimeDuration_ << std::endl;
 	}
 
 	try	{opt.minAbsConstraint1ISE_ = pt.get<double>("ocs2.minAbsConstraint1ISE");}

@@ -990,9 +990,10 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getValueFuntion(con
  *
  * 		output:
  * 			+ cost function value
+ * 			+ cost function value plus the constraint ISE multiplied by pho
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getCostFuntion(const output_vector_t& initOutput, scalar_t& costFunction)  {
+void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getCostFuntion(const output_vector_t& initOutput, scalar_t& costFunction, scalar_t& constriantCostFunction)  {
 
 	const state_matrix_t&  Sm = SmTrajectoryStock_[0][0];
 	const output_vector_t& Sv = SvTrajectoryStock_[0][0];
@@ -1001,6 +1002,10 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getCostFuntion(cons
 	output_vector_t deltaX = initOutput-nominalOutputTrajectoriesStock_[0][0];
 
 	costFunction = (s + deltaX.transpose()*Sv + 0.5*deltaX.transpose()*Sm*deltaX).eval()(0);
+
+
+	double pho = iteration_/(options_.maxIterationGSLQP_-1) * options_.meritFunctionRho_;
+	constriantCostFunction = costFunction + pho*nominalConstraint1ISE_;
 }
 
 

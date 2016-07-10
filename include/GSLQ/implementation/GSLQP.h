@@ -245,6 +245,25 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getValueFuntion(co
 /******************************************************************************************************/
 /******************************************************************************************************/
 /*
+ * calculate the cost function at the initial time
+ * 		inputs
+ * 			+ initOutput: initial output
+ *
+ * 		output:
+ * 			+ cost function value
+ * 			+ cost function value plus the constraint ISE multiplied by pho
+ */
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getCostFuntion(const output_vector_t& initOutput, scalar_t& costFunction, scalar_t& constriantCostFunction)  {
+
+	slqp_.getCostFuntion(initOutput, costFunction, constriantCostFunction);
+}
+
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+/*
  * calculate the value function's derivatives w.r.t. switchingTimes at the initial time
  * 		inputs
  * 			+ initOutput: initial output

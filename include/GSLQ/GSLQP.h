@@ -167,6 +167,8 @@ public:
 
 	void getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion);
 
+	void getCostFuntion(const output_vector_t& initOutput, scalar_t& costFunction, scalar_t& constriantCostFunction);
+
 	void getValueFuntionDerivative(const output_vector_t& initOutput, Eigen::Matrix<double,NUM_SUBSYSTEMS-1,1>& valueFuntionDerivative);
 
 	void getCostFuntionDerivative(Eigen::Matrix<double,NUM_SUBSYSTEMS-1,1>& costFuntionDerivative);

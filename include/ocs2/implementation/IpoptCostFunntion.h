@@ -303,6 +303,12 @@ void IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::solveG
 		// find most similar controller
 		size_t index = findNearestController(x);
 		controllersStock = controllersStockBag_[index];
+		// scaling the controller time to the current switchingTimes
+		for (size_t i=0; i<NUM_Subsystems; i++) {
+			double scale = (switchingTimes[i+1]-switchingTimes[i]) / (controllersStock[i].time_.back()-controllersStock[i].time_.front());
+			for (size_t k=0; k<controllersStock[i].time_.size(); k++)
+				controllersStock[i].time_[k] = switchingTimes[i] + scale*(controllersStock[i].time_[k]-controllersStock[i].time_.front());
+		}
 	}
 
 	// GSLQP
@@ -311,7 +317,8 @@ void IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::solveG
 	gslqp.run(initState_, switchingTimes);
 
 	// cost function
-	gslqp.getValueFuntion(0.0, initState_, currentTotalCost_);
+	double unconstraintCost;
+	gslqp.getCostFuntion(initState_, unconstraintCost, currentTotalCost_);
 
 	// cost function Jacobian
 	gslqp.getCostFuntionDerivative(currentCostFuntionDerivative_);

@@ -205,13 +205,13 @@ void GLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::calculatecontroller
 								+ inputOperatingPointsStock_[i] - controllersStock[i].k_[k]*outputOperatingPointsStock_[i];
 		}
 
-		if (INFO_ON_) {
-//			std::cout << "Controller of subsystem" << i << ":" << std::endl;
-//			std::cout << "learningRate " << learningRate << std::endl;
-//			std::cout << "time: " << controllersStock[i].time_.front() << std::endl;
-//			std::cout << "uff: " <<  (controllersStock[i].uff_[0] + controllersStock[i].k_[0]*outputOperatingPointsStock_[i]).transpose() << std::endl;
-//			std::cout << "u0: " <<  inputOperatingPointsStock_[i].transpose() << std::endl;
-//			std::cout << "k: \n" <<  controllersStock[i].k_.front() << std::endl << std::endl;
+		if (INFO_ON_ ) {
+			std::cout << "Controller of subsystem" << i << ":" << std::endl;
+			std::cout << "learningRate " << learningRate << std::endl;
+			std::cout << "time: " << controllersStock[i].time_.front() << std::endl;
+			std::cout << "delta_uff: " <<  (controllersStock[i].uff_[0] + controllersStock[i].k_[0]*outputOperatingPointsStock_[i]).transpose() << std::endl;
+			std::cout << "u0: " <<  inputOperatingPointsStock_[i].transpose() << std::endl;
+			std::cout << "k: \n" <<  controllersStock[i].k_.front() << std::endl << std::endl;
 		}
 	}
 }

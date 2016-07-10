@@ -49,7 +49,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state
 		timeTrajectoriesStock[i].clear();
 		stateTrajectoriesStock[i].clear();
 
-		size_t maxNumSteps = 4*(switchingTimes_[i+1]-switchingTimes_[i])/0.001;
+		size_t maxNumSteps = options_.maxNumStepsPerSecond_*(switchingTimes_[i+1]-switchingTimes_[i]);
 		maxNumSteps = ((1000>maxNumSteps) ? 1000 : maxNumSteps);
 
 		// initialize subsystem i
@@ -883,7 +883,8 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 		catch(const std::exception& error)
 		{
 			std::cerr << "\t rollout with learningRate " << learningRate << " is terminated due to the slow simulation!" << std::endl;
-			lsTotalCost = std::numeric_limits<scalar_t>::max();
+			lsTotalCost  = std::numeric_limits<scalar_t>::max();
+			lsTotalMerit = std::numeric_limits<scalar_t>::max();
 		}
 
 		// break condition 1: it exits with largest learningRate that its cost is smaller than nominal cost.
@@ -1310,9 +1311,9 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 
 	// display
 	if (options_.dispayGSLQP_ )  {
-		std::cout << "\n+++++++++++++++++++++++++++++++++++" << std::endl;
-		std::cout <<   "+++++++ SLQP solver is ended ++++++" << std::endl;
-		std::cout <<   "+++++++++++++++++++++++++++++++++++" << std::endl;
+		std::cerr << "\n+++++++++++++++++++++++++++++++++++" << std::endl;
+		std::cerr <<   "+++++++ SLQP solver is ended ++++++" << std::endl;
+		std::cerr <<   "+++++++++++++++++++++++++++++++++++" << std::endl;
 		if (isOptimizationConverged) {
 			if (learningRateStar==0)
 				std::cerr << "SLQP successfully terminates as learningRate reduced to zero." << std::endl;

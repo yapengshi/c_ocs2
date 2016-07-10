@@ -95,6 +95,7 @@ public:
 
 			AbsTolODE_(1e-9),
 			RelTolODE_(1e-6),
+			maxNumStepsPerSecond_(5000),
 			simulationIsConstrained_(false),
 			minSimulationTimeDuration_(1e-3),
 			minAbsConstraint1ISE_(1e-3),
@@ -120,6 +121,7 @@ public:
 
 		double AbsTolODE_;
 		double RelTolODE_;
+		size_t maxNumStepsPerSecond_;
 		bool simulationIsConstrained_;
 		double minSimulationTimeDuration_;
 		double minAbsConstraint1ISE_;

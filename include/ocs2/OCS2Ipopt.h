@@ -8,7 +8,7 @@
 #ifndef OCS2IPOPT_H_
 #define OCS2IPOPT_H_
 
-#include "IpIpoptApplication.hpp"
+#include <IpIpoptApplication.hpp>
 
 #include "ocs2/IpoptCostFunntion.h"
 

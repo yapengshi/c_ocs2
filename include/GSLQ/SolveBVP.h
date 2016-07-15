@@ -173,10 +173,6 @@ public:
 
 	}
 
-
-
-
-
 private:
 	std::shared_ptr<BVP> bvpEquationsPtr_;
 	ODE45<BVP::Full_ODE_VECTOR_DIM> bvpOdeSolver_;

@@ -110,7 +110,7 @@ int main (int argc, char* argv[])
 
 	// value funtion derivative
 	Eigen::Matrix<double,2,1> costFuntionDerivative;
-	gslqp.getCostFuntionDerivative(initState, costFuntionDerivative);
+	gslqp.getCostFuntionDerivative(costFuntionDerivative);
 
 	/******************************************************************************************************/
 	/******************************************************************************************************/

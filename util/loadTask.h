@@ -20,7 +20,7 @@
 #include "GSLQ/GLQP.h"
 #include "GSLQ/SLQP.h"
 
-namespace ocs2{
+namespace ocs2 {
 
 template <typename Derived>
 void loadMatrix(const std::string& filename, const std::string& matrixName, Eigen::MatrixBase<Derived>& matrix)
@@ -42,129 +42,195 @@ void loadMatrix(const std::string& filename, const std::string& matrixName, Eige
 	}
 }
 
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM>
-void loadOptions(const std::string& filename, typename ocs2::GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM,1>::Options_t& opt, bool verbose = true)
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM=STATE_DIM>
+void loadOptions(const std::string& filename, typename Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM>::Options& opt, bool verbose = true)
 {
 	boost::property_tree::ptree pt;
 	boost::property_tree::read_info(filename, pt);
 
-	try	{opt.maxIterationGSLQP_ = pt.get<int>("ocs2.maxIterationGSLQP");}
+	std::cerr <<"OCS2 Options: " << std::endl;
+	std::cerr <<"=====================================================================" << std::endl;
+
+	try	{
+		opt.maxIterationGSLQP_ = pt.get<int>("ocs2.maxIterationGSLQP");
+		if (verbose)  std::cout << " #### Option loader : option 'maxIterationGSLQP'          " << opt.maxIterationGSLQP_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'maxIterationGSLQP' not specified, using default " << opt.maxIterationGSLQP_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'maxIterationGSLQP'          " << opt.maxIterationGSLQP_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.minLearningRateGSLQP_ = pt.get<double>("ocs2.minLearningRateGSLQP");}
+	try	{
+		opt.minLearningRateGSLQP_ = pt.get<double>("ocs2.minLearningRateGSLQP");
+		if (verbose)  std::cout << " #### Option loader : option 'minLearningRateGSLQP'       " << opt.minLearningRateGSLQP_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'minLearningRateGSLQP' not specified, using default " << opt.minLearningRateGSLQP_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'minLearningRateGSLQP'       " << opt.minLearningRateGSLQP_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.maxLearningRateGSLQP_ = pt.get<double>("ocs2.maxLearningRateGSLQP");}
+	try	{
+		opt.maxLearningRateGSLQP_ = pt.get<double>("ocs2.maxLearningRateGSLQP");
+		if (verbose)  std::cout << " #### Option loader : option 'maxLearningRateGSLQP'       " << opt.maxLearningRateGSLQP_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'maxLearningRateGSLQP' not specified, using default " << opt.maxLearningRateGSLQP_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'maxLearningRateGSLQP'       " << opt.maxLearningRateGSLQP_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.minRelCostGSLQP_ = pt.get<double>("ocs2.minRelCostGSLQP");}
+	try	{
+		opt.minRelCostGSLQP_ = pt.get<double>("ocs2.minRelCostGSLQP");
+		if (verbose)  std::cout << " #### Option loader : option 'minRelCostGSLQP'            " << opt.minRelCostGSLQP_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'minRelCostGSLQP' not specified, using default " << opt.minRelCostGSLQP_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'minRelCostGSLQP'            " << opt.minRelCostGSLQP_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.meritFunctionRho_ = pt.get<double>("ocs2.meritFunctionRho");}
+	try	{
+		opt.meritFunctionRho_ = pt.get<double>("ocs2.meritFunctionRho");
+		if (verbose)  std::cout << " #### Option loader : option 'meritFunctionRho'           " << opt.meritFunctionRho_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'meritFunctionRho' not specified, using default " << opt.meritFunctionRho_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'meritFunctionRho'           " << opt.meritFunctionRho_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.constraintStepSize_ = pt.get<double>("ocs2.constraintStepSize");}
+	try	{
+		opt.constraintStepSize_ = pt.get<double>("ocs2.constraintStepSize");
+		if (verbose)  std::cout << " #### Option loader : option 'constraintStepSize'         " << opt.constraintStepSize_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'constraintStepSize' not specified, using default " << opt.constraintStepSize_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'constraintStepSize'         " << opt.constraintStepSize_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.lineSearchByMeritFuntion_ = (bool) pt.get<int>("ocs2.lineSearchByMeritFunction");}
+	try	{
+		opt.lineSearchByMeritFuntion_ = pt.get<bool>("ocs2.lineSearchByMeritFunction");
+		if (verbose)  std::cout << " #### Option loader : option 'lineSearchByMeritFunction'  " << opt.lineSearchByMeritFuntion_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'lineSearchByMeritFunction' not specified, using default " << opt.lineSearchByMeritFuntion_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'lineSearchByMeritFunction'  " << opt.lineSearchByMeritFuntion_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.dispayGSLQP_ = (bool) pt.get<int>("ocs2.dispayGSLQP");}
+	try	{
+		opt.dispayGSLQP_ = pt.get<bool>("ocs2.dispayGSLQP");
+		if (verbose)  std::cout << " #### Option loader : option 'dispayGSLQP'                " << opt.dispayGSLQP_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'dispayGSLQP' not specified, using default " << opt.dispayGSLQP_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'dispayGSLQP'                " << opt.dispayGSLQP_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.warmStartGSLQP_ = (bool) pt.get<int>("ocs2.warmStartGSLQP");}
+	try	{
+		opt.warmStartGSLQP_ = pt.get<bool>("ocs2.warmStartGSLQP");
+		if (verbose)  std::cout << " #### Option loader : option 'warmStartGSLQP'             " << opt.warmStartGSLQP_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'warmStartGSLQP' not specified, using default " << opt.warmStartGSLQP_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'warmStartGSLQP'             " << opt.warmStartGSLQP_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.AbsTolODE_ = pt.get<double>("ocs2.AbsTolODE");}
+	try	{
+		opt.useLQForDerivatives_ = pt.get<bool>("ocs2.useLQForDerivatives");
+		if (verbose)  std::cout << " #### Option loader : option 'useLQForDerivatives'        " << opt.useLQForDerivatives_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'AbsTolODE' not specified, using default " << opt.AbsTolODE_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'useLQForDerivatives'        " << opt.useLQForDerivatives_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.RelTolODE_ = pt.get<double>("ocs2.RelTolODE");}
+	try	{
+		opt.AbsTolODE_ = pt.get<double>("ocs2.AbsTolODE");
+		if (verbose)  std::cout << " #### Option loader : option 'AbsTolODE'                  " << opt.AbsTolODE_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'RelTolODE' not specified, using default " << opt.RelTolODE_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'AbsTolODE'                  " << opt.AbsTolODE_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.simulationIsConstrained_ =(bool) pt.get<int>("ocs2.simulationIsConstrained");}
+	try	{
+		opt.RelTolODE_ = pt.get<double>("ocs2.RelTolODE");
+		if (verbose)  std::cout << " #### Option loader : option 'RelTolODE'                  " << opt.RelTolODE_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'simulationIsConstrained' not specified, using default " << opt.simulationIsConstrained_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'RelTolODE'                  " << opt.RelTolODE_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.minAbsConstraint1ISE_ = pt.get<double>("ocs2.minAbsConstraint1ISE");}
+	try	{
+		opt.maxNumStepsPerSecond_ = pt.get<size_t>("ocs2.maxNumStepsPerSecond");
+		if (verbose)  std::cout << " #### Option loader : option 'maxNumStepsPerSecond'       " << opt.maxNumStepsPerSecond_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'minAbsConstraint1ISE' not specified, using default " << opt.minAbsConstraint1ISE_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'maxNumStepsPerSecond'       " << opt.maxNumStepsPerSecond_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.minRelConstraint1ISE_ = pt.get<double>("ocs2.minRelConstraint1ISE");}
+	try	{
+		opt.simulationIsConstrained_ = pt.get<bool>("ocs2.simulationIsConstrained");
+		if (verbose)  std::cout << " #### Option loader : option 'simulationIsConstrained'    " << opt.simulationIsConstrained_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'minRelConstraint1ISE' not specified, using default " << opt.minRelConstraint1ISE_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'simulationIsConstrained'    " << opt.simulationIsConstrained_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.displayIPOPT_ = (bool) pt.get<int>("ocs2.displayIPOPT");}
+	try	{
+		opt.minSimulationTimeDuration_ = pt.get<double>("ocs2.minSimulationTimeDuration");
+		if (verbose)  std::cout << " #### Option loader : option 'minSimulationTimeDuration'  " << opt.minSimulationTimeDuration_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'displayIPOPT' not specified, using default " << opt.displayIPOPT_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'minSimulationTimeDuration'  " << opt.minSimulationTimeDuration_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.tolIPOPT_ = pt.get<double>("ocs2.tolIPOPT");}
+	try	{
+		opt.minAbsConstraint1ISE_ = pt.get<double>("ocs2.minAbsConstraint1ISE");
+		if (verbose)  std::cout << " #### Option loader : option 'minAbsConstraint1ISE'       " << opt.minAbsConstraint1ISE_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'tolIPOPT' not specified, using default " << opt.tolIPOPT_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'minAbsConstraint1ISE'       " << opt.minAbsConstraint1ISE_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.acceptableTolIPOPT_ = pt.get<double>("ocs2.acceptableTolIPOPT");}
+	try	{
+		opt.minRelConstraint1ISE_ = pt.get<double>("ocs2.minRelConstraint1ISE");
+		if (verbose)  std::cout << " #### Option loader : option 'minRelConstraint1ISE'       " << opt.minRelConstraint1ISE_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'acceptableTolIPOPT' not specified, using default " << opt.acceptableTolIPOPT_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'minRelConstraint1ISE'       " << opt.minRelConstraint1ISE_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.maxIterationIPOPT_ = pt.get<int>("ocs2.maxIterationIPOPT");}
+	try	{
+		opt.displayIPOPT_ = pt.get<bool>("ocs2.displayIPOPT");
+		if (verbose)  std::cout << " #### Option loader : option 'displayIPOPT'               " << opt.displayIPOPT_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'maxIterationIPOPT' not specified, using default " << opt.maxIterationIPOPT_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'displayIPOPT'               " << opt.displayIPOPT_ << "\t(default)" << std::endl;
 	}
 
-	try	{opt.minAcceptedSwitchingTimeDifference_ = pt.get<double>("ocs2.minAcceptedSwitchingTimeDifference");}
+	try	{
+		opt.tolIPOPT_ = pt.get<double>("ocs2.tolIPOPT");
+		if (verbose)  std::cout << " #### Option loader : option 'tolIPOPT'                   " << opt.tolIPOPT_ << std::endl;
+	}
 	catch (const std::exception& e){
-		if (verbose)
-			std::cout << " #### Option loader : option 'minAcceptedSwitchingTimeDifference' not specified, using default " << opt.minAcceptedSwitchingTimeDifference_ << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'tolIPOPT'                   " << opt.tolIPOPT_ << "\t(default)" << std::endl;
 	}
 
+	try	{
+		opt.acceptableTolIPOPT_ = pt.get<double>("ocs2.acceptableTolIPOPT");
+		if (verbose)  std::cout << " #### Option loader : option 'acceptableTolIPOPT'         " << opt.acceptableTolIPOPT_ << std::endl;
+	}
+	catch (const std::exception& e){
+		if (verbose)  std::cout << " #### Option loader : option 'acceptableTolIPOPT'         " << opt.acceptableTolIPOPT_ << "\t(default)" << std::endl;
+	}
+
+	try	{
+		opt.maxIterationIPOPT_ = pt.get<int>("ocs2.maxIterationIPOPT");
+		if (verbose)  std::cout << " #### Option loader : option 'maxIterationIPOPT'          " << opt.maxIterationIPOPT_ << std::endl;
+	}
+	catch (const std::exception& e){
+		if (verbose)  std::cout << " #### Option loader : option 'maxIterationIPOPT'          " << opt.maxIterationIPOPT_ << "\t(default)" << std::endl;
+	}
+
+	try	{
+		opt.minAcceptedSwitchingTimeDifference_ = pt.get<double>("ocs2.minAcceptedSwitchingTimeDifference");
+		if (verbose)  std::cout << " #### Option loader : option 'minAcceptedSwitchingTimeDifference'  " << opt.minAcceptedSwitchingTimeDifference_ << std::endl;
+	}
+	catch (const std::exception& e){
+		if (verbose)  std::cout << " #### Option loader : option 'minAcceptedSwitchingTimeDifference'  " << opt.minAcceptedSwitchingTimeDifference_ << " (default)" << std::endl;
+	}
+
+	std::cout << std::endl;
 }
 
 
-}
+}  // end of ocs2 namespace
 
 #endif /* OCS2_LOADTASK_H_ */

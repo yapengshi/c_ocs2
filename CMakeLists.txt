@@ -11,7 +11,6 @@ find_package(Boost REQUIRED system filesystem)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -std=c++11 -Wfatal-errors -Wl,--no-as-needed")
 # add flags "-Wl,--no-as-needed" if using gcc 4.8.2 or lower
-#set(CMAKE_BUILD_TYPE DEBUG)
 
 
 ###################################

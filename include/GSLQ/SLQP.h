@@ -26,8 +26,6 @@
 
 #include "GSLQ/SequentialRiccatiEquations.h"
 #include "GSLQ/SequentialErrorEquation.h"
-#include "GSLQ/GSLQP.h"
-
 
 namespace ocs2{
 
@@ -191,7 +189,7 @@ public:
 
 	void getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion); // todo: getValueFunction
 
-	void getCostFuntion(const output_vector_t& initOutput, scalar_t& costFunction);
+	void getCostFuntion(const output_vector_t& initOutput, scalar_t& costFunction, scalar_t& constriantCostFunction);
 
 	void getNominalTrajectories(std::vector<scalar_array_t>& nominalTimeTrajectoriesStock,
 			std::vector<state_vector_array_t>& nominalStateTrajectoriesStock,
@@ -223,8 +221,6 @@ protected:
 	void lineSearch(const std::vector<control_vector_array_t>& feedForwardConstraintInputStock,
 			scalar_t& learningRateStar,
 			scalar_t maxLearningRateStar=1.0);
-
-	void transformLocalValueFuntion2Global();
 
 	template <typename Derived>
 	bool makePSD(Eigen::MatrixBase<Derived>& squareMatrix);
@@ -277,7 +273,6 @@ private:
 	std::vector<control_vector_array_t>   EvProjectedTrajectoryStock_;  // DmDager * Ev
 	std::vector<control_feedback_array_t> CmProjectedTrajectoryStock_;  // DmDager * Cm
 	std::vector<control_matrix_array_t>   DmProjectedTrajectoryStock_;  // DmDager * Dm
-
 
 	std::vector<scalar_array_t> 	  SsTimeTrajectoryStock_;
 	std::vector<eigen_scalar_array_t> sTrajectoryStock_;

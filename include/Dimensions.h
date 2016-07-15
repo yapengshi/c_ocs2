@@ -71,12 +71,12 @@ public:
 	typedef Eigen::Matrix<double, 1, 1> eigen_scalar_t;
 	typedef std::vector<eigen_scalar_t, Eigen::aligned_allocator<eigen_scalar_t> > eigen_scalar_array_t;
 
-	template <int DIM>
+	template <int DIM1, int DIM2=1>
 	struct LinearFunction_t {
 		scalar_array_t time_;
-		std::vector<Eigen::Matrix<double, DIM, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, DIM, 1>> > uff_;
-		std::vector<Eigen::Matrix<double, DIM, 1>, Eigen::aligned_allocator<Eigen::Matrix<double, DIM, 1>> > deltaUff_;
-		std::vector<Eigen::Matrix<double, DIM, OUTPUT_DIM>, Eigen::aligned_allocator<Eigen::Matrix<double, DIM, OUTPUT_DIM>> > k_;
+		std::vector<Eigen::Matrix<double, DIM1, DIM2>, Eigen::aligned_allocator<Eigen::Matrix<double, DIM1, DIM2>> > uff_;
+		std::vector<Eigen::Matrix<double, DIM1, DIM2>, Eigen::aligned_allocator<Eigen::Matrix<double, DIM1, DIM2>> > deltaUff_;
+		std::vector<Eigen::Matrix<double, DIM1, OUTPUT_DIM>, Eigen::aligned_allocator<Eigen::Matrix<double, DIM1, OUTPUT_DIM>> > k_;
 	};
 	typedef LinearFunction_t<INPUT_DIM> controller_t;
 
@@ -92,10 +92,13 @@ public:
 			lineSearchByMeritFuntion_(false),
 			dispayGSLQP_(false),
 			warmStartGSLQP_(false),
+			useLQForDerivatives_(false),
 
 			AbsTolODE_(1e-9),
 			RelTolODE_(1e-6),
+			maxNumStepsPerSecond_(5000),
 			simulationIsConstrained_(false),
+			minSimulationTimeDuration_(1e-3),
 			minAbsConstraint1ISE_(1e-3),
 			minRelConstraint1ISE_(1e-3),
 
@@ -143,10 +146,13 @@ public:
 		bool lineSearchByMeritFuntion_;
 		bool dispayGSLQP_;
 		bool warmStartGSLQP_;
+		bool useLQForDerivatives_;
 
 		double AbsTolODE_;
 		double RelTolODE_;
+		size_t maxNumStepsPerSecond_;
 		bool simulationIsConstrained_;
+		double minSimulationTimeDuration_;
 		double minAbsConstraint1ISE_;
 		double minRelConstraint1ISE_;
 

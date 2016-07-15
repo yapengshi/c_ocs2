@@ -35,7 +35,7 @@ void GLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::rollout(const state
 		stateTrajectoriesStock[i].clear();
 
 		// initialize subsystem i
-		subsystemDynamicsPtrStock_[i]->initializeModel(switchingTimes_[i], x0, switchingTimes_[i+1], "GLQP");
+		subsystemDynamicsPtrStock_[i]->initializeModel(switchingTimes_, x0, i, "GLQP");
 		// set controller for subsystem i
 		subsystemDynamicsPtrStock_[i]->setController(controllersStock[i]);
 		// simulate subsystem i
@@ -138,7 +138,7 @@ void GLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::approximateOptimalC
 
 	for (int i=0; i<NUM_Subsystems; i++) {
 
-		subsystemDerivativesPtrStock_[i]->initializeModel(switchingTimes_[i], stateOperatingPointsStock_.at(i), switchingTimes_[i+1], "GLQP");
+		subsystemDerivativesPtrStock_[i]->initializeModel(switchingTimes_, stateOperatingPointsStock_.at(i), i, "GLQP");
 		subsystemDerivativesPtrStock_[i]->setCurrentStateAndControl(0.0,
 				stateOperatingPointsStock_.at(i), inputOperatingPointsStock_.at(i), outputOperatingPointsStock_.at(i));
 		subsystemDerivativesPtrStock_[i]->getDerivativeState(AmStock_.at(i));
@@ -205,13 +205,13 @@ void GLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::calculatecontroller
 								+ inputOperatingPointsStock_[i] - controllersStock[i].k_[k]*outputOperatingPointsStock_[i];
 		}
 
-		if (INFO_ON_) {
-//			std::cout << "Controller of subsystem" << i << ":" << std::endl;
-//			std::cout << "learningRate " << learningRate << std::endl;
-//			std::cout << "time: " << controllersStock[i].time_.front() << std::endl;
-//			std::cout << "uff: " <<  (controllersStock[i].uff_[0] + controllersStock[i].k_[0]*outputOperatingPointsStock_[i]).transpose() << std::endl;
-//			std::cout << "u0: " <<  inputOperatingPointsStock_[i].transpose() << std::endl;
-//			std::cout << "k: \n" <<  controllersStock[i].k_.front() << std::endl << std::endl;
+		if (INFO_ON_ ) {
+			std::cout << "Controller of subsystem" << i << ":" << std::endl;
+			std::cout << "learningRate " << learningRate << std::endl;
+			std::cout << "time: " << controllersStock[i].time_.front() << std::endl;
+			std::cout << "delta_uff: " <<  (controllersStock[i].uff_[0] + controllersStock[i].k_[0]*outputOperatingPointsStock_[i]).transpose() << std::endl;
+			std::cout << "u0: " <<  inputOperatingPointsStock_[i].transpose() << std::endl;
+			std::cout << "k: \n" <<  controllersStock[i].k_.front() << std::endl << std::endl;
 		}
 	}
 }

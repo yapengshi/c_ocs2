@@ -50,6 +50,7 @@ int main (int argc, char* argv[])
 	gslqpOptions.dispayGSLQP_ = false;
 	gslqpOptions.displayIPOPT_ = true;
 	gslqpOptions.simulationIsConstrained_ = true;
+	gslqpOptions.useLQForDerivatives_ = false;
 
 
 	/******************************************************************************************************/

@@ -1,0 +1,77 @@
+/*
+*	reference output, generated 15.07.2016
+*/
+
+#### SLQP solver starts with switching times [0, 0.2262, 1.0176, 3] ...
+
+
+#### Initial controller: 
+ cost: 16.2127 	 constraint ISE: 0
+
+#### Iteration 0
+max delta_uff norm: 5.58919
+max uff_error norm: 0
+	 learningRate 0.0 	 cost: 16.1922 	 merit: 16.1922 	 constraint ISE: 0
+	 learningRate 1 	 cost: 9.25458 	 merit: 9.25458 	 constraint ISE: 0
+The chosen learningRate is: 1
+optimization cost:  9.25458
+constraint ISE:     0
+constraint MaxNorm: 0
+
+#### Iteration 1
+max delta_uff norm: 5.48955
+max uff_error norm: 0
+	 learningRate 0.0 	 cost: 9.24212 	 merit: 9.24212 	 constraint ISE: 0
+	 learningRate 1 	 cost: 5.57581 	 merit: 5.57581 	 constraint ISE: 0
+The chosen learningRate is: 1
+optimization cost:  5.57581
+constraint ISE:     0
+constraint MaxNorm: 0
+
+#### Iteration 2
+max delta_uff norm: 0.955944
+max uff_error norm: 0
+	 learningRate 0.0 	 cost: 5.58451 	 merit: 5.58451 	 constraint ISE: 0
+	 learningRate 1 	 cost: 5.47586 	 merit: 5.47586 	 constraint ISE: 0
+The chosen learningRate is: 1
+optimization cost:  5.47586
+constraint ISE:     0
+constraint MaxNorm: 0
+
+#### Iteration 3
+max delta_uff norm: 0.401637
+max uff_error norm: 0
+	 learningRate 0.0 	 cost: 5.47648 	 merit: 5.47648 	 constraint ISE: 0
+	 learningRate 1 	 cost: 5.45373 	 merit: 5.45373 	 constraint ISE: 0
+The chosen learningRate is: 1
+optimization cost:  5.45373
+constraint ISE:     0
+constraint MaxNorm: 0
+
+#### Iteration 4
+max delta_uff norm: 0.186191
+max uff_error norm: 0
+	 learningRate 0.0 	 cost: 5.45514 	 merit: 5.45514 	 constraint ISE: 0
+	 learningRate 1 	 cost: 5.44847 	 merit: 5.44847 	 constraint ISE: 0
+The chosen learningRate is: 1
+optimization cost:  5.44847
+constraint ISE:     0
+constraint MaxNorm: 0
+
+#### Iteration 5
+max delta_uff norm: 0.096479
+max uff_error norm: 0
+	 learningRate 0.0 	 cost: 5.44969 	 merit: 5.44969 	 constraint ISE: 0
+	 learningRate 1 	 cost: 5.44638 	 merit: 5.44638 	 constraint ISE: 0
+	 learningRate 0.5 	 cost: 5.44948 	 merit: 5.44948 	 constraint ISE: 0
+	 learningRate 0.25 	 cost: 5.44872 	 merit: 5.44872 	 constraint ISE: 0
+	 learningRate 0.125 	 cost: 5.45009 	 merit: 5.45009 	 constraint ISE: 0
+	 learningRate 0.0625 	 cost: 5.44985 	 merit: 5.44985 	 constraint ISE: 0
+The chosen learningRate is: 0
+optimization cost:  5.44969
+constraint ISE:     0
+constraint MaxNorm: 0
+
++++++++++++++++++++++++++++++++++++
++++++++ SLQP solver is ended ++++++
++++++++++++++++++++++++++++++++++++

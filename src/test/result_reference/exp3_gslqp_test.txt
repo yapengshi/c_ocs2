@@ -1,0 +1,226 @@
+gimarkus@MG:~/catkin_ct$ ./devel/lib/c_ocs2/exp3_gslqp_test 
+
+#### SLQP solver starts with switching times [0, 0.2262, 1.0176, 3] ...
+
+
+#### Initial controller: 
+ cost: 16.2127 	 constraint ISE: 3
+
+#### Iteration 0
+max delta_uff norm: 5.58919
+max uff_error norm: 45.3314
+	 learningRate 0.0 	 cost: 16.2747 	 merit: 16.2747 	 constraint ISE: 1.91926
+	 learningRate 1 	 cost: 9.32413 	 merit: 9.32413 	 constraint ISE: 2.9566
+The chosen learningRate is: 1
+optimization cost:  9.32413
+constraint ISE:     2.9566
+constraint MaxNorm: 2.36797
+
+#### Iteration 1
+max delta_uff norm: 5.52825
+max uff_error norm: 116.422
+	 learningRate 0.0 	 cost: 9.39966 	 merit: 9.39966 	 constraint ISE: 1.9306
+	 learningRate 1 	 cost: 5.71952 	 merit: 5.71952 	 constraint ISE: 1.54051
+The chosen learningRate is: 1
+optimization cost:  5.71952
+constraint ISE:     1.54051
+constraint MaxNorm: 1.21338
+
+#### Iteration 2
+max delta_uff norm: 0.964055
+max uff_error norm: 578.721
+	 learningRate 0.0 	 cost: 6.53661 	 merit: 6.53661 	 constraint ISE: 18.9638
+	 learningRate 1 	 cost: 6.43411 	 merit: 6.43411 	 constraint ISE: 26.8186
+The chosen learningRate is: 1
+optimization cost:  6.43411
+constraint ISE:     26.8186
+constraint MaxNorm: 32.1223
+
+#### Iteration 3
+max delta_uff norm: 2.54946
+max uff_error norm: 77.2307
+	 learningRate 0.0 	 cost: 6.3277 	 merit: 6.3277 	 constraint ISE: 16.2437
+	 learningRate 1 	 cost: 5.76523 	 merit: 5.76523 	 constraint ISE: 4.89245
+The chosen learningRate is: 1
+optimization cost:  5.76523
+constraint ISE:     4.89245
+constraint MaxNorm: 11.7829
+
+#### Iteration 4
+max delta_uff norm: 0.579257
+max uff_error norm: 19.7106
+	 learningRate 0.0 	 cost: 5.76923 	 merit: 5.76923 	 constraint ISE: 2.59941
+	 learningRate 1 	 cost: 5.68168 	 merit: 5.68168 	 constraint ISE: 2.51553
+The chosen learningRate is: 1
+optimization cost:  5.68168
+constraint ISE:     2.51553
+constraint MaxNorm: 6.60352
+
+#### Iteration 5
+max delta_uff norm: 0.268222
+max uff_error norm: 18.6465
+	 learningRate 0.0 	 cost: 5.69243 	 merit: 5.69243 	 constraint ISE: 1.44058
+	 learningRate 1 	 cost: 5.67935 	 merit: 5.67935 	 constraint ISE: 1.39516
+The chosen learningRate is: 1
+optimization cost:  5.67935
+constraint ISE:     1.39516
+constraint MaxNorm: 4.16569
+
+#### Iteration 6
+max delta_uff norm: 0.138457
+max uff_error norm: 10.1285
+	 learningRate 0.0 	 cost: 5.69633 	 merit: 5.69633 	 constraint ISE: 0.880012
+	 learningRate 1 	 cost: 5.68088 	 merit: 5.68088 	 constraint ISE: 0.792507
+The chosen learningRate is: 1
+optimization cost:  5.68088
+constraint ISE:     0.792507
+constraint MaxNorm: 3.2515
+
+#### Iteration 7
+max delta_uff norm: 0.0260926
+max uff_error norm: 9.34455
+	 learningRate 0.0 	 cost: 5.70366 	 merit: 5.70366 	 constraint ISE: 0.425538
+	 learningRate 1 	 cost: 5.69518 	 merit: 5.69518 	 constraint ISE: 0.375815
+The chosen learningRate is: 1
+optimization cost:  5.69518
+constraint ISE:     0.375815
+constraint MaxNorm: 2.0713
+
+#### Iteration 8
+max delta_uff norm: 0.0507851
+max uff_error norm: 5.85741
+	 learningRate 0.0 	 cost: 5.71949 	 merit: 5.71949 	 constraint ISE: 0.222412
+	 learningRate 1 	 cost: 5.71951 	 merit: 5.71951 	 constraint ISE: 0.208793
+	 learningRate 0.5 	 cost: 5.72007 	 merit: 5.72007 	 constraint ISE: 0.219651
+	 learningRate 0.25 	 cost: 5.71752 	 merit: 5.71752 	 constraint ISE: 0.207708
+The chosen learningRate is: 0.25
+optimization cost:  5.71752
+constraint ISE:     0.207708
+constraint MaxNorm: 1.28406
+
+#### Iteration 9
+max delta_uff norm: 0.0453901
+max uff_error norm: 3.6709
+	 learningRate 0.0 	 cost: 5.73045 	 merit: 5.73045 	 constraint ISE: 0.116538
+	 learningRate 1 	 cost: 5.72991 	 merit: 5.72991 	 constraint ISE: 0.118932
+	 learningRate 0.5 	 cost: 5.72716 	 merit: 5.72716 	 constraint ISE: 0.119018
+The chosen learningRate is: 0.5
+optimization cost:  5.72716
+constraint ISE:     0.119018
+constraint MaxNorm: 0.639931
+
+#### Iteration 10
+max delta_uff norm: 0.0203372
+max uff_error norm: 1.94975
+	 learningRate 0.0 	 cost: 5.74288 	 merit: 5.74288 	 constraint ISE: 0.0619143
+	 learningRate 1 	 cost: 5.73983 	 merit: 5.73983 	 constraint ISE: 0.0706706
+	 learningRate 0.5 	 cost: 5.74139 	 merit: 5.74139 	 constraint ISE: 0.0654376
+	 learningRate 0.25 	 cost: 5.74146 	 merit: 5.74146 	 constraint ISE: 0.072066
+	 learningRate 0.125 	 cost: 5.74355 	 merit: 5.74355 	 constraint ISE: 0.0625758
+	 learningRate 0.0625 	 cost: 5.74423 	 merit: 5.74423 	 constraint ISE: 0.0691492
+The chosen learningRate is: 0
+optimization cost:  5.74288
+constraint ISE:     0.0619143
+constraint MaxNorm: 0.512543
+
+#### Iteration 11
+max delta_uff norm: 0.025941
+max uff_error norm: 1.53299
+	 learningRate 0.0 	 cost: 5.75549 	 merit: 5.75549 	 constraint ISE: 0.0361431
+	 learningRate 1 	 cost: 5.75231 	 merit: 5.75231 	 constraint ISE: 0.0375871
+	 learningRate 0.5 	 cost: 5.7514 	 merit: 5.7514 	 constraint ISE: 0.0373369
+The chosen learningRate is: 0.5
+optimization cost:  5.7514
+constraint ISE:     0.0373369
+constraint MaxNorm: 0.396777
+
+#### Iteration 12
+max delta_uff norm: 0.0134216
+max uff_error norm: 1.25403
+	 learningRate 0.0 	 cost: 5.76905 	 merit: 5.76905 	 constraint ISE: 0.0213478
+	 learningRate 1 	 cost: 5.76233 	 merit: 5.76233 	 constraint ISE: 0.0194278
+The chosen learningRate is: 1
+optimization cost:  5.76233
+constraint ISE:     0.0194278
+constraint MaxNorm: 0.186276
+
+#### Iteration 13
+max delta_uff norm: 0.0100123
+max uff_error norm: 1.01897
+	 learningRate 0.0 	 cost: 5.77127 	 merit: 5.77127 	 constraint ISE: 0.0109877
+	 learningRate 1 	 cost: 5.77202 	 merit: 5.77202 	 constraint ISE: 0.0107771
+	 learningRate 0.5 	 cost: 5.76803 	 merit: 5.76803 	 constraint ISE: 0.0111621
+The chosen learningRate is: 0.5
+optimization cost:  5.76803
+constraint ISE:     0.0111621
+constraint MaxNorm: 0.124254
+
+#### Iteration 14
+max delta_uff norm: 0.0132165
+max uff_error norm: 0.839681
+	 learningRate 0.0 	 cost: 5.77349 	 merit: 5.77349 	 constraint ISE: 0.00612449
+	 learningRate 1 	 cost: 5.77178 	 merit: 5.77178 	 constraint ISE: 0.00638699
+	 learningRate 0.5 	 cost: 5.77281 	 merit: 5.77281 	 constraint ISE: 0.00661831
+	 learningRate 0.25 	 cost: 5.77408 	 merit: 5.77408 	 constraint ISE: 0.00639241
+	 learningRate 0.125 	 cost: 5.77342 	 merit: 5.77342 	 constraint ISE: 0.00639753
+	 learningRate 0.0625 	 cost: 5.77269 	 merit: 5.77269 	 constraint ISE: 0.00634018
+The chosen learningRate is: 0.0625
+optimization cost:  5.77269
+constraint ISE:     0.00634018
+constraint MaxNorm: 0.0908602
+
+#### Iteration 15
+max delta_uff norm: 0.0123733
+max uff_error norm: 0.687994
+	 learningRate 0.0 	 cost: 5.78476 	 merit: 5.78476 	 constraint ISE: 0.00365574
+	 learningRate 1 	 cost: 5.78157 	 merit: 5.78157 	 constraint ISE: 0.00376215
+	 learningRate 0.5 	 cost: 5.77954 	 merit: 5.77954 	 constraint ISE: 0.00371662
+The chosen learningRate is: 0.5
+optimization cost:  5.77954
+constraint ISE:     0.00371662
+constraint MaxNorm: 0.0703556
+
+#### Iteration 16
+max delta_uff norm: 0.0108138
+max uff_error norm: 0.559159
+	 learningRate 0.0 	 cost: 5.78545 	 merit: 5.78545 	 constraint ISE: 0.00221278
+	 learningRate 1 	 cost: 5.78249 	 merit: 5.78249 	 constraint ISE: 0.00215218
+	 learningRate 0.5 	 cost: 5.78144 	 merit: 5.78144 	 constraint ISE: 0.00219066
+The chosen learningRate is: 0.5
+optimization cost:  5.78144
+constraint ISE:     0.00219066
+constraint MaxNorm: 0.053875
+
+#### Iteration 17
+max delta_uff norm: 0.00714358
+max uff_error norm: 0.482918
+	 learningRate 0.0 	 cost: 5.79186 	 merit: 5.79186 	 constraint ISE: 0.00134549
+	 learningRate 1 	 cost: 5.78754 	 merit: 5.78754 	 constraint ISE: 0.00138684
+	 learningRate 0.5 	 cost: 5.78782 	 merit: 5.78782 	 constraint ISE: 0.00137418
+The chosen learningRate is: 0.5
+optimization cost:  5.78782
+constraint ISE:     0.00137418
+constraint MaxNorm: 0.0428883
+
+#### Iteration 18
+max delta_uff norm: 0.0095076
+max uff_error norm: 0.411197
+	 learningRate 0.0 	 cost: 5.79186 	 merit: 5.79186 	 constraint ISE: 0.000916787
+	 learningRate 1 	 cost: 5.78769 	 merit: 5.78769 	 constraint ISE: 0.000859954
+	 learningRate 0.5 	 cost: 5.78861 	 merit: 5.78861 	 constraint ISE: 0.000908779
+The chosen learningRate is: 0.5
+optimization cost:  5.78861
+constraint ISE:     0.000908779
+constraint MaxNorm: 0.0350782
+
++++++++++++++++++++++++++++++++++++
++++++++ SLQP solver is ended ++++++
++++++++++++++++++++++++++++++++++++
+SLQP successfully terminates as cost relative change (relCost=0.000783022) reached to the minimum value.
+Type-1 constraint absolute ISE (absConstraint1ISE=0.000908779) reached to the minimum value.
+
+Switching times are: [0, 0.2262, 1.0176, 3]
+The total cost: 5.78863
+The total cost in the test rollout: 5.78861
+The total cost derivative: 0.0255191  0.115278
+Saving to directory /home/gimarkus/catkin_ct/src/c_ocs2/cereal/test/exp3_test

@@ -1,0 +1,55 @@
+gimarkus@MG:~/catkin_ct$ ./devel/lib/c_ocs2/exp4_gslqp_test 
+
+#### SLQP solver starts with switching times [0, 2, 4] ...
+
+
+#### Initial controller: 
+ cost: 1.76766 	 constraint ISE: 8.03511
+
+#### Iteration 0
+max delta_uff norm: 0.00721889
+max uff_error norm: 1.49695
+	 learningRate 0.0 	 cost: 1.76607 	 merit: 3.81691 	 constraint ISE: 8.01844
+	 learningRate 1 	 cost: 2.8643 	 merit: 6.87675 	 constraint ISE: 0.676413
+	 learningRate 0.5 	 cost: 2.04014 	 merit: 3.82694 	 constraint ISE: 1.66936
+	 learningRate 0.25 	 cost: 1.83425 	 merit: 3.50489 	 constraint ISE: 4.35458
+The chosen learningRate is: 0.25
+optimization cost:  1.83425
+constraint ISE:     4.35458
+constraint MaxNorm: 1.65367
+
+#### Iteration 1
+max delta_uff norm: 0.0678182
+max uff_error norm: 1.13264
+	 learningRate 0.0 	 cost: 1.83486 	 merit: 5.20446 	 constraint ISE: 4.35247
+	 learningRate 1 	 cost: 4.42078 	 merit: 4.83623 	 constraint ISE: 0.0438334
+The chosen learningRate is: 1
+optimization cost:  4.42078
+constraint ISE:     0.0438334
+constraint MaxNorm: 0.230377
+
+#### Iteration 2
+max delta_uff norm: 0.0529697
+max uff_error norm: 0.0760925
+	 learningRate 0.0 	 cost: 4.42021 	 merit: 4.77852 	 constraint ISE: 0.0434587
+	 learningRate 1 	 cost: 4.34215 	 merit: 4.81591 	 constraint ISE: 0.00393111
+	 learningRate 0.5 	 cost: 4.38022 	 merit: 4.78394 	 constraint ISE: 0.0116689
+	 learningRate 0.25 	 cost: 4.40247 	 merit: 4.78669 	 constraint ISE: 0.0240389
+	 learningRate 0.125 	 cost: 4.40949 	 merit: 4.77874 	 constraint ISE: 0.032987
+	 learningRate 0.0625 	 cost: 4.41645 	 merit: 4.78562 	 constraint ISE: 0.0381948
+The chosen learningRate is: 0
+optimization cost:  4.42021
+constraint ISE:     0.0434587
+constraint MaxNorm: 0.225371
+
++++++++++++++++++++++++++++++++++++
++++++++ SLQP solver is ended ++++++
++++++++++++++++++++++++++++++++++++
+SLQP successfully terminates as learningRate reduced to zero.
+Type-1 constraint relative ISE (relConstraint1ISE=0.000374717) reached to the minimum value.
+
+Switching times are: [0, 2, 4]
+The total cost: 4.42021
+The total cost in the test rollout: 4.42021
+Saving to directory /home/gimarkus/catkin_ct/src/c_ocs2/cereal/test/exp4_test
+

@@ -1,0 +1,33 @@
+gimarkus@MG:~/catkin_ct$ ./devel/lib/c_ocs2/exp2_gslqp_test 
+
+#### SLQP solver starts with switching times [0, 0.184, 2] ...
+
+
+#### Initial controller: 
+ cost: 9.77132 	 constraint ISE: 0
+
+#### Iteration 0
+max delta_uff norm: 0.0171924
+max uff_error norm: 0
+	 learningRate 0.0 	 cost: 9.77328 	 merit: 9.77328 	 constraint ISE: 0
+	 learningRate 1 	 cost: 9.77434 	 merit: 9.77434 	 constraint ISE: 0
+	 learningRate 0.5 	 cost: 9.77185 	 merit: 9.77185 	 constraint ISE: 0
+	 learningRate 0.25 	 cost: 9.775 	 merit: 9.775 	 constraint ISE: 0
+	 learningRate 0.125 	 cost: 9.77263 	 merit: 9.77263 	 constraint ISE: 0
+	 learningRate 0.0625 	 cost: 9.77605 	 merit: 9.77605 	 constraint ISE: 0
+The chosen learningRate is: 0
+optimization cost:  9.77328
+constraint ISE:     0
+constraint MaxNorm: 0
+
++++++++++++++++++++++++++++++++++++
++++++++ SLQP solver is ended ++++++
++++++++++++++++++++++++++++++++++++
+SLQP successfully terminates as learningRate reduced to zero.
+Type-1 constraint absolute ISE (absConstraint1ISE=0) reached to the minimum value.
+
+Switching times are: [0, 0.184, 2]
+The total cost: 9.77323
+The total cost in the test rollout: 9.77328
+The total cost derivative: -0.456714
+

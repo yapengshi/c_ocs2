@@ -926,7 +926,6 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::runLQBasedMethod(c
 	initState_ = initState;
 
 	// make sure that the minimum difference between to successive switching times is at least options_.minSimulationTimeDuration_
-	const double minSimulationTimeDuration = 1e-3;
 	for (size_t i=0; i<NUM_SUBSYSTEMS; i++)
 		if (switchingTimes_[i+1]-switchingTimes_[i] < options_.minSimulationTimeDuration_) {
 			if (i+1 == NUM_SUBSYSTEMS)
@@ -996,7 +995,6 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 	initState_ = initState;
 
 	// make sure that the minimum difference between to successive switching times is at least options_.minSimulationTimeDuration_
-	const double minSimulationTimeDuration = 1e-3;
 	for (size_t i=0; i<NUM_SUBSYSTEMS; i++)
 		if (switchingTimes_[i+1]-switchingTimes_[i] < options_.minSimulationTimeDuration_) {
 			if (i+1 == NUM_SUBSYSTEMS)

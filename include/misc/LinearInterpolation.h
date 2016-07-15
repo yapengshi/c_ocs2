@@ -27,7 +27,7 @@ public:
 	LinearInterpolation()
 
 	: index_(0),
-	  zeroFuntion_(false),
+	  zeroFunction_(false),
 	  timeStampPtr_(NULL),
 	  dataPtr_(NULL)
 	{}
@@ -35,14 +35,14 @@ public:
 	LinearInterpolation(const std::vector<double>* timeStampPtr, const std::vector<Data_T,Alloc>* dataPtr)
 
 	: index_(0),
-	  zeroFuntion_(false),
+	  zeroFunction_(false),
 	  timeStampPtr_(timeStampPtr),
 	  dataPtr_(dataPtr)
 	{}
 
 	void reset()  {
 		index_ = 0;
-		zeroFuntion_ = false;
+		zeroFunction_ = false;
 	}
 
 	void setTimeStamp(const std::vector<double>* timeStampPtr)	{
@@ -57,13 +57,13 @@ public:
 
 	void setZero()	{
 		reset();
-		zeroFuntion_ = true;
+		zeroFunction_ = true;
 	}
 
 
 	void interpolate(const double& enquiryTime, Data_T& enquiryData, int greatestLessTimeStampIndex = -1) {
 
-		if (zeroFuntion_==true)  {
+		if (zeroFunction_==true)  {
 			enquiryData.setZero();
 			return;
 		}
@@ -106,7 +106,7 @@ public:
 protected:
 	size_t find(const double& enquiryTime) {
 
-		size_t index;
+		size_t index = -1;
 
 		if (timeStampPtr_->at(index_) > enquiryTime) {
 			for (int i=index_; i>=0; i--)  {
@@ -124,13 +124,18 @@ protected:
 			}
 		}
 
+		// throw error if index is wrong
+		if(index < 0)
+			throw std::runtime_error("LinearInterpolation.h : index in protected member find((const double& enquiryTime) not computed properly");
+
 		index_ = index;
+
 		return index;
 	}
 
 private:
 	size_t index_;
-	bool zeroFuntion_;
+	bool zeroFunction_;
 
 	const std::vector<double>* timeStampPtr_;
 	const std::vector<Data_T,Alloc>* dataPtr_;

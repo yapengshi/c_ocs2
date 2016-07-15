@@ -216,26 +216,30 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateMeritFunct
 		const std::vector<constraint1_vector_array_t>& EvTrajectoryStock,
 		const std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> > >&  lagrangeTrajectoriesStock,
 		const scalar_t& totalCost,
-		scalar_t& meritFuntionValue,
+		scalar_t& meritFunctionValue,
 		scalar_t& constraintISE)  {
 
 	// add cost function
-	meritFuntionValue = totalCost;
+	meritFunctionValue = totalCost;
 
 	// add the L2 penalty for constraint violation
 	calculateConstraintISE(timeTrajectoriesStock, nc1TrajectoriesStock, EvTrajectoryStock, constraintISE);
 	double pho = iteration_/(options_.maxIterationGSLQP_) * options_.meritFunctionRho_;
 
-	meritFuntionValue += 0.5*pho*constraintISE;
+	meritFunctionValue += 0.5*pho*constraintISE;
+
 
 	// add the the lagrangian term for the constraint
-	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
+	scalar_t currentIntermediateMerit;
+	scalar_t nextIntermediateMerit;
 
+	for (int i=0; i<NUM_SUBSYSTEMS; i++)
+	{
 		// integrates the intermediate merit using the trapezoidal approximation method
-		scalar_t currentIntermediateMerit;
-		scalar_t nextIntermediateMerit;
-		for (int k=0; k<timeTrajectoriesStock[i].size()-1; k++) {
-
+		currentIntermediateMerit = 0.0;
+		nextIntermediateMerit = 0.0;
+		for (int k=0; k<timeTrajectoriesStock[i].size()-1; k++)
+		{
 			if (k==0)
 				currentIntermediateMerit = EvTrajectoryStock[i][k].head(nc1TrajectoriesStock[i][k]).transpose() * lagrangeTrajectoriesStock[i][k];
 			else
@@ -243,7 +247,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateMeritFunct
 
 			nextIntermediateMerit = EvTrajectoryStock[i][k+1].head(nc1TrajectoriesStock[i][k+1]).transpose() * lagrangeTrajectoriesStock[i][k+1];
 
-			meritFuntionValue += 0.5*(currentIntermediateMerit+nextIntermediateMerit)*(timeTrajectoriesStock[i][k+1]-timeTrajectoriesStock[i][k]);
+			meritFunctionValue += 0.5*(currentIntermediateMerit+nextIntermediateMerit)*(timeTrajectoriesStock[i][k+1]-timeTrajectoriesStock[i][k]);
 		}  // end of k loop
 	}  // end of i loop
 
@@ -272,12 +276,15 @@ double SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateConstrai
 		scalar_t& constraintISE)  {
 
 	constraintISE = 0.0;
+
 	double maxConstraintNorm = 0.0;
+	scalar_t currentSquaredNormError;
+	scalar_t nextSquaredNormError;
 
 	for (size_t i=0; i<NUM_SUBSYSTEMS; i++)  {
 
-		scalar_t currentSquaredNormError;
-		scalar_t nextSquaredNormError;
+		currentSquaredNormError = 0.0;
+		nextSquaredNormError = 0.0;
 
 		for (size_t k=0; k<timeTrajectoriesStock[i].size()-1; k++)  {
 

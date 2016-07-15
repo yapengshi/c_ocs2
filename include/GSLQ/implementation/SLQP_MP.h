@@ -705,7 +705,8 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 
 		std::vector<control_vector_t> maxDeltaUffStock(NUM_SUBSYSTEMS);
 		std::vector<control_vector_t> maxDeltaUffeStock(NUM_SUBSYSTEMS);
-		for (size_t i=0; i<NUM_SUBSYSTEMS; i++)  {
+		for (size_t i=0; i<NUM_SUBSYSTEMS; i++)
+		{
 			maxDeltaUffStock[i]  = *std::max_element(controllers_[mp_options_.nThreads_][i].deltaUff_.begin(), controllers_[mp_options_.nThreads_][i].deltaUff_.template end(), eigenVectorLessEqual);
 			maxDeltaUffeStock[i] = *std::max_element(feedForwardConstraintInputStock[i].begin(), feedForwardConstraintInputStock[i].end(), eigenVectorLessEqual);
 		}
@@ -806,7 +807,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 		catch(const std::exception& error)
 		{
 			std::cerr << "\t rollout with learningRate " << learningRate << " is terminated due to the slow simulation!" << std::endl;
-			lsTotalCost = std::numeric_limits<scalar_t>::max();
+			lsTotalMerit = std::numeric_limits<scalar_t>::max();
 		}
 
 		// break condition 1: it exits with largest learningRate that its cost is smaller than nominal cost.
@@ -981,6 +982,9 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialR
 	typename RiccatiEquations_t::s_vector_t allSsFinal;
 	RiccatiEquations_t::convert2Vector(QmFinal_, QvFinal_, qFinal_, allSsFinal);
 
+	// final value for the last error equation
+	output_vector_t SveFinal = output_vector_t::Zero();
+
 	for (int i=NUM_SUBSYSTEMS-1; i>=0; i--) {
 
 		// set data for Riccati equations
@@ -1037,13 +1041,10 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialR
 		 * Type_1 constraints error correction compensation
 		 */
 
-		// final value for the last error equation
-		output_vector_t SveFinal = output_vector_t::Zero();
-
-		SveTrajectoryStock_[i].resize(N);
 
 		// Skip calculation of the error correction term Sve if the constrained simulation is used for forward simulation
 		if (options_.simulationIsConstrained_) {
+			SveTrajectoryStock_[i].resize(N);
 			for (int k=0; k<N; k++)
 				SveTrajectoryStock_[i][k].setZero();
 			continue;

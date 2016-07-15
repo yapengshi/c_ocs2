@@ -66,7 +66,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
 				1e-3, options_.AbsTolODE_, options_.RelTolODE_, maxNumSteps);
 
 		if (stateTrajectoriesStock[i].back() != stateTrajectoriesStock[i].back())
-				throw std::runtime_error("System became unstable during the SLQP rollout.");
+			throw std::runtime_error("System became unstable during the SLQP rollout.");
 
 
 		// compute control trajectory for subsystem i
@@ -232,7 +232,8 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateMeritFunct
 
 	// add the L2 penalty for constraint violation
 	calculateConstraintISE(timeTrajectoriesStock, nc1TrajectoriesStock, EvTrajectoryStock, constraintISE);
-	double pho = iteration_/(options_.maxIterationGSLQP_-1) * options_.meritFunctionRho_;
+	double pho = iteration_/(options_.maxIterationGSLQP_) * options_.meritFunctionRho_;
+
 	meritFuntionValue += 0.5*pho*constraintISE;
 
 	// add the the lagrangian term for the constraint
@@ -382,6 +383,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimalC
 					nominalStateTrajectoriesStock_[i][k], nominalInputTrajectoriesStock_[i][k], nominalOutputTrajectoriesStock_[i][k]);
 			subsystemDerivativesPtrStock_[i]->getDerivativeState(AmTrajectoryStock_[i][k]);
 			subsystemDerivativesPtrStock_[i]->getDerivativesControl(BmTrajectoryStock_[i][k]);
+
 			// if constraint type 1 is active
 			if (nc1TrajectoriesStock_[i][k] > 0) {
 				subsystemDerivativesPtrStock_[i]->getConstraint1DerivativesState(CmTrajectoryStock_[i][k]);
@@ -398,7 +400,6 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimalC
 			subsystemCostFunctionsPtrStock_[i]->controlSecondDerivative(RmTrajectoryStock_[i][k]);
 			RmInverseTrajectoryStock_[i][k] = RmTrajectoryStock_[i][k].inverse();
 			subsystemCostFunctionsPtrStock_[i]->stateControlDerivative(PmTrajectoryStock_[i][k]);
-
 		}
 
 
@@ -545,7 +546,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateController
 		DmProjectedFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
 		DmProjectedFunc.setData( &(DmProjectedTrajectoryStock_[i]) );
 
-		// functions for lagrane multiplier only
+		// functions for lagrange multiplier only
 
 		RmFunc.setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
 		RmFunc.setData( &(RmTrajectoryStock_[i]) );
@@ -618,7 +619,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateController
 					throw std::runtime_error("feedForwardConstraintInput is unstable.");
 			}
 			catch(const std::exception& error)  {
-			    std::cerr << "what(): " << error.what() << " at time " << controllersStock[i].time_[k] << " [sec]." << std::endl;
+				std::cerr << "what(): " << error.what() << " at time " << controllersStock[i].time_[k] << " [sec]." << std::endl;
 			}
 
 
@@ -847,7 +848,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 		catch(const std::exception& error)
 		{
 			std::cerr << "\t rollout with learningRate " << learningRate << " is terminated due to the slow simulation!" << std::endl;
-			lsTotalCost = std::numeric_limits<scalar_t>::max();
+			lsTotalMerit = std::numeric_limits<scalar_t>::max();	//bugfix, markus & farbod, june 2016
 		}
 
 		// break condition 1: it exits with largest learningRate that its cost is smaller than nominal cost.
@@ -1014,13 +1015,16 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getNominalTrajector
  * 			+ sTrajectoryStock_: s scalar
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRiccatiEquations(const scalar_t& learningRate)  {
+void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRiccatiEquations(const scalar_t& learningRate) {
 
 	LinearInterpolation<state_matrix_t, Eigen::aligned_allocator<state_matrix_t> > SmFunc;
 
 	// final value for the last Riccati equations
 	typename RiccatiEquations_t::s_vector_t allSsFinal;
 	RiccatiEquations_t::convert2Vector(QmFinal_, QvFinal_, qFinal_, allSsFinal);
+
+	// final value for the last error equation
+	output_vector_t SveFinal = output_vector_t::Zero();
 
 	for (int i=NUM_SUBSYSTEMS-1; i>=0; i--) {
 
@@ -1078,13 +1082,9 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRicc
 		 * Type_1 constraints error correction compensation
 		 */
 
-		// final value for the last error equation
-		output_vector_t SveFinal = output_vector_t::Zero();
-
-		SveTrajectoryStock_[i].resize(N);
-
 		// Skip calculation of the error correction term Sve if the constrained simulation is used for forward simulation
 		if (options_.simulationIsConstrained_) {
+			SveTrajectoryStock_[i].resize(N);	// fixme change this in mp version
 			for (int k=0; k<N; k++)
 				SveTrajectoryStock_[i][k].setZero();
 			continue;
@@ -1167,8 +1167,8 @@ bool SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::makePSD(Eigen::Matr
 
 	if (hasNegativeEigenValue)
 		squareMatrix = eig.eigenvectors() * lambda.asDiagonal() * eig.eigenvectors().inverse();
-//	else
-//		squareMatrix = 0.5*(squareMatrix+squareMatrix.transpose()).eval();
+	//	else
+	//		squareMatrix = 0.5*(squareMatrix+squareMatrix.transpose()).eval();
 
 	return hasNegativeEigenValue;
 }

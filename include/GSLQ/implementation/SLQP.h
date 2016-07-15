@@ -224,7 +224,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateMeritFunct
 
 	// add the L2 penalty for constraint violation
 	calculateConstraintISE(timeTrajectoriesStock, nc1TrajectoriesStock, EvTrajectoryStock, constraintISE);
-	double pho = iteration_/(options_.maxIterationGSLQP_) * options_.meritFunctionRho_;
+	double pho = iteration_/(options_.maxIterationGSLQP_-1) * options_.meritFunctionRho_;	// TODO FIXME - leads ot segfault if maxIterationGSLQP = 1
 
 	meritFunctionValue += 0.5*pho*constraintISE;
 

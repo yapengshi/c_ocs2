@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <cstdlib>
+#include <ctime>
 
 #include <fstream>
 #include <cereal/archives/xml.hpp>
@@ -25,21 +26,32 @@ using namespace ocs2;
 
 int main (int argc, char* argv[])
 {
+	const size_t nSys = 3; 	// number of subsystems
+	const size_t stateDim = 2;
+	const size_t controlDim = 1;
+	const size_t outputDim = stateDim;
+
 	// subsystem dynamics
-	std::vector<std::shared_ptr<ControlledSystemBase<2,1> > > subsystemDynamicsPtr {std::make_shared<EXP1_Sys1>(), std::make_shared<EXP1_Sys2>(), std::make_shared<EXP1_Sys3>()};
+	std::vector<std::shared_ptr<ControlledSystemBase<stateDim, controlDim> > > subsystemDynamicsPtr {
+		std::make_shared<EXP1_Sys1>(), std::make_shared<EXP1_Sys2>(), std::make_shared<EXP1_Sys3>()
+	};
 
 	// subsystem derivatives
-	std::vector<std::shared_ptr<DerivativesBase<2,1> > > subsystemDerivativesPtr {std::make_shared<EXP1_SysDerivative1>(), std::make_shared<EXP1_SysDerivative2>(), std::make_shared<EXP1_SysDerivative3>()};
+	std::vector<std::shared_ptr<DerivativesBase<stateDim, controlDim> > > subsystemDerivativesPtr {
+		std::make_shared<EXP1_SysDerivative1>(), std::make_shared<EXP1_SysDerivative2>(), std::make_shared<EXP1_SysDerivative3>()
+	};
 
 	// subsystem cost functions
-	std::vector<std::shared_ptr<CostFunctionBaseOCS2<2,1> > > subsystemCostFunctionsPtr {std::make_shared<EXP1_CostFunction1>(), std::make_shared<EXP1_CostFunction2>(), std::make_shared<EXP1_CostFunction3>()};
+	std::vector<std::shared_ptr<CostFunctionBaseOCS2<stateDim, controlDim> > > subsystemCostFunctionsPtr {
+		std::make_shared<EXP1_CostFunction1>(), std::make_shared<EXP1_CostFunction2>(), std::make_shared<EXP1_CostFunction3>()
+	};
 
 
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	/******************************************************************************************************/
-	GSLQP<2,1,2,3>::state_vector_array_t   stateOperatingPoints(3, GSLQP<2,1,2,3>::state_vector_t::Zero());
-	GSLQP<2,1,2,3>::control_vector_array_t inputOperatingPoints(3, GSLQP<2,1,2,3>::control_vector_t::Zero());
+	GSLQP<stateDim,controlDim, outputDim, nSys>::state_vector_array_t   stateOperatingPoints(nSys, GSLQP<stateDim,controlDim, outputDim, nSys>::state_vector_t::Zero());
+	GSLQP<stateDim,controlDim, outputDim, nSys>::control_vector_array_t inputOperatingPoints(nSys, GSLQP<stateDim,controlDim, outputDim, nSys>::control_vector_t::Zero());
 	std::vector<size_t> systemStockIndex {0, 1, 2};
 
 	Eigen::Vector2d initState(2.0, 3.0);
@@ -52,13 +64,14 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	// GLQP
-	GLQP<2,1,2,3> glqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, stateOperatingPoints, inputOperatingPoints, systemStockIndex);
+	GLQP<stateDim,controlDim, outputDim, nSys> glqp(
+			subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, stateOperatingPoints, inputOperatingPoints, systemStockIndex);
 
 	glqp.run(switchingTimes);
 
 	// get controller
-	std::vector<GLQP<2,1,2,3>::controller_t> controllersStock(3);
-	std::vector<GLQP<2,1,2,3>::controller_t> controllersStock_mp(3);
+	std::vector<GLQP<stateDim,controlDim, outputDim, nSys>::controller_t> controllersStock(nSys);
+	std::vector<GLQP<stateDim,controlDim, outputDim, nSys>::controller_t> controllersStock_mp(nSys);
 
 	glqp.getController(controllersStock);
 	glqp.getController(controllersStock_mp);
@@ -67,59 +80,56 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	/******************************************************************************************************/
-	SLQP<2,1,2,3>::Options_t slqpOptions;
-	slqpOptions.dispayGSLQP_ = 1;
+	SLQP<stateDim,controlDim, outputDim, nSys>::Options_t slqpOptions;
+	slqpOptions.dispayGSLQP_ = 0;
 	slqpOptions.lineSearchByMeritFuntion_ = false;
 
-	SLQP_MP<2,1,2,3>::MP_Options_t mpOptions;
-	mpOptions.nThreads_ = 4;
-	mpOptions.debugPrintMP_ = true;
+	SLQP_MP<stateDim,controlDim, outputDim, nSys>::Options_t slqpOptions_mp;
+	slqpOptions_mp.dispayGSLQP_ = 0;
+	slqpOptions.lineSearchByMeritFuntion_ = false;
+
+	SLQP_MP<stateDim,controlDim, outputDim, nSys>::MP_Options_t mpOptions;
+	mpOptions.nThreads_ = 1;
+	mpOptions.debugPrintMP_ = false;
 
 	// SLQP
-	SLQP<2,1,2,3> slqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, slqpOptions);
-	SLQP_MP<2,1,2,3> slqp_mp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
-			controllersStock_mp, systemStockIndex, slqpOptions, mpOptions);
+	SLQP	<stateDim,controlDim, outputDim, nSys> slqp		(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, 	systemStockIndex, slqpOptions);
+	SLQP_MP <stateDim,controlDim, outputDim, nSys> slqp_mp	(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock_mp, systemStockIndex, slqpOptions_mp, mpOptions);
 
 	std::cout << "Starting SLQP_MP" << std::endl;
+	std::clock_t begin_mp = std::clock();
 	slqp_mp.run(initState, switchingTimes);
+	std::clock_t end_mp = std::clock();
+	double elapsed_secs_mp = double(end_mp - begin_mp) / CLOCKS_PER_SEC;
 
-	/*
-	std::cout << "Starting SLQP" << std::endl;
+
+	std::cout << "Starting SLQP single core" << std::endl;
+	std::clock_t begin = std::clock();
 	slqp.run(initState, switchingTimes);
+	std::clock_t end = std::clock();
+	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
 
-	// get controller
-	slqp_mp.getController(controllersStock_mp);
-	slqp.getController(controllersStock);
 
-	// rollout
-	std::vector<SLQP<2,1,2,3>::scalar_array_t> timeTrajectoriesStock;
-	std::vector<SLQP<2,1,2,3>::state_vector_array_t> stateTrajectoriesStock;
-	std::vector<SLQP<2,1,2,3>::control_vector_array_t> controlTrajectoriesStock;
-	std::vector<SLQP<2,1,2,3>::scalar_array_t> timeTrajectoriesStock_mp;
-	std::vector<SLQP<2,1,2,3>::state_vector_array_t> stateTrajectoriesStock_mp;
-	std::vector<SLQP<2,1,2,3>::control_vector_array_t> controlTrajectoriesStock_mp;
-	slqp_mp.rollout(0, initState, controllersStock_mp, timeTrajectoriesStock_mp, stateTrajectoriesStock_mp, controlTrajectoriesStock_mp);
-	slqp.rollout(initState, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
+	std::cout << "seconds spent in single core version:  " << elapsed_secs << std::endl;
+	std::cout << "seconds spent in multi core version:   " << elapsed_secs_mp << std::endl;
 
-	// compute cost
-	double rolloutCost_mp;
-	double rolloutCost;
-	slqp_mp.calculateCostFunction(timeTrajectoriesStock_mp, stateTrajectoriesStock_mp, controlTrajectoriesStock_mp, rolloutCost_mp);
-	slqp.calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
-
-	// value funtion
-	double totalCost;
-	slqp.getValueFuntion(0.0, initState, totalCost);
-
-	std::cout << "Total cost comparison: " << std::endl;
-	std::cout << "SLQ   	" << totalCost << std::endl;
-	*/
 
 	double totalCost_mp;
-	slqp_mp.getValueFuntion(0.0, initState, totalCost_mp);
+	double constrCost_mp;
+	double totalValue_mp;
+	slqp_mp.getValueFuntion(0.0, initState, totalValue_mp);
+	slqp_mp.getCostFuntion(initState, totalCost_mp, constrCost_mp);
 
-	std::cout << "SLQ_MP	" << totalCost_mp << std::endl;
+	double  totalCost;
+	double constrCost;
+	double totalValue;
+	slqp.getValueFuntion(0.0, initState, totalValue);
+	slqp.getCostFuntion(initState, totalCost, constrCost);
 
+//	std::cout << "SLQ_MP value			" << totalValue_mp << std::endl;
+//	std::cout << "single core value		" << totalValue << std::endl;
+	std::cout << "SLQ_MP cost			" << totalCost_mp << std::endl;
+	std::cout << "single core cost 		" << totalCost << std::endl;
 
 }
 

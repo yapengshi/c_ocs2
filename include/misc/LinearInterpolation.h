@@ -40,6 +40,13 @@ public:
 	  dataPtr_(dataPtr)
 	{}
 
+	LinearInterpolation(const LinearInterpolation& arg):
+		index_(arg.index_),
+		zeroFunction_(arg.zeroFunction_),
+		timeStampPtr_(arg.timeStampPtr_),
+		dataPtr_(arg.dataPtr_)
+	{}
+
 	void reset()  {
 		index_ = 0;
 		zeroFunction_ = false;

@@ -1,9 +1,13 @@
 /*
- * SLQP.h
+ * SLQP_MP.h
+ *
+ * Multicore version of SLQP
  *
  *  Created on: Jun 20, 2016
  *      Author: markus, farbod
  */
+
+
 
 #ifndef SLQP_MP_OCS2_H_
 #define SLQP_MP_OCS2_H_
@@ -32,8 +36,6 @@
 
 #include "GSLQ/SequentialRiccatiEquations.h"
 #include "GSLQ/SequentialErrorEquation.h"
-#include "GSLQ/GSLQP.h"
-
 
 namespace ocs2{
 
@@ -87,6 +89,7 @@ public:
 		IDLE,
 		LINE_SEARCH,
 		APPROXIMATE_LQ,
+		CALCULATE_CONTROLLER_AND_LAGRANGIAN,
 		SHUTDOWN
 	};
 
@@ -98,15 +101,15 @@ public:
 			const Options_t& options = Options_t::Options(),
 			const MP_Options_t& mp_options = MP_Options_t::MP_Options())
 
-	: t_(NUM_SUBSYSTEMS),
-	  x_(NUM_SUBSYSTEMS),
-	  u_(NUM_SUBSYSTEMS),
-	  y_(NUM_SUBSYSTEMS),
-	  lamba_(NUM_SUBSYSTEMS),
+	: nominalTimeTrajectoriesStock_(NUM_SUBSYSTEMS),
+	  nominalStateTrajectoriesStock_(NUM_SUBSYSTEMS),
+	  nominalInputTrajectoriesStock__(NUM_SUBSYSTEMS),
+	  nominalOutputTrajectoriesStock_(NUM_SUBSYSTEMS),
+	  nominalcostateTrajectoriesStock_(NUM_SUBSYSTEMS),
 	  nominalLagrangeTrajectoriesStock_(NUM_SUBSYSTEMS),
 	  lagrangeControllerStock_(NUM_SUBSYSTEMS),
-	  A_(NUM_SUBSYSTEMS),
-	  B_(NUM_SUBSYSTEMS),
+	  AmTrajectoryStock_(NUM_SUBSYSTEMS),
+	  BmTrajectoryStock_(NUM_SUBSYSTEMS),
 	  nc1TrajectoriesStock_(NUM_SUBSYSTEMS),
 	  EvTrajectoryStock_(NUM_SUBSYSTEMS),
 	  CmTrajectoryStock_(NUM_SUBSYSTEMS),
@@ -134,7 +137,8 @@ public:
 	  switchingTimes_(NUM_SUBSYSTEMS+1),
 	  iteration_(0),
 	  options_(options),
-	  mp_options_(mp_options)
+	  mp_options_(mp_options),
+	  feedForwardConstraintInputStock_(NUM_SUBSYSTEMS)
 	{
 		// resize instances to correct number of threads + 1
 		dynamics_.resize(mp_options_.nThreads_+1);
@@ -178,12 +182,25 @@ public:
 		if (systemStockIndex.size() != NUM_SUBSYSTEMS)
 			throw std::runtime_error("systemStockIndex has less elements then the number of subsystems");
 
+		// for controller design
+		nominalOutputFunc_.resize(mp_options_.nThreads_+1);
+		nominalInputFunc_.resize(mp_options_.nThreads_+1);
+		BmFunc_.resize(mp_options_.nThreads_+1);
+		PmFunc_.resize(mp_options_.nThreads_+1);
+		RmInverseFunc_.resize(mp_options_.nThreads_+1);
+		RvFunc_.resize(mp_options_.nThreads_+1);
+		EvProjectedFunc_.resize(mp_options_.nThreads_+1);
+		CmProjectedFunc_.resize(mp_options_.nThreads_+1);
+		DmProjectedFunc_.resize(mp_options_.nThreads_+1);
+		nominalLagrangeMultiplierFunc_.resize(mp_options_.nThreads_+1);
+		DmDagerFunc_.resize(mp_options_.nThreads_+1);
+		RmFunc_.resize(mp_options_.nThreads_+1);
 
 		// initialize threads
 		launchWorkerThreads();
 	}
 
-	~SLQP_MP() {}
+	~SLQP_MP();
 
 	void rollout(
 			const size_t threadId,
@@ -235,7 +252,7 @@ public:
 
 	void getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion); // todo: getValueFunction
 
-	void getCostFuntion(const output_vector_t& initOutput, scalar_t& costFunction);
+	void getCostFuntion(const output_vector_t& initOutput, scalar_t& costFunction, scalar_t& constriantCostFunction);
 
 	void getNominalTrajectories(std::vector<scalar_array_t>& nominalTimeTrajectoriesStock,
 			std::vector<state_vector_array_t>& nominalStateTrajectoriesStock,
@@ -260,7 +277,8 @@ protected:
 			const std::vector<lagrange_t>& lagrangeMultiplierFunctionsStock,
 			std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> > >&  lagrangeTrajectoriesStock);
 
-	void calculateRolloutCostate(const std::vector<scalar_array_t>& timeTrajectoriesStock,
+	void calculateRolloutCostate(
+			const std::vector<scalar_array_t>& timeTrajectoriesStock,
 			const std::vector<output_vector_array_t>& outputTrajectoriesStock,
 			std::vector<output_vector_array_t>& costateTrajectoriesStock);
 
@@ -268,23 +286,27 @@ protected:
 			scalar_t& learningRateStar,
 			scalar_t maxLearningRateStar=1.0);
 
-	void transformLocalValueFuntion2Global();
-
 	template <typename Derived>
 	bool makePSD(Eigen::MatrixBase<Derived>& squareMatrix);
 
 
 private:
 
-	void launchWorkerThreads();		// Launch all worker threads
+	void launchWorkerThreads();
+	void threadWork(size_t threadId);
 
-	void threadWork(size_t threadId); 	// Main function of thread worker
-
+	// main function for sub-tasks
 	void approximateSubsystemLQ(); // computes the linearized dynamics for a particular subsystem
+	void calculateControllerAndLagrangian();
 
+	// worker functions
 	void approximateSubsystemLQWorker(size_t threadId);		//Worker function for linearized dynamics
+	void calculateControllerAndLagrangianWorker(size_t threadId);
 
+	// execute methods
 	void executeApproximateSubsystemLQ(size_t threadId, size_t k);	// Computes the linearized dynamics
+	void executeCalculateControllerAndLagrangian(size_t threadId, size_t k);
+
 
 	std::vector<std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > > > dynamics_;
 	std::vector<std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > > > linearizedSystems_;
@@ -297,29 +319,29 @@ private:
 	scalar_t nominalTotalCost_;
 	scalar_t nominalTotalMerit_;
 	scalar_t nominalConstraint1ISE_;
-	std::vector<scalar_array_t> t_;
-	std::vector<state_vector_array_t> x_;
-	std::vector<control_vector_array_t> u_;
-	std::vector<output_vector_array_t> y_;
-	std::vector<output_vector_array_t> lamba_;
+	std::vector<scalar_array_t> 		nominalTimeTrajectoriesStock_;
+	std::vector<state_vector_array_t> 	nominalStateTrajectoriesStock_;
+	std::vector<control_vector_array_t> nominalInputTrajectoriesStock__;
+	std::vector<output_vector_array_t> 	nominalOutputTrajectoriesStock_;
+	std::vector<output_vector_array_t> 	nominalcostateTrajectoriesStock_;
 	std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> > >  nominalLagrangeTrajectoriesStock_;
 
 	std::vector<lagrange_t> lagrangeControllerStock_;
 
-	std::vector<state_matrix_array_t> A_;
-	std::vector<control_gain_matrix_array_t> B_;
+	std::vector<state_matrix_array_t> 			AmTrajectoryStock_;
+	std::vector<control_gain_matrix_array_t> 	BmTrajectoryStock_;
 
-	std::vector<std::vector<size_t> > nc1TrajectoriesStock_;  // nc1: Number of the active constraints
-	std::vector<constraint1_vector_array_t> EvTrajectoryStock_;
+	std::vector<std::vector<size_t> > 				nc1TrajectoriesStock_;  // nc1: Number of the active constraints
+	std::vector<constraint1_vector_array_t> 		EvTrajectoryStock_;
 	std::vector<constraint1_state_matrix_array_t>   CmTrajectoryStock_;
 	std::vector<constraint1_control_matrix_array_t> DmTrajectoryStock_;
 
 	eigen_scalar_t  qFinal_;
 	output_vector_t QvFinal_;
 	state_matrix_t  QmFinal_;
-	std::vector<eigen_scalar_array_t> qTrajectoryStock_;
-	std::vector<output_vector_array_t> QvTrajectoryStock_;
-	std::vector<state_matrix_array_t> QmTrajectoryStock_;
+	std::vector<eigen_scalar_array_t> 	qTrajectoryStock_;
+	std::vector<output_vector_array_t> 	QvTrajectoryStock_;
+	std::vector<state_matrix_array_t> 	QmTrajectoryStock_;
 	std::vector<control_vector_array_t> RvTrajectoryStock_;
 	std::vector<control_matrix_array_t> RmTrajectoryStock_;
 	std::vector<control_feedback_array_t> PmTrajectoryStock_;
@@ -335,11 +357,11 @@ private:
 	std::vector<control_matrix_array_t>   DmProjectedTrajectoryStock_;  // DmDager * Dm
 
 
-	std::vector<scalar_array_t> 	  SsTimeTrajectoryStock_;
-	std::vector<eigen_scalar_array_t> sTrajectoryStock_;
-	std::vector<output_vector_array_t> SvTrajectoryStock_;
-	std::vector<output_vector_array_t> SveTrajectoryStock_;
-	std::vector<state_matrix_array_t> SmTrajectoryStock_;
+	std::vector<scalar_array_t> 	  	SsTimeTrajectoryStock_;
+	std::vector<eigen_scalar_array_t> 	sTrajectoryStock_;
+	std::vector<output_vector_array_t> 	SvTrajectoryStock_;
+	std::vector<output_vector_array_t> 	SveTrajectoryStock_;
+	std::vector<state_matrix_array_t> 	SmTrajectoryStock_;
 
 	scalar_array_t switchingTimes_;
 	state_vector_t initState_;
@@ -350,7 +372,7 @@ private:
 	std::vector<std::thread> workerThreads_;
 	std::atomic_bool workersActive_;
 	std::atomic_int workerTask_;
-//	bool threadsInitialized_; // not required
+	std::atomic_int subsystemProcessed_;		// the subsystem the threads are currently working on
 
 	std::mutex workerWakeUpMutex_;
 	std::condition_variable workerWakeUpCondition_;
@@ -362,8 +384,7 @@ private:
 	std::mutex alphaBestFoundMutex_;
 	std::condition_variable alphaBestFoundCondition_;
 
-	size_t KMax_subsystem_;		// denotes the number of integration steps for a particular subsystem i
-	size_t subsystemProcessed_;		// the subsystem the threads are currently working on
+	std::atomic_size_t KMax_subsystem_;		// denotes the number of integration steps for a particular subsystem i
 
 	std::atomic_size_t alphaTaken_;
 	size_t alphaMax_;
@@ -375,6 +396,24 @@ private:
 	std::atomic_size_t kTaken_;
 	std::atomic_size_t kCompleted_;
 
+	// for controller design
+	// functions for controller and lagrange multiplier
+	std::vector<LinearInterpolation<output_vector_t,Eigen::aligned_allocator<output_vector_t> >>   	nominalOutputFunc_;
+	std::vector<LinearInterpolation<control_vector_t,Eigen::aligned_allocator<control_vector_t> >> 	nominalInputFunc_;
+	std::vector<LinearInterpolation<control_gain_matrix_t,Eigen::aligned_allocator<control_gain_matrix_t> >> BmFunc_;
+	std::vector<LinearInterpolation<control_feedback_t,Eigen::aligned_allocator<control_feedback_t> >> PmFunc_;
+	std::vector<LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> >>     RmInverseFunc_;
+	std::vector<LinearInterpolation<control_vector_t,Eigen::aligned_allocator<control_vector_t> >>     RvFunc_;
+	std::vector<LinearInterpolation<control_vector_t,Eigen::aligned_allocator<control_vector_t> >>     EvProjectedFunc_;
+	std::vector<LinearInterpolation<control_feedback_t,Eigen::aligned_allocator<control_feedback_t> >> CmProjectedFunc_;
+	std::vector<LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> >>     DmProjectedFunc_;
+	// functions for lagrange multiplier only
+	std::vector<LinearInterpolation<Eigen::VectorXd,Eigen::aligned_allocator<Eigen::VectorXd> >> nominalLagrangeMultiplierFunc_;
+	std::vector<LinearInterpolation<control_constraint1_matrix_t,Eigen::aligned_allocator<control_constraint1_matrix_t> >> DmDagerFunc_;
+	std::vector<LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> >> RmFunc_;
+
+	std::vector<control_vector_array_t> feedForwardConstraintInputStock_;
+	bool nominalLagrangeMultiplierUpdated_;
 
 public:
 	template <size_t GSLQP_STATE_DIM, size_t GSLQP_INPUT_DIM, size_t GSLQP_OUTPUT_DIM, size_t GSLQP_NUM_SUBSYSTEMS>

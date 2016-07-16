@@ -981,21 +981,26 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getValueFuntion(con
 	}
 
 	state_matrix_t Sm;
-	LinearInterpolation<state_matrix_t,Eigen::aligned_allocator<state_matrix_t> > SmFunc(&SsTimeTrajectoryStock_[activeSubsystem], &SmTrajectoryStock_[activeSubsystem]);
+	LinearInterpolation<state_matrix_t,Eigen::aligned_allocator<state_matrix_t> > SmFunc(
+			&SsTimeTrajectoryStock_[activeSubsystem], &SmTrajectoryStock_[activeSubsystem]);
 	SmFunc.interpolate(time, Sm);
 	size_t greatestLessTimeStampIndex = SmFunc.getGreatestLessTimeStampIndex();
+
 	output_vector_t Sv;
-	LinearInterpolation<output_vector_t,Eigen::aligned_allocator<output_vector_t> > SvFunc(&SsTimeTrajectoryStock_[activeSubsystem], &SvTrajectoryStock_[activeSubsystem]);
+	LinearInterpolation<output_vector_t,Eigen::aligned_allocator<output_vector_t> > SvFunc(
+			&SsTimeTrajectoryStock_[activeSubsystem], &SvTrajectoryStock_[activeSubsystem]);
 	SvFunc.interpolate(time, Sv, greatestLessTimeStampIndex);
+
 	eigen_scalar_t s;
-	LinearInterpolation<eigen_scalar_t,Eigen::aligned_allocator<eigen_scalar_t> > sFunc(&SsTimeTrajectoryStock_[activeSubsystem], &sTrajectoryStock_[activeSubsystem]);
+	LinearInterpolation<eigen_scalar_t,Eigen::aligned_allocator<eigen_scalar_t> > sFunc(
+			&SsTimeTrajectoryStock_[activeSubsystem], &sTrajectoryStock_[activeSubsystem]);
 	sFunc.interpolate(time, s, greatestLessTimeStampIndex);
 
-	output_vector_t xNomilnal;
+	output_vector_t xNominal;
 	LinearInterpolation<output_vector_t,Eigen::aligned_allocator<output_vector_t> > xNominalFunc(&nominalTimeTrajectoriesStock_[activeSubsystem], &nominalOutputTrajectoriesStock_[activeSubsystem]);
-	xNominalFunc.interpolate(time, xNomilnal);
+	xNominalFunc.interpolate(time, xNominal);
 
-	output_vector_t deltaX = output-xNomilnal;
+	output_vector_t deltaX = output-xNominal;
 	valueFuntion = (s + deltaX.transpose()*Sv + 0.5*deltaX.transpose()*Sm*deltaX).eval()(0);
 }
 
@@ -1249,7 +1254,8 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 	initState_ = initState;
 
 	// display
-	if (options_.dispayGSLQP_) {
+	if (options_.dispayGSLQP_)
+	{
 		std::cerr << "\n#### SLQP solver starts with switching times [" << switchingTimes[0];
 		for (size_t i=1; i<=NUM_SUBSYSTEMS; i++)   std::cerr << ", " << switchingTimes[i];
 		std::cerr << "] ..." << std::endl << std::endl;
@@ -1336,8 +1342,6 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 	calculateRolloutCostate(nominalTimeTrajectoriesStock_, nominalOutputTrajectoriesStock_,
 			nominalcostateTrajectoriesStock_);
 
-//	// transform from local value function to global representation (avoid this function)
-//	transformLocalValueFuntion2Global();
 
 	// display
 	if (options_.dispayGSLQP_ )  {

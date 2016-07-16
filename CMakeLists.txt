@@ -79,7 +79,7 @@ include_directories(
 # ) 
 
 ## Declare a cpp executable
-#add_executable(exp1_slqp_mp_test src/test/EXP1_SLQP_MP_Test.cpp)
+add_executable(exp1_slqp_mp_test src/test/EXP1_SLQP_MP_Test.cpp)
 
 ## Declare a cpp executable
 add_executable(exp1_gslqp_test src/test/EXP1GSLQPTest.cpp)
@@ -114,12 +114,12 @@ add_executable(exp3_numerical_derivative_test src/test/EXP3SystemDynamicsDerivat
 # add_dependencies(c_ocs2_node c_ocs2_generate_messages_cpp)
 
 
-## Specify libraries to link a library or executable target against
-#target_link_libraries(exp1_slqp_mp_test
-#  ${catkin_LIBRARIES}
-#  ${Boost_LIBRARIES}
-#  pthread
-#)
+# Specify libraries to link a library or executable target against
+target_link_libraries(exp1_slqp_mp_test
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+  pthread
+)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp1_gslqp_test

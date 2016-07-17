@@ -1451,7 +1451,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControl
 			DmDagerFunc_[n].setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
 			DmDagerFunc_[n].setData( &(DmDagerTrajectoryStock_[i]) );
 
-			if (nominalLagrangeMultiplierUpdated_==false) {
+			if (nominalLagrangeMultiplierUpdated_ == true) {
 				nominalLagrangeMultiplierFunc_[n].setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
 				nominalLagrangeMultiplierFunc_[n].setData( &(nominalLagrangeTrajectoriesStock_[i]) );
 			}
@@ -1623,7 +1623,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeCalculate
 	control_matrix_t Rm;
 
 	nominalOutputFunc_[threadId].interpolate(time, nominalOutput);
-	greatestLessTimeStampIndex = nominalOutputFunc_[threadId].getGreatestLessTimeStampIndex();
+	greatestLessTimeStampIndex = nominalOutputFunc_[threadId].getGreatestLessTimeStampIndex(); // todo: problem here
 
 	nominalInputFunc_[threadId].interpolate(time, nominalInput, greatestLessTimeStampIndex);
 
@@ -1663,10 +1663,8 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeCalculate
 
 	// lagrange multiplier calculation
 	const size_t& nc1 = nc1TrajectoriesStock_[i][greatestLessTimeStampIndex];
-
 	DmDagerFunc_[threadId].interpolate(time, DmDager, greatestLessTimeStampIndex);
 	RmFunc_[threadId].interpolate(time, Rm, greatestLessTimeStampIndex);
-
 	Eigen::MatrixXd DmDagerTransRm = DmDager.leftCols(nc1).transpose() * Rm;
 
 
@@ -1674,13 +1672,15 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeCalculate
 	lagrangeControllerStock_[i].uff_[k] = -lagrangeControllerStock_[i].k_[k]*nominalOutput;
 	Eigen::VectorXd localVff = DmDagerTransRm * (EvProjected-Lv-Lve);
 
-	if (nominalLagrangeMultiplierUpdated_==true || options_.lineSearchByMeritFuntion_==false) {
+	if (nominalLagrangeMultiplierUpdated_ == false || options_.lineSearchByMeritFuntion_==false) {
 		lagrangeControllerStock_[i].uff_[k] += localVff;
 		lagrangeControllerStock_[i].deltaUff_[k] = Eigen::VectorXd::Zero(nc1);
 
 	} else {
 		Eigen::VectorXd nominalLagrangeMultiplier;
+
 		nominalLagrangeMultiplierFunc_[threadId].interpolate(time, nominalLagrangeMultiplier, greatestLessTimeStampIndex);
+
 		lagrangeControllerStock_[i].uff_[k] += nominalLagrangeMultiplier;
 
 		lagrangeControllerStock_[i].deltaUff_[k] = localVff - nominalLagrangeMultiplier;
@@ -1696,6 +1696,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeCalculate
 	catch(const std::exception& error)  {
 		std::cerr << "what(): " << error.what() << " at time " << lagrangeControllerStock_[i].time_[k] << " [sec]." << std::endl;
 	}
+
 }
 
 

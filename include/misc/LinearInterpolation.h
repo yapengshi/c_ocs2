@@ -78,8 +78,8 @@ public:
 		if (timeStampPtr_==NULL)  throw std::runtime_error("timeStampPtr is not initialized.");
 		if (dataPtr_==NULL)       throw std::runtime_error("dataPtr is not initialized.");
 
-		if (timeStampPtr_->size()==0)  				  throw std::runtime_error("LinearInterpolation is not initialized.");
-		if (timeStampPtr_->size()!=dataPtr_->size())  throw std::runtime_error("The size of timeStamp vector is not equal to the size of data vector.");
+		if (timeStampPtr_->size()==0)  				  throw std::runtime_error("LinearInterpolation.h : LinearInterpolation is not initialized.");
+		if (timeStampPtr_->size()!=dataPtr_->size())  throw std::runtime_error("LinearInterpolation.h : The size of timeStamp vector is not equal to the size of data vector.");
 
 		if (timeStampPtr_->size()==1)  {
 			enquiryData = dataPtr_->front();

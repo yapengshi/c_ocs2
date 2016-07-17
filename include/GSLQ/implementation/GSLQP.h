@@ -590,7 +590,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateBVPSensit
 			control_matrix_t RmInverse;
 			RmInverseFunc.interpolate(t, RmInverse, greatestLessTimeStampIndex);
 
-			sensitivityControllersStock[i].uff_[k].col(switchingTimeIndex-1) = -RmInverse*Bm.transpose()*SvTrajectoriesStock[i][k];
+			sensitivityControllersStock[i].uff_[k].col(switchingTimeIndex-1) = -RmInverse*Bm.transpose()*SvTrajectoriesStock[i][k]; //FIXME
 
 		}  // end of k loop
 	}  // end of i loop

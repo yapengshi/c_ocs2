@@ -95,7 +95,7 @@ public:
 
 	SLQP_MP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDynamicsPtr,
 			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDerivativesPtr,
-			const std::vector<std::shared_ptr<CostFunctionBaseOCS2<OUTPUT_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
+			std::vector<std::shared_ptr<CostFunctionBaseOCS2<OUTPUT_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
 			const std::vector<controller_t>& initialControllersStock,
 			const std::vector<size_t>& systemStockIndex,
 			const Options_t& options = Options_t::Options(),
@@ -103,7 +103,7 @@ public:
 
 	: nominalTimeTrajectoriesStock_(NUM_SUBSYSTEMS),
 	  nominalStateTrajectoriesStock_(NUM_SUBSYSTEMS),
-	  nominalInputTrajectoriesStock__(NUM_SUBSYSTEMS),
+	  nominalInputTrajectoriesStock_(NUM_SUBSYSTEMS),
 	  nominalOutputTrajectoriesStock_(NUM_SUBSYSTEMS),
 	  nominalcostateTrajectoriesStock_(NUM_SUBSYSTEMS),
 	  nominalLagrangeTrajectoriesStock_(NUM_SUBSYSTEMS),
@@ -307,6 +307,12 @@ private:
 	void executeApproximateSubsystemLQ(size_t threadId, size_t k);	// Computes the linearized dynamics
 	void executeCalculateControllerAndLagrangian(size_t threadId, size_t k);
 
+	// for generating unique identifiers for subsystem, task, iteration:
+	// note: arguments must not be passed by value here
+	size_t generateUniqueProcessID (const size_t& iterateNo, const std::atomic_int& workerState, const std::atomic_int& subsystemId)
+	{
+		return (10e9*(workerState +1) + 10e6 * (subsystemId +1) + iterateNo);
+	}
 
 	std::vector<std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > > > dynamics_;
 	std::vector<std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > > > linearizedSystems_;
@@ -321,7 +327,7 @@ private:
 	scalar_t nominalConstraint1ISE_;
 	std::vector<scalar_array_t> 		nominalTimeTrajectoriesStock_;
 	std::vector<state_vector_array_t> 	nominalStateTrajectoriesStock_;
-	std::vector<control_vector_array_t> nominalInputTrajectoriesStock__;
+	std::vector<control_vector_array_t> nominalInputTrajectoriesStock_;
 	std::vector<output_vector_array_t> 	nominalOutputTrajectoriesStock_;
 	std::vector<output_vector_array_t> 	nominalcostateTrajectoriesStock_;
 	std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> > >  nominalLagrangeTrajectoriesStock_;

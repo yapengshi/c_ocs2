@@ -660,9 +660,9 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 
 	// perform one rollout while the input correction for the type-1 constraint is considered.
 	rollout(mp_options_.nThreads_, initState_, controllers_[mp_options_.nThreads_], nominalTimeTrajectoriesStock_,
-			nominalStateTrajectoriesStock_, nominalInputTrajectoriesStock__, nominalOutputTrajectoriesStock_,
+			nominalStateTrajectoriesStock_, nominalInputTrajectoriesStock_, nominalOutputTrajectoriesStock_,
 			nc1TrajectoriesStock_, EvTrajectoryStock_);
-	calculateCostFunction(nominalTimeTrajectoriesStock_, nominalOutputTrajectoriesStock_, nominalInputTrajectoriesStock__,
+	calculateCostFunction(nominalTimeTrajectoriesStock_, nominalOutputTrajectoriesStock_, nominalInputTrajectoriesStock_,
 			nominalTotalCost_);
 
 	// calculate the merit function
@@ -760,7 +760,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 		controllers_[mp_options_.nThreads_] = lsControllersStock;
 		nominalTimeTrajectoriesStock_  = lsTimeTrajectoriesStock;
 		nominalStateTrajectoriesStock_  = lsStateTrajectoriesStock;
-		nominalInputTrajectoriesStock__  = lsInputTrajectoriesStock;
+		nominalInputTrajectoriesStock_  = lsInputTrajectoriesStock;
 		nominalOutputTrajectoriesStock_ = lsOutputTrajectoriesStock;
 		nc1TrajectoriesStock_ = lsNc1TrajectoriesStock;
 		EvTrajectoryStock_ = lsEvTrajectoryStock;
@@ -884,7 +884,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getCostFuntion(c
  * 		output
  * 			+ nominalTimeTrajectoriesStock_: optimal time trajectory
  * 			+ nominalStateTrajectoriesStock_: optimal state trajectory
- * 			+ nominalInputTrajectoriesStock__: optimal control input trajectory
+ * 			+ nominalInputTrajectoriesStock_: optimal control input trajectory
  * 			+ nominalOutputTrajectoriesStock_: optimal output trajectory
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
@@ -895,7 +895,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getNominalTrajec
 
 	nominalTimeTrajectoriesStock   = nominalTimeTrajectoriesStock_;
 	nominalStateTrajectoriesStock  = nominalStateTrajectoriesStock_;
-	nominalInputTrajectoriesStock  = nominalInputTrajectoriesStock__;
+	nominalInputTrajectoriesStock  = nominalInputTrajectoriesStock_;
 	nominalOutputTrajectoriesStock = nominalOutputTrajectoriesStock_;
 }
 
@@ -1117,11 +1117,11 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 	rollout(mp_options_.nThreads_,
 			initState_,
 			controllers_[mp_options_.nThreads_],
-			nominalTimeTrajectoriesStock_, nominalStateTrajectoriesStock_, nominalInputTrajectoriesStock__, nominalOutputTrajectoriesStock_,
+			nominalTimeTrajectoriesStock_, nominalStateTrajectoriesStock_, nominalInputTrajectoriesStock_, nominalOutputTrajectoriesStock_,
 			nc1TrajectoriesStock_, EvTrajectoryStock_);
 
 	// initial controller cost
-	calculateCostFunction(nominalTimeTrajectoriesStock_, nominalOutputTrajectoriesStock_, nominalInputTrajectoriesStock__, nominalTotalCost_); // todo: parallelize ?
+	calculateCostFunction(nominalTimeTrajectoriesStock_, nominalOutputTrajectoriesStock_, nominalInputTrajectoriesStock_, nominalTotalCost_); // todo: parallelize ?
 
 	// initial controller merit
 	nominalTotalMerit_ = nominalTotalCost_;
@@ -1228,6 +1228,8 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 	int lastCompletedSubsystem = -1;
 	//	int taskAlreadyProcessedForIterationNumber_= -1;
 
+	size_t uniqueProcessID = 0;
+
 	while(workersActive_)
 	{
 		if(mp_options_.debugPrintMP_)
@@ -1241,7 +1243,8 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 		 * - the workerTask_ is IDLE
 		 * - the last completed task is the same as the current task but the last subsystem was already processed
 		 * */
-		if ( workerTask_ == IDLE || ((lastCompletedTask == workerTask_) && (lastCompletedSubsystem == subsystemProcessed_)))
+//		if ( workerTask_ == IDLE || ((lastCompletedTask == workerTask_) && (lastCompletedSubsystem == subsystemProcessed_)))
+		if ( workerTask_ == IDLE || uniqueProcessID == generateUniqueProcessID(iteration_, workerTask_, subsystemProcessed_))
 		{
 			if(mp_options_.debugPrintMP_)
 			{
@@ -1257,9 +1260,9 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 			// sleep until the condition in {} becomes true. that means
 			// wake up if worker task becomes something but idle, ...
 
-			workerWakeUpCondition_.wait(waitLock, [this, lastCompletedTask, lastCompletedSubsystem]{
+			workerWakeUpCondition_.wait(waitLock, [this, lastCompletedTask, uniqueProcessID]{
 				//				return (workerTask_ != IDLE && ((lastCompletedTask != workerTask_) || (lastCompletedTask == workerTask_ && subsystemProcessed_ < NUM_SUBSYSTEMS-1)));
-				return (workerTask_ != IDLE && !(lastCompletedSubsystem == subsystemProcessed_ && lastCompletedTask == workerTask_) );
+				return (workerTask_ != IDLE &&  uniqueProcessID != generateUniqueProcessID(iteration_, workerTask_, subsystemProcessed_) );
 			});
 
 			waitLock.unlock();
@@ -1302,6 +1305,9 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 			approximateSubsystemLQWorker(threadId);
 			lastCompletedTask = APPROXIMATE_LQ;
 			lastCompletedSubsystem = subsystemProcessed_;
+
+			uniqueProcessID = generateUniqueProcessID (iteration_, APPROXIMATE_LQ, subsystemProcessed_);
+
 			break;
 		}
 		case CALCULATE_CONTROLLER_AND_LAGRANGIAN:
@@ -1311,6 +1317,8 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 			calculateControllerAndLagrangianWorker(threadId);
 			lastCompletedTask = CALCULATE_CONTROLLER_AND_LAGRANGIAN;
 			lastCompletedSubsystem = subsystemProcessed_;
+			uniqueProcessID = generateUniqueProcessID (iteration_, CALCULATE_CONTROLLER_AND_LAGRANGIAN, subsystemProcessed_);
+
 			break;
 		}
 		case SHUTDOWN:
@@ -1389,7 +1397,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 			std::cout<<"[MP]: Approximating terminal cost with single thread, subsystem  "<< i << std::endl;
 		}
 
-		costFunctions_[mp_options_.nThreads_][i]->setCurrentStateAndControl(nominalTimeTrajectoriesStock_[i].back(), nominalOutputTrajectoriesStock_[i].back(), nominalInputTrajectoriesStock__[i].back());
+		costFunctions_[mp_options_.nThreads_][i]->setCurrentStateAndControl(nominalTimeTrajectoriesStock_[i].back(), nominalOutputTrajectoriesStock_[i].back(), nominalInputTrajectoriesStock_[i].back());
 
 		costFunctions_[mp_options_.nThreads_][i]->terminalCost(qFinal_(0));
 		costFunctions_[mp_options_.nThreads_][i]->terminalCostStateDerivative(QvFinal_);
@@ -1421,7 +1429,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControl
 			nominalOutputFunc_[n].setData( &(nominalOutputTrajectoriesStock_[i]) );
 
 			nominalInputFunc_[n].setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
-			nominalInputFunc_[n].setData( &(nominalInputTrajectoriesStock__[i]) );
+			nominalInputFunc_[n].setData( &(nominalInputTrajectoriesStock_[i]) );
 
 			BmFunc_[n].setTimeStamp( &(nominalTimeTrajectoriesStock_[i]) );
 			BmFunc_[n].setData( &(BmTrajectoryStock_[i]) );
@@ -1576,7 +1584,11 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeApproxima
 	const size_t i = subsystemProcessed_;
 
 	// LINEARIZE SYSTEM DYNAMICS AND CONSTRAINTS
-	linearizedSystems_[threadId][i]->setCurrentStateAndControl(nominalTimeTrajectoriesStock_[i][k], nominalStateTrajectoriesStock_[i][k], nominalInputTrajectoriesStock__[i][k], nominalOutputTrajectoriesStock_[i][k]);
+	linearizedSystems_[threadId][i]->setCurrentStateAndControl(
+			nominalTimeTrajectoriesStock_[i][k],
+			nominalStateTrajectoriesStock_[i][k],
+			nominalInputTrajectoriesStock_[i][k],
+			nominalOutputTrajectoriesStock_[i][k]);
 
 	linearizedSystems_[threadId][i]->getDerivativeState(AmTrajectoryStock_[i][k]);
 	linearizedSystems_[threadId][i]->getDerivativesControl(BmTrajectoryStock_[i][k]);
@@ -1589,7 +1601,10 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeApproxima
 	}
 
 	// QUADRATIC APPROXIMATION TO THE COST FUNCTION
-	costFunctions_[threadId][i]->setCurrentStateAndControl(nominalTimeTrajectoriesStock_[i][k],nominalOutputTrajectoriesStock_[i][k], nominalInputTrajectoriesStock__[i][k]);
+	costFunctions_[threadId][i]->setCurrentStateAndControl(
+			nominalTimeTrajectoriesStock_[i][k],
+			nominalOutputTrajectoriesStock_[i][k],
+			nominalInputTrajectoriesStock_[i][k]);
 	costFunctions_[threadId][i]->evaluate(qTrajectoryStock_[i][k](0));
 	costFunctions_[threadId][i]->stateDerivative(QvTrajectoryStock_[i][k]);
 	costFunctions_[threadId][i]->stateSecondDerivative(QmTrajectoryStock_[i][k]);
@@ -1597,6 +1612,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeApproxima
 	costFunctions_[threadId][i]->controlSecondDerivative(RmTrajectoryStock_[i][k]);
 	RmInverseTrajectoryStock_[i][k] = RmTrajectoryStock_[i][k].inverse();
 	costFunctions_[threadId][i]->stateControlDerivative(PmTrajectoryStock_[i][k]);
+
 }
 
 

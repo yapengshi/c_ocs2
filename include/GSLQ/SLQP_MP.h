@@ -401,10 +401,8 @@ private:
 	std::atomic_bool alphaBestFound_;
 	std::vector<size_t> alphaProcessed_;
 
-	std::atomic_size_t kTaken_approx_;
-	std::atomic_size_t kCompleted_approx_;
-	std::atomic_size_t kTaken_ctrlDesign_;
-	std::atomic_size_t kCompleted_ctrlDesign_;
+	std::atomic_size_t kTaken_;
+	std::atomic_size_t kCompleted_;
 
 	// for controller design
 	// functions for controller and lagrange multiplier

@@ -24,6 +24,7 @@
 #include <cstddef>
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
+#include <pthread.h>
 
 #include "Dimensions.h"
 
@@ -86,7 +87,7 @@ public:
 	typedef typename DIMENSIONS::control_constraint1_matrix_array_t control_constraint1_matrix_array_t;
 
 	enum WORKER_STATE {
-		IDLE,
+		IDLE = 0,
 		LINE_SEARCH,
 		APPROXIMATE_LQ,
 		CALCULATE_CONTROLLER_AND_LAGRANGIAN,
@@ -308,10 +309,11 @@ private:
 	void executeCalculateControllerAndLagrangian(size_t threadId, size_t k);
 
 	// for generating unique identifiers for subsystem, task, iteration:
+	// just a heuristics that generates a unique id for a process, such that we can manage the tasks
 	// note: arguments must not be passed by value here
 	size_t generateUniqueProcessID (const size_t& iterateNo, const std::atomic_int& workerState, const std::atomic_int& subsystemId)
 	{
-		return (10e9*(workerState +1) + 10e6 * (subsystemId +1) + iterateNo);
+		return (10e9*(workerState +1) + 10e6 * (subsystemId +1) + iterateNo+1);
 	}
 
 	std::vector<std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > > > dynamics_;
@@ -399,8 +401,10 @@ private:
 	std::atomic_bool alphaBestFound_;
 	std::vector<size_t> alphaProcessed_;
 
-	std::atomic_size_t kTaken_;
-	std::atomic_size_t kCompleted_;
+	std::atomic_size_t kTaken_approx_;
+	std::atomic_size_t kCompleted_approx_;
+	std::atomic_size_t kTaken_ctrlDesign_;
+	std::atomic_size_t kCompleted_ctrlDesign_;
 
 	// for controller design
 	// functions for controller and lagrange multiplier

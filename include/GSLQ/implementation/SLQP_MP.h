@@ -14,6 +14,7 @@ SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::~SLQP_MP()
 {
 	workersActive_ = false;
 	workerTask_ = SHUTDOWN;
+
 	workerWakeUpCondition_.notify_all();
 
 	if(mp_options_.debugPrintMP_)
@@ -1150,8 +1151,11 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 		calculateControllerAndLagrangian();
 		nominalLagrangeMultiplierUpdated_ = true;
 
+//		std::cout<<"[Thread "<<threadId<<"]: staring linesearch!"<<std::endl;
 		// finding the optimal learningRate
 		lineSearch(feedForwardConstraintInputStock_, learningRateStar, options_.maxLearningRateGSLQP_); // todo parallelize
+//		std::cout<<"[Thread "<<threadId<<"]: ended linesearch!"<<std::endl;
+
 
 		// calculates type-1 constraint ISE and maximum norm
 		double constraint1MaxNorm = calculateConstraintISE(nominalTimeTrajectoriesStock_, nc1TrajectoriesStock_, EvTrajectoryStock_, nominalConstraint1ISE_);
@@ -1219,64 +1223,37 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::launchWorkerThre
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_t threadId)
 {
-	if(mp_options_.debugPrintMP_)
-	{
-		std::cout<<"[Thread "<<threadId<<"]: launched"<<std::endl;
-	}
-
-	WORKER_STATE lastCompletedTask = IDLE;
-	int lastCompletedSubsystem = -1;
-	//	int taskAlreadyProcessedForIterationNumber_= -1;
+	if(mp_options_.debugPrintMP_)	std::cout<<"[Thread "<<threadId<<"]: launched"<<std::endl;
 
 	size_t uniqueProcessID = 0;
 
 	while(workersActive_)
 	{
-		if(mp_options_.debugPrintMP_)
-		{
-			std::cout<<"[Thread " << threadId << "]: last completed job was: "<< lastCompletedTask << std::endl;
-			std::cout<<"[Thread " << threadId << "]: current job is: " << workerTask_ << std::endl;
+		if(mp_options_.debugPrintMP_){
+			std::cout<<"[Thread " << threadId << "]: current job is: "  <<  workerTask_ << std::endl;
+			std::cout<<"[Thread " << threadId << "]: previous procId: " <<  uniqueProcessID << std::endl;
+			std::cout<<"[Thread " << threadId << "]: current procId : " <<  generateUniqueProcessID(iteration_, workerTask_, subsystemProcessed_) << std::endl;
 		}
 
 
 		/* We want to put the worker to sleep if
 		 * - the workerTask_ is IDLE
-		 * - the last completed task is the same as the current task but the last subsystem was already processed
+		 * - or we are finished both workerTask_ is not yet reset, thus the process ID is still the same
 		 * */
-//		if ( workerTask_ == IDLE || ((lastCompletedTask == workerTask_) && (lastCompletedSubsystem == subsystemProcessed_)))
 		if ( workerTask_ == IDLE || uniqueProcessID == generateUniqueProcessID(iteration_, workerTask_, subsystemProcessed_))
 		{
-			if(mp_options_.debugPrintMP_)
-			{
-				std::cout << "entering wait condition. Details: " << std::endl;	// todo remove
-				std::cout << "workerTask_ 			:" << workerTask_ << std::endl;
-				std::cout << "lastCompletedTask 	:" << lastCompletedTask << std::endl;
-				std::cout << "lastCompletedSubsystem 	:" << lastCompletedSubsystem << std::endl;
-				std::cout << "subsystemProcessed_ 	:" << subsystemProcessed_ << " out of " << NUM_SUBSYSTEMS-1 << std::endl;
-			}
+			if(mp_options_.debugPrintMP_){std::cout<<"[Thread "<<threadId<<"]: going to sleep!"<<std::endl;}
 
 			std::unique_lock<std::mutex> waitLock(workerWakeUpMutex_);
 
-			// sleep until the condition in {} becomes true. that means
-			// wake up if worker task becomes something but idle, ...
+			// sleep until the state is not IDLE any more and we have a different process ID than before
 
-			workerWakeUpCondition_.wait(waitLock, [this, lastCompletedTask, uniqueProcessID]{
-				//				return (workerTask_ != IDLE && ((lastCompletedTask != workerTask_) || (lastCompletedTask == workerTask_ && subsystemProcessed_ < NUM_SUBSYSTEMS-1)));
-				return (workerTask_ != IDLE &&  uniqueProcessID != generateUniqueProcessID(iteration_, workerTask_, subsystemProcessed_) );
+			workerWakeUpCondition_.wait(waitLock, [this , uniqueProcessID]{
+				return (workerTask_ != IDLE &&  (uniqueProcessID != generateUniqueProcessID(iteration_, workerTask_, subsystemProcessed_) ) );
 			});
 
 			waitLock.unlock();
-
-			if(mp_options_.debugPrintMP_)
-			{
-				std::cout << "leaving wait condition because: " << std::endl;
-				std::cout << "workerTask_ 			" << workerTask_ << std::endl;
-				std::cout << "lastCompletedTask 	" << lastCompletedTask << std::endl;
-				std::cout << "lastCompletedSubsystem 	:" << lastCompletedSubsystem << std::endl;
-				std::cout << "subsystemProcessed_ 	:" << subsystemProcessed_ << " out of " << NUM_SUBSYSTEMS-1 << std::endl;
-			}
 		}
-
 
 		if(mp_options_.debugPrintMP_){
 			std::cout<<"[Thread "<<threadId<<"]: woke up!"<<std::endl;
@@ -1295,7 +1272,6 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 			//			std::cout<<"[Thread "<<threadId<<"]: now doing line search!"<<std::endl;}
 			//
 			//			lineSearchWorker(threadId);
-			//			lastCompletedTask = LINE_SEARCH;
 			break;
 		}
 		case APPROXIMATE_LQ:
@@ -1303,11 +1279,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 			if(mp_options_.debugPrintMP_){ std::cout<<"[Thread "<<threadId<<"]: now busy with APPROXIMATE_LQ !"<<std::endl;}
 
 			approximateSubsystemLQWorker(threadId);
-			lastCompletedTask = APPROXIMATE_LQ;
-			lastCompletedSubsystem = subsystemProcessed_;
-
 			uniqueProcessID = generateUniqueProcessID (iteration_, APPROXIMATE_LQ, subsystemProcessed_);
-
 			break;
 		}
 		case CALCULATE_CONTROLLER_AND_LAGRANGIAN:
@@ -1315,10 +1287,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 			if(mp_options_.debugPrintMP_){ std::cout<<"[Thread "<<threadId<<"]: now busy with CALCULATE_CONTROLLER_AND_LAGRANGIAN !"<<std::endl;}
 
 			calculateControllerAndLagrangianWorker(threadId);
-			lastCompletedTask = CALCULATE_CONTROLLER_AND_LAGRANGIAN;
-			lastCompletedSubsystem = subsystemProcessed_;
 			uniqueProcessID = generateUniqueProcessID (iteration_, CALCULATE_CONTROLLER_AND_LAGRANGIAN, subsystemProcessed_);
-
 			break;
 		}
 		case SHUTDOWN:
@@ -1329,6 +1298,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 			break;
 		}
 		}
+
 		if(mp_options_.debugPrintMP_){
 			std::cout<<"[Thread "<<threadId<<"]: done with job. Will wait for next now!"<<std::endl;}
 	}
@@ -1340,16 +1310,16 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 {
 	const size_t i = subsystemProcessed_;
 
+	kTaken_approx_ = 0;
+	kCompleted_approx_ = 0;
+	KMax_subsystem_  = nominalTimeTrajectoriesStock_[i].size(); // number of elements in the trajectory of this subsystem
+
+
 	// initialize subsystem i dynamics derivatives
 	for(size_t j = 0; j< mp_options_.nThreads_; j++)
 	{
 		linearizedSystems_[j][i]->initializeModel(switchingTimes_, nominalStateTrajectoriesStock_[i].front(), i, "GSLPQ");
 	}
-
-	kTaken_ = 0;
-	kCompleted_ = 0;
-	KMax_subsystem_  = nominalTimeTrajectoriesStock_[i].size(); // number of elements in the trajectory of this subsystem
-
 
 	AmTrajectoryStock_[i].resize(KMax_subsystem_);
 	BmTrajectoryStock_[i].resize(KMax_subsystem_);
@@ -1365,37 +1335,34 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 	PmTrajectoryStock_[i].resize(KMax_subsystem_);
 
 
-	if(mp_options_.debugPrintMP_)
-	{
-		std::cout<<"[MP]: Waking up workers to do linearisation for subsystem "<< i << std::endl;
-	}
+	if(mp_options_.debugPrintMP_)	std::cout<<"[MP]: Waking up workers to do linearisation for subsystem "<< i << std::endl;
 
 	workerTask_ = APPROXIMATE_LQ;
 	workerWakeUpCondition_.notify_all();
 
-	if(mp_options_.debugPrintMP_)
-	{
-		std::cout<<"[MP]: Will wait now until workers have linearized dynamics of subsystem " << i <<std::endl;
-	}
+
+	if(mp_options_.debugPrintMP_) std::cout<<"[MP]: Will wait now until workers have linearized dynamics of subsystem " << i <<std::endl;
 
 	std::unique_lock<std::mutex> waitLock(kCompletedMutex_);
-	kCompletedCondition_.wait(waitLock, [this]{return kCompleted_.load() >= KMax_subsystem_ ;});
+	// with timeout 20 000 milliseconds
+
+	if(kCompletedCondition_.wait_for(waitLock, std::chrono::milliseconds(20000),[this]{return (kCompleted_approx_.load() >= KMax_subsystem_) ;}))
+	{
+		if(mp_options_.debugPrintMP_) std::cout<<"[MP]: Back to main thread, workers should now have linearized dynamics of subsystem " << i <<std::endl;
+	}
+	else
+	{
+		throw(std::runtime_error("[MP FATAL]: Back to main thread, because TIMEOUT occured. Designing controller should not take longer than 20 sec."));
+	}
+
 	waitLock.unlock();
 
 	workerTask_ = IDLE;
 
-	if(mp_options_.debugPrintMP_)
-	{
-		std::cout<<"[MP]: Back to main thread, workers should now have linearized dynamics of subsystem " << i <<std::endl;
-	}
-
 
 	if (i==NUM_SUBSYSTEMS-1) // if last subsystem, set terminal cost
 	{
-		if(mp_options_.debugPrintMP_)
-		{
-			std::cout<<"[MP]: Approximating terminal cost with single thread, subsystem  "<< i << std::endl;
-		}
+		if(mp_options_.debugPrintMP_)	std::cout<<"[MP]: Approximating terminal cost with single thread, subsystem  "<< i << std::endl;
 
 		costFunctions_[mp_options_.nThreads_][i]->setCurrentStateAndControl(nominalTimeTrajectoriesStock_[i].back(), nominalOutputTrajectoriesStock_[i].back(), nominalInputTrajectoriesStock_[i].back());
 
@@ -1417,8 +1384,8 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControl
 	{
 		subsystemProcessed_ =  i;
 
-		kTaken_ = 0;
-		kCompleted_ = 0;
+		kTaken_ctrlDesign_ = 0;
+		kCompleted_ctrlDesign_ = 0;
 		KMax_subsystem_  = SsTimeTrajectoryStock_[i].size();; // number of elements in the trajectory of this subsystem
 
 		// initialize interpolators
@@ -1492,15 +1459,20 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControl
 		}
 
 		std::unique_lock<std::mutex> waitLock(kCompletedMutex_);
-		kCompletedCondition_.wait(waitLock, [this]{return kCompleted_.load() >= KMax_subsystem_ ;});
+		// .. with timeout for 20 000 milliseconds
+		if (kCompletedCondition_.wait_for(waitLock,  std::chrono::milliseconds(20000), [this]{return kCompleted_ctrlDesign_.load() >= KMax_subsystem_ ;})) // problem: this does sometimes not get notified
+		{
+			if(mp_options_.debugPrintMP_) std::cout<<"[MP]: Back to main thread, workers should now have designed controllers for subsystem " << i <<std::endl;
+		}
+		else
+		{
+			throw(std::runtime_error("[MP FATAL]: Back to main thread, because TIMEOUT occured. LQ Approximating system should not take longer than 20 sec"));
+		}
 		waitLock.unlock();
+
 
 		workerTask_ = IDLE;
 
-		if(mp_options_.debugPrintMP_)
-		{
-			std::cout<<"[MP]: Back to main thread, workers should now have designed controllers for subsystem " << i <<std::endl;
-		}
 
 	}  // end of i loop
 
@@ -1511,42 +1483,32 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 {
 	while(true)
 	{
-		const size_t k = kTaken_++;
+		size_t k = kTaken_approx_++;
 		/*Here: IMPORTANT LESSON: if we write the above statement instead as "const size_t k = kTaken; kTaken_++;"
 		 * it screws up everything, because then different threads access the same kTaken at the same time!
 		 * It seems like for the atomic datatype, everything is fine if we bound the assignment to k and the
 		 * incrementation into the same statement!!! (todo: confirm with michael and write down)
 		 * and suddenly it behaves deterministically again! */
 
-		if(mp_options_.debugPrintMP_)
-		{
-			if (k%10 == 0)  	std::cout<<"[Thread "<<threadId<<"]: Start approximating system LQ on index k = " << k << std::endl;
-		}
+		if(mp_options_.debugPrintMP_)if (k%10 == 0)  	std::cout<<"[Thread "<<threadId<<"]: Start approximating system LQ on index k = " << k << std::endl;
 
 		// if all k's are already covered, notify and return
 		if (k >= KMax_subsystem_)
 		{
 
-			//			kCompleted_++;
-			/* Fixme: does not make sense in my opinion, also not in c_ilqg
-			in case that a spurious wake-up occurs, but one thread is still approximating, this would cause an error.
-			todo: discuss with michael neunert. */
+			if((kCompleted_approx_>=KMax_subsystem_)  == true){
+				kCompletedCondition_.notify_all();
+				if(mp_options_.debugPrintMP_) std::cout<<"[Thread "<<threadId<<"]: k completed is = " << kCompleted_approx_ << " out of " << KMax_subsystem_<< ". NOTIFYING!! " << std::endl;
+			}
 
-
-			kCompletedCondition_.notify_all(); // todo the problem is: this guy notifies while some other thread may still be working on its problem...!!
-			/* TODO: discuss with Michael:
-			 * isn't this a potential source of error:
-			 * Suggestion: only notify_all(), when  the condition
-			 * kCompleted_>=KMax_subsystem_ is "true"
-			 * -> we would just leave the task if the last thread has completed the last k
-			 * */
+			if(mp_options_.debugPrintMP_) std::cout<<"[Thread "<<threadId<<"]: k completed is = " << kCompleted_approx_ << " out of " << KMax_subsystem_<< std::endl;
 
 			return;
 		}
 
 		executeApproximateSubsystemLQ(threadId, k);
 
-		kCompleted_++;
+		kCompleted_approx_++;
 	}
 }
 
@@ -1556,7 +1518,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControl
 {
 	while(true)
 	{
-		const size_t k = kTaken_++;
+		size_t k = kTaken_ctrlDesign_++;
 
 		if(mp_options_.debugPrintMP_)
 		{
@@ -1566,15 +1528,22 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControl
 		// if all k's are already covered, notify and return
 		if (k >= KMax_subsystem_)
 		{
+			if((kCompleted_ctrlDesign_>=KMax_subsystem_)  == true){
+				kCompletedCondition_.notify_all();
+				if(mp_options_.debugPrintMP_) std::cout<<"[Thread "<<threadId<<"]: k completed is = " << kCompleted_ctrlDesign_ << " out of " << KMax_subsystem_<< ". NOTIFYING! " << std::endl;
+			}
 
-			kCompletedCondition_.notify_all();
+			if(mp_options_.debugPrintMP_)
+			{
+				std::cout<<"[Thread "<<threadId<<"]: k completed is = " << kCompleted_ctrlDesign_ << " out of " << KMax_subsystem_<< std::endl;
+			}
 
 			return;
 		}
 
 		executeCalculateControllerAndLagrangian(threadId, k);
 
-		kCompleted_++;
+		kCompleted_ctrlDesign_++;
 	}
 }
 
@@ -1612,7 +1581,6 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeApproxima
 	costFunctions_[threadId][i]->controlSecondDerivative(RmTrajectoryStock_[i][k]);
 	RmInverseTrajectoryStock_[i][k] = RmTrajectoryStock_[i][k].inverse();
 	costFunctions_[threadId][i]->stateControlDerivative(PmTrajectoryStock_[i][k]);
-
 }
 
 
@@ -1639,7 +1607,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeCalculate
 	control_matrix_t Rm;
 
 	nominalOutputFunc_[threadId].interpolate(time, nominalOutput);
-	greatestLessTimeStampIndex = nominalOutputFunc_[threadId].getGreatestLessTimeStampIndex(); // todo: problem here
+	greatestLessTimeStampIndex = nominalOutputFunc_[threadId].getGreatestLessTimeStampIndex();
 
 	nominalInputFunc_[threadId].interpolate(time, nominalInput, greatestLessTimeStampIndex);
 

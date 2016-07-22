@@ -17,6 +17,7 @@
 
 #include "test/EXP3.h"
 #include "GSLQ/GLQP.h"
+#include "GSLQ/SLQP.h"
 #include "GSLQ/SLQP_MP.h"
 
 
@@ -65,7 +66,7 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	SLQP_MP<2,2,2,3>::Options_t slqpOptions;
 	slqpOptions.dispayGSLQP_ = 1;
-	slqpOptions.maxIterationGSLQP_ = 30;
+	slqpOptions.maxIterationGSLQP_ = 100;
 	slqpOptions.meritFunctionRho_ = 2000.0;
 	slqpOptions.constraintStepSize_ = 0.2;
 	slqpOptions.lineSearchByMeritFuntion_ = false;
@@ -73,11 +74,24 @@ int main (int argc, char* argv[])
 
 	SLQP_MP<2,2,2,3>::MP_Options_t mpOptions;
 	mpOptions.nThreads_ = 4;
+	mpOptions.debugPrintMP_ = 0;
+
+	// Single core SLQP
+	SLQP<2,2,2,3> slqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, slqpOptions);
 
 	// SLQP_MP
-	SLQP_MP<2,2,2,3> slqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, slqpOptions, mpOptions);
+	SLQP_MP<2,2,2,3> slqp_mp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, slqpOptions, mpOptions);
 
-	slqp.run(initState, switchingTimes);
+	// run slqp for reference
+//	std::cout << " =========================== Starting single core SLQP ===============================" << std::endl;
+//	slqp.run(initState, switchingTimes);
+//	std::cout << " =========================== End of single core SLQP ===============================" << std::endl;
+
+	std::cout << " =========================== Starting multi core SLQP ===============================" << std::endl;
+	slqp_mp.run(initState, switchingTimes);
+	std::cout << " =========================== End of multi core SLQP ===============================" << std::endl;
+
+	exit(0);
 
 	// get controller
 	slqp.getController(controllersStock);
@@ -114,5 +128,3 @@ int main (int argc, char* argv[])
 //	std::cout << "The total cost derivative: " << costFuntionDerivative.transpose() << std::endl;
 
 }
-
-

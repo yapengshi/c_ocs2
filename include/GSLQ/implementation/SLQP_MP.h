@@ -62,8 +62,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
 		std::vector<scalar_array_t>& t_local,
 		std::vector<state_vector_array_t>& x_local,
 		std::vector<control_vector_array_t>& u_local,
-		std::vector<output_vector_array_t>& y_local)
-		{
+		std::vector<output_vector_array_t>& y_local){
 
 	if (controller_local.size() != NUM_SUBSYSTEMS)
 		throw std::runtime_error("controller_local has less controllers then the number of subsystems");
@@ -110,7 +109,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
 		// reset the initial state
 		x0 = x_local[i].back();
 	}
-		}
+}
 
 
 /******************************************************************************************************/
@@ -184,19 +183,22 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
  * 			+ timeTrajectoriesStock:  rollout simulated time steps
  * 			+ outputTrajectoriesStock: rollout outputs
  * 			+ inputTrajectoriesStock: rollout control inputs
- *
+ *			+ threadId: working thread, defaults to the thread with lowest id, thus this is the default thread for single-core cost computation
+ *				(allows to let method be called from the outside)
  * 		outputs:
  * 			+ totalCost: the total cost of the trajectory
  */
+// TODO: shall we parallelize this method as well? Or does this not make sense because it only gets called from already parallel instances, e.g. in lineSearch?
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateCostFunction(
 		const std::vector<scalar_array_t>& timeTrajectoriesStock,
 		const std::vector<output_vector_array_t>& outputTrajectoriesStock,
 		const std::vector<control_vector_array_t>& inputTrajectoriesStock,
-		scalar_t& totalCost)  {
+		scalar_t& totalCost,
+		size_t threadId)  {
 
 	totalCost = 0.0;
-	for (int i=0; i<NUM_SUBSYSTEMS; i++)
+	for (size_t i=0; i<NUM_SUBSYSTEMS; i++)
 	{
 
 		// integrates the intermediate cost using the trapezoidal approximation method
@@ -205,17 +207,17 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateCostFun
 		for (int k=0; k<timeTrajectoriesStock[i].size()-1; k++) {
 
 			if (k==0) {
-				costFunctions_[mp_options_.nThreads_][i]->setCurrentStateAndControl(timeTrajectoriesStock[i][k], outputTrajectoriesStock[i][k], inputTrajectoriesStock[i][k]);
-				costFunctions_[mp_options_.nThreads_][i]->evaluate(currentIntermediateCost);
+				costFunctions_[threadId][i]->setCurrentStateAndControl(timeTrajectoriesStock[i][k], outputTrajectoriesStock[i][k], inputTrajectoriesStock[i][k]);
+				costFunctions_[threadId][i]->evaluate(currentIntermediateCost);
 			} else
 			{
 				currentIntermediateCost = nextIntermediateCost;
 			}
 
 			// feed next state and control to cost function
-			costFunctions_[mp_options_.nThreads_][i]->setCurrentStateAndControl(timeTrajectoriesStock[i][k+1], outputTrajectoriesStock[i][k+1], inputTrajectoriesStock[i][k+1]);
+			costFunctions_[threadId][i]->setCurrentStateAndControl(timeTrajectoriesStock[i][k+1], outputTrajectoriesStock[i][k+1], inputTrajectoriesStock[i][k+1]);
 			// evaluate intermediate cost for next time step
-			costFunctions_[mp_options_.nThreads_][i]->evaluate(nextIntermediateCost);
+			costFunctions_[threadId][i]->evaluate(nextIntermediateCost);
 
 			totalCost += 0.5*(currentIntermediateCost+nextIntermediateCost)*(timeTrajectoriesStock[i][k+1]-timeTrajectoriesStock[i][k]);
 		}  // end of k loop
@@ -224,8 +226,8 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateCostFun
 		if (i==NUM_SUBSYSTEMS-1)
 		{
 			scalar_t finalCost;
-			costFunctions_[mp_options_.nThreads_][i]->setCurrentStateAndControl(timeTrajectoriesStock[i].back(), outputTrajectoriesStock[i].back(), inputTrajectoriesStock[i].back());
-			costFunctions_[mp_options_.nThreads_][i]->terminalCost(finalCost);
+			costFunctions_[threadId][i]->setCurrentStateAndControl(timeTrajectoriesStock[i].back(), outputTrajectoriesStock[i].back(), inputTrajectoriesStock[i].back());
+			costFunctions_[threadId][i]->terminalCost(finalCost);
 			totalCost += finalCost;
 		}
 
@@ -398,12 +400,17 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptim
 		{
 			std::cout << "[MP] Starting approximation of subsystem "<< i << " out of " << (size_t) NUM_SUBSYSTEMS-1 << std::endl;
 		}
+		auto start = std::chrono::steady_clock::now();
 
-		approximateSubsystemLQ();
+		approximateSubsystemLQ(i);
+
+		auto end = std::chrono::steady_clock::now();
+		auto diff = end - start;
 
 		if(mp_options_.debugPrintMP_)
 		{
 			std::cout << "[MP] ended approximation of subsystem "<< i << std::endl;
+			std::cout << "[MP] approximation took "<<std::chrono::duration <double, std::milli> (diff).count() << " ms" << std::endl;
 		}
 	}
 
@@ -629,10 +636,9 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateRollout
  *
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
-		const std::vector<control_vector_array_t>& feedForwardConstraintInputStock,
-		scalar_t& learningRateStar,
-		scalar_t maxLearningRateStar/*=1.0*/)  {
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch() {
+
+	learningRateStar_ = 0.0;	// default learning rate as zero
 
 	// display
 	if (options_.dispayGSLQP_)
@@ -645,7 +651,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 		for (size_t i=0; i<NUM_SUBSYSTEMS; i++)
 		{
 			maxDeltaUffStock[i]  = *std::max_element(controllers_[mp_options_.nThreads_][i].deltaUff_.begin(), controllers_[mp_options_.nThreads_][i].deltaUff_.template end(), eigenVectorLessEqual);
-			maxDeltaUffeStock[i] = *std::max_element(feedForwardConstraintInputStock[i].begin(), feedForwardConstraintInputStock[i].end(), eigenVectorLessEqual);
+			maxDeltaUffeStock[i] = *std::max_element(feedForwardConstraintInputStock_[i].begin(), feedForwardConstraintInputStock_[i].end(), eigenVectorLessEqual);
 		}
 		control_vector_t maxDeltaUff  = *std::max_element(maxDeltaUffStock.begin(), maxDeltaUffStock.end(), eigenVectorLessEqual);
 		control_vector_t maxDeltaUffe = *std::max_element(maxDeltaUffeStock.begin(), maxDeltaUffeStock.end(), eigenVectorLessEqual);
@@ -658,16 +664,17 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 	for (int i=0; i<NUM_SUBSYSTEMS; i++)
 		for (int k=0; k<controllers_[mp_options_.nThreads_][i].time_.size(); k++)
 			if (options_.lineSearchByMeritFuntion_==true)
-				controllers_[mp_options_.nThreads_][i].deltaUff_[k] += feedForwardConstraintInputStock[i][k];
+				controllers_[mp_options_.nThreads_][i].deltaUff_[k] += feedForwardConstraintInputStock_[i][k];
 			else
-				controllers_[mp_options_.nThreads_][i].uff_[k] += options_.constraintStepSize_*feedForwardConstraintInputStock[i][k];
+				controllers_[mp_options_.nThreads_][i].uff_[k] += options_.constraintStepSize_*feedForwardConstraintInputStock_[i][k];
+
 
 	// perform one rollout while the input correction for the type-1 constraint is considered.
 	rollout(mp_options_.nThreads_, initState_, controllers_[mp_options_.nThreads_], nominalTimeTrajectoriesStock_,
 			nominalStateTrajectoriesStock_, nominalInputTrajectoriesStock_, nominalOutputTrajectoriesStock_,
 			nc1TrajectoriesStock_, EvTrajectoryStock_);
 
-	calculateCostFunction( nominalTimeTrajectoriesStock_, nominalOutputTrajectoriesStock_, nominalInputTrajectoriesStock_, nominalTotalCost_);
+	calculateCostFunction( nominalTimeTrajectoriesStock_, nominalOutputTrajectoriesStock_, nominalInputTrajectoriesStock_, nominalTotalCost_, mp_options_.nThreads_);
 
 
 	// calculate the merit function
@@ -679,126 +686,69 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 		// calculate the merit function
 		calculateMeritFunction(nominalTimeTrajectoriesStock_, nc1TrajectoriesStock_, EvTrajectoryStock_, nominalLagrangeTrajectoriesStock_, nominalTotalCost_,
 				nominalTotalMerit_, nominalConstraint1ISE_);
-	} else
+	}
+	else
 	{
 		nominalTotalMerit_ = nominalTotalCost_;
 		calculateConstraintISE(nominalTimeTrajectoriesStock_, nc1TrajectoriesStock_, EvTrajectoryStock_, nominalConstraint1ISE_);
 	}
 
+	lowestTotalMerit_ = nominalTotalMerit_;
+
+
 	// display
-	if (options_.dispayGSLQP_)  std::cerr << "\t learningRate 0.0 \t cost: " << nominalTotalCost_ << " \t merit: " << nominalTotalMerit_ <<
-			" \t constraint ISE: " << nominalConstraint1ISE_ << std::endl;
+	if (options_.dispayGSLQP_)  {std::cerr << "\t learningRate 0.0 \t cost: " << nominalTotalCost_ << " \t merit: " << nominalTotalMerit_ <<
+			" \t constraint ISE: " << nominalConstraint1ISE_ << std::endl;}
 
 
-	scalar_t learningRate = maxLearningRateStar;
-	const std::vector<controller_t> controllersStock = controllers_[mp_options_.nThreads_];
-	const std::vector<lagrange_t> lagrangeMultiplierFunctionsStock = lagrangeControllerStock_;
+	initLScontrollersStock_ = controllers_[mp_options_.nThreads_];		// this will serve to init the workers
+	initLSlagrangeMultiplierFunctionsStock_ = lagrangeControllerStock_;
 
-	// local search forward simulation's variables, // todo: make them members
-	scalar_t lsTotalCost;
-	scalar_t lsTotalMerit;
-	scalar_t lsConstraint1ISE;
-	std::vector<controller_t>           lsControllersStock(NUM_SUBSYSTEMS);
-	std::vector<lagrange_t>             lsLagrangeControllersStock(NUM_SUBSYSTEMS);
-	std::vector<scalar_array_t>         lsTimeTrajectoriesStock(NUM_SUBSYSTEMS);
-	std::vector<state_vector_array_t>   lsStateTrajectoriesStock(NUM_SUBSYSTEMS);
-	std::vector<control_vector_array_t> lsInputTrajectoriesStock(NUM_SUBSYSTEMS);
-	std::vector<output_vector_array_t>  lsOutputTrajectoriesStock(NUM_SUBSYSTEMS);
-	std::vector<std::vector<size_t> >   lsNc1TrajectoriesStock(NUM_SUBSYSTEMS);
-	std::vector<constraint1_vector_array_t> lsEvTrajectoryStock(NUM_SUBSYSTEMS);
-	std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> > >  lsLagrangeTrajectoriesStock(NUM_SUBSYSTEMS);
+	subsystemProcessed_ = 0; // not required for linesearch, but assign to not let it dangle around
+	alphaProcessed_.clear();
+	alphaTaken_ = 0;
+	alphaBestFound_ = false;
+	lsWorkerCompleted_ = 0;
 
-	// todo: start line search multiple thread here, put main thread to sleep
+	size_t maxNumOfLineSearches =  (int) (log(options_.minLearningRateGSLQP_/options_.maxLearningRateGSLQP_) / log(options_.lineSearchContractionRate_)) +1;
+	alphaExpMax_ = maxNumOfLineSearches;
+	alphaExpBest_ = maxNumOfLineSearches;
+	alphaProcessed_.resize(maxNumOfLineSearches, 0);
 
-	while (learningRate >= options_.minLearningRateGSLQP_)
-	{
-		// modifying uff by the local increments
-		lsControllersStock = controllersStock;
-		for (int i=0; i<NUM_SUBSYSTEMS; i++)
-			for (int k=0; k<lsControllersStock[i].time_.size(); k++)
-				lsControllersStock[i].uff_[k] += learningRate * lsControllersStock[i].deltaUff_[k];
+	if(mp_options_.debugPrintMP_)
+		{std::cout<<"[MP]: calculated maximum number of line searches "<< alphaExpMax_ <<std::endl;}
 
-		// modifying vff by the local increments
-		lsLagrangeControllersStock = lagrangeMultiplierFunctionsStock;
-		for (int i=0; i<NUM_SUBSYSTEMS; i++)
-			for (int k=0; k<lsLagrangeControllersStock[i].time_.size(); k++)
-				lsLagrangeControllersStock[i].uff_[k] += learningRate*lsLagrangeControllersStock[i].deltaUff_[k];
+	if(mp_options_.debugPrintMP_)
+		{std::cout << "[MP] Waking up workers for line search " << std::endl;}
+
+	workerTask_ = LINE_SEARCH;
+	workerWakeUpCondition_.notify_all();
+
+	if(mp_options_.debugPrintMP_)
+		{std::cout << "[MP] Will sleep now until we have results " << std::endl;}
 
 
-		// perform rollout
-		try {
-			rollout(mp_options_.nThreads_, initState_, lsControllersStock, lsTimeTrajectoriesStock,
-					lsStateTrajectoriesStock, lsInputTrajectoriesStock, lsOutputTrajectoriesStock,
-					lsNc1TrajectoriesStock, lsEvTrajectoryStock);
+	std::unique_lock<std::mutex> waitLock(alphaBestFoundMutex_);
+	alphaBestFoundCondition_.wait(waitLock, [this]{return ( /*alphaBestFound_.load() &&*/ (lsWorkerCompleted_.load() >= mp_options_.nThreads_));});
+	waitLock.unlock();
 
-			// calculate rollout cost
-			calculateCostFunction(lsTimeTrajectoriesStock, lsOutputTrajectoriesStock, lsInputTrajectoriesStock, lsTotalCost);
+	workerTask_ = IDLE;
 
-			// calculate the merit function
-			if (options_.lineSearchByMeritFuntion_==true)
-			{
-				// calculate the lagrange multiplier
-				calculateRolloutLagrangeMultiplier(lsTimeTrajectoriesStock, lsOutputTrajectoriesStock, lsLagrangeControllersStock,
-						lsLagrangeTrajectoriesStock);
-				// calculate the merit function value
-				calculateMeritFunction(lsTimeTrajectoriesStock, lsNc1TrajectoriesStock, lsEvTrajectoryStock, lsLagrangeTrajectoriesStock, lsTotalCost,
-						lsTotalMerit, lsConstraint1ISE);
-			} else
-			{
-				lsTotalMerit = lsTotalCost;
-				calculateConstraintISE(lsTimeTrajectoriesStock, lsNc1TrajectoriesStock, lsEvTrajectoryStock, lsConstraint1ISE);
-			}
+	if(mp_options_.debugPrintMP_) {std::cout << "[MP]: Woke up again, should have results now." << std::endl;}
 
-			// display
-			if (options_.dispayGSLQP_)  std::cerr << "\t learningRate " << learningRate << " \t cost: " << lsTotalCost << " \t merit: " << lsTotalMerit <<
-					" \t constraint ISE: " << lsConstraint1ISE << std::endl;
-		}
-		catch(const std::exception& error)
-		{
-			std::cerr << "\t rollout with learningRate " << learningRate << " is terminated due to the slow simulation!" << std::endl;
-			lsTotalMerit = std::numeric_limits<scalar_t>::max();
-			lsTotalCost  = std::numeric_limits<scalar_t>::max();
-		}
 
-		// break condition 1: it exits with largest learningRate that its cost is smaller than nominal cost.
-		if (lsTotalMerit < nominalTotalMerit_*(1-1e-3*learningRate))
-			break;  // exit while loop, line search done
-		else
-			learningRate = 0.5*learningRate;
-
-	}  // end of while
-
-	// todo: wake up main thread here
-
-	if (learningRate >= options_.minLearningRateGSLQP_)
-	{
-		nominalTotalCost_      = lsTotalCost;
-		nominalTotalMerit_     = lsTotalMerit;
-		nominalConstraint1ISE_ = lsConstraint1ISE;
-		controllers_[mp_options_.nThreads_] = lsControllersStock;
-		nominalTimeTrajectoriesStock_  = lsTimeTrajectoriesStock;
-		nominalStateTrajectoriesStock_  = lsStateTrajectoriesStock;
-		nominalInputTrajectoriesStock_  = lsInputTrajectoriesStock;
-		nominalOutputTrajectoriesStock_ = lsOutputTrajectoriesStock;
-		nc1TrajectoriesStock_ = lsNc1TrajectoriesStock;
-		EvTrajectoryStock_ = lsEvTrajectoryStock;
-		learningRateStar = learningRate;
-		lagrangeControllerStock_ = lsLagrangeControllersStock;
-		nominalLagrangeTrajectoriesStock_ = lsLagrangeTrajectoriesStock;
-
-	}
-	else // learning rate to small: since the open loop input is not change, the nominal trajectories will be unchanged
-		learningRateStar = 0.0;
 
 	// clear the feedforward increments
-	for (size_t i=0; i<NUM_SUBSYSTEMS; i++)
-	{
-		controllers_[mp_options_.nThreads_][i].deltaUff_.clear();
-		lagrangeControllerStock_[i].deltaUff_.clear();
+	for (int j=0; j<mp_options_.nThreads_+1; j++){
+		for (size_t i=0; i<NUM_SUBSYSTEMS; i++)
+		{
+			controllers_[mp_options_.nThreads_][i].deltaUff_.clear();
+			lagrangeControllerStock_[i].deltaUff_.clear();
+		}
 	}
 
 	// display
-	if (options_.dispayGSLQP_)  std::cerr << "The chosen learningRate is: " << learningRateStar << std::endl;
+	if (options_.dispayGSLQP_)  {std::cerr << "The chosen learningRate is: " << learningRateStar_ << std::endl;}
 }
 
 
@@ -863,7 +813,6 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getValueFuntion(
 	output_vector_t deltaX = output-xNominal;
 
 	valueFuntion = (s + deltaX.transpose()*Sv + 0.5*deltaX.transpose()*Sm*deltaX).eval()(0);
-
 }
 
 
@@ -1126,7 +1075,6 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 
 	iteration_ = 0;
 	double relCost;
-	double learningRateStar;
 	double relConstraint1ISE;
 	bool isConstraint1Satisfied  = false;
 	bool isCostFunctionConverged = false;
@@ -1141,7 +1089,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 			nc1TrajectoriesStock_, EvTrajectoryStock_);
 
 	// initial controller cost
-	calculateCostFunction(nominalTimeTrajectoriesStock_, nominalOutputTrajectoriesStock_, nominalInputTrajectoriesStock_, nominalTotalCost_); // todo: parallelize ?
+	calculateCostFunction(nominalTimeTrajectoriesStock_, nominalOutputTrajectoriesStock_, nominalInputTrajectoriesStock_, nominalTotalCost_, mp_options_.nThreads_); // todo: parallelize ?
 
 	// initial controller merit
 	nominalTotalMerit_ = nominalTotalCost_;
@@ -1170,10 +1118,8 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 		calculateControllerAndLagrangian();
 		nominalLagrangeMultiplierUpdated_ = true;
 
-//		std::cout<<"[Thread "<<threadId<<"]: staring linesearch!"<<std::endl;
 		// finding the optimal learningRate
-		lineSearch(feedForwardConstraintInputStock_, learningRateStar, options_.maxLearningRateGSLQP_); // todo parallelize
-//		std::cout<<"[Thread "<<threadId<<"]: ended linesearch!"<<std::endl;
+		lineSearch();
 
 
 		// calculates type-1 constraint ISE and maximum norm
@@ -1184,7 +1130,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 		relCost = fabs(nominalTotalCost_-costCashed);
 		relConstraint1ISE = fabs(nominalConstraint1ISE_-constraint1ISECashed);
 		isConstraint1Satisfied  = nominalConstraint1ISE_<=options_.minAbsConstraint1ISE_ || relConstraint1ISE<=options_.minRelConstraint1ISE_;
-		isCostFunctionConverged = learningRateStar==0 || relCost<=options_.minRelCostGSLQP_;
+		isCostFunctionConverged = learningRateStar_==0 || relCost<=options_.minRelCostGSLQP_;
 		isOptimizationConverged = isCostFunctionConverged==true && isConstraint1Satisfied==true;
 
 		// display
@@ -1210,7 +1156,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 		std::cout <<   "+++++++ SLQP solver is ended ++++++" << std::endl;
 		std::cout <<   "+++++++++++++++++++++++++++++++++++" << std::endl;
 		if (isOptimizationConverged) {
-			if (learningRateStar==0)
+			if (learningRateStar_==0)
 				std::cerr << "SLQP successfully terminates as learningRate reduced to zero." << std::endl;
 			else
 				std::cerr << "SLQP successfully terminates as cost relative change (relCost=" << relCost <<") reached to the minimum value." << std::endl;
@@ -1249,7 +1195,6 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 	while(workersActive_)
 	{
 		if(mp_options_.debugPrintMP_){
-			std::cout<<"[Thread " << threadId << "]: current job is: "  <<  workerTask_ << std::endl;
 			std::cout<<"[Thread " << threadId << "]: previous procId: " <<  uniqueProcessID << std::endl;
 			std::cout<<"[Thread " << threadId << "]: current procId : " <<  generateUniqueProcessID(iteration_, workerTask_, subsystemProcessed_) << std::endl;
 		}
@@ -1261,7 +1206,10 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 		 * */
 		if ( workerTask_ == IDLE || uniqueProcessID == generateUniqueProcessID(iteration_, workerTask_, subsystemProcessed_))
 		{
-			if(mp_options_.debugPrintMP_){std::cout<<"[Thread "<<threadId<<"]: going to sleep!"<<std::endl;}
+			if(mp_options_.debugPrintMP_){
+				std::string output;	output = "[Thread " + std::to_string(threadId) + "]: going to sleep !";
+				std::cout << output << std::endl;
+			}
 
 			std::unique_lock<std::mutex> waitLock(workerWakeUpMutex_);
 
@@ -1275,38 +1223,48 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 		}
 
 		if(mp_options_.debugPrintMP_){
-			std::cout<<"[Thread "<<threadId<<"]: woke up!"<<std::endl;
-		}
+			std::string output;	output = "[Thread " + std::to_string(threadId) + "]: woke up !";
+			std::cout << output << std::endl;		}
 
 		if (!workersActive_)
 			break;
 
 		switch(workerTask_)
 		{
-		case LINE_SEARCH:
-		{
-			std::cout << "line_search to be implemented" << std::endl;
-			exit(0);
-			//			if(mp_options_.debugPrintMP_){
-			//			std::cout<<"[Thread "<<threadId<<"]: now doing line search!"<<std::endl;}
-			//
-			//			lineSearchWorker(threadId);
-			break;
-		}
 		case APPROXIMATE_LQ:
 		{
-			if(mp_options_.debugPrintMP_){ std::cout<<"[Thread "<<threadId<<"]: now busy with APPROXIMATE_LQ !"<<std::endl;}
+			if(mp_options_.debugPrintMP_){
+				std::string output;	output = "[Thread " + std::to_string(threadId) + "]: now busy with APPROXIMATE_LQ !";
+				std::cout << output << std::endl;
+			}
 
-			approximateSubsystemLQWorker(threadId);
-			uniqueProcessID = generateUniqueProcessID (iteration_, APPROXIMATE_LQ, subsystemProcessed_);
+			size_t currentIteration = iteration_;
+			size_t currentlyProcessedSubsys = approximateSubsystemLQWorker(threadId);
+			uniqueProcessID = generateUniqueProcessID (currentIteration, APPROXIMATE_LQ, currentlyProcessedSubsys);
+
 			break;
 		}
 		case CALCULATE_CONTROLLER_AND_LAGRANGIAN:
 		{
-			if(mp_options_.debugPrintMP_){ std::cout<<"[Thread "<<threadId<<"]: now busy with CALCULATE_CONTROLLER_AND_LAGRANGIAN !"<<std::endl;}
+			if(mp_options_.debugPrintMP_){
+				std::string output;	output = "[Thread " + std::to_string(threadId) + "]: now busy with CALCULATE_CONTROLLER_AND_LAGRANGIAN !";
+				std::cout << output << std::endl;
+			}
 
-			calculateControllerAndLagrangianWorker(threadId);
-			uniqueProcessID = generateUniqueProcessID (iteration_, CALCULATE_CONTROLLER_AND_LAGRANGIAN, subsystemProcessed_);
+			size_t currentIteration = iteration_;
+			size_t currentlyProcessedSubsys = calculateControllerAndLagrangianWorker(threadId);
+			uniqueProcessID = generateUniqueProcessID (currentIteration, CALCULATE_CONTROLLER_AND_LAGRANGIAN, currentlyProcessedSubsys);
+			break;
+		}
+		case LINE_SEARCH:
+		{
+			if(mp_options_.debugPrintMP_) {
+				std::string output;	output = "[Thread " + std::to_string(threadId) + "]: now busy with LINE_SEARCH !";
+				std::cout << output << std::endl;}
+
+			size_t currentIteration = iteration_;
+			lineSearchWorker(threadId);
+			uniqueProcessID = generateUniqueProcessID (currentIteration, LINE_SEARCH, subsystemProcessed_);
 			break;
 		}
 		case SHUTDOWN:
@@ -1325,49 +1283,56 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsystemLQ()
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsystemLQ(const size_t i)
 {
-	const size_t i = subsystemProcessed_;
-
 	kTaken_ = 0;
 	kCompleted_= 0;
-	KMax_subsystem_  = nominalTimeTrajectoriesStock_[i].size(); // number of elements in the trajectory of this subsystem
-
+	KMax_subsystem_approx_  = nominalTimeTrajectoriesStock_[i].size(); // number of elements in the trajectory of this subsystem
+	// todo: no atomic variable
 
 	// initialize subsystem i dynamics derivatives
 	for(size_t j = 0; j< mp_options_.nThreads_; j++)
 	{
+		assert( nominalTimeTrajectoriesStock_[i].size() == nominalStateTrajectoriesStock_[i].size());
 		linearizedSystems_[j][i]->initializeModel(switchingTimes_, nominalStateTrajectoriesStock_[i].front(), i, "GSLPQ");
 	}
 
-	AmTrajectoryStock_[i].resize(KMax_subsystem_);
-	BmTrajectoryStock_[i].resize(KMax_subsystem_);
-	CmTrajectoryStock_[i].resize(KMax_subsystem_);
-	DmTrajectoryStock_[i].resize(KMax_subsystem_);
+	AmTrajectoryStock_[i].resize(KMax_subsystem_approx_);
+	BmTrajectoryStock_[i].resize(KMax_subsystem_approx_);
+	CmTrajectoryStock_[i].resize(KMax_subsystem_approx_);
+	DmTrajectoryStock_[i].resize(KMax_subsystem_approx_);
 
-	qTrajectoryStock_[i].resize(KMax_subsystem_);
-	QvTrajectoryStock_[i].resize(KMax_subsystem_);
-	QmTrajectoryStock_[i].resize(KMax_subsystem_);
-	RvTrajectoryStock_[i].resize(KMax_subsystem_);
-	RmTrajectoryStock_[i].resize(KMax_subsystem_);
-	RmInverseTrajectoryStock_[i].resize(KMax_subsystem_);
-	PmTrajectoryStock_[i].resize(KMax_subsystem_);
+	qTrajectoryStock_[i].resize(KMax_subsystem_approx_);
+	QvTrajectoryStock_[i].resize(KMax_subsystem_approx_);
+	QmTrajectoryStock_[i].resize(KMax_subsystem_approx_);
+	RvTrajectoryStock_[i].resize(KMax_subsystem_approx_);
+	RmTrajectoryStock_[i].resize(KMax_subsystem_approx_);
+	RmInverseTrajectoryStock_[i].resize(KMax_subsystem_approx_);
+	PmTrajectoryStock_[i].resize(KMax_subsystem_approx_);
 
 
-	if(mp_options_.debugPrintMP_)	std::cout<<"[MP]: Waking up workers to do linearisation for subsystem "<< i << std::endl;
+	if(mp_options_.debugPrintMP_){
+		std::string output;	output = "[MP]: Waking up workers to do linearisation for subsystem " + std::to_string(i);
+		std::cout << output << std::endl;
+	}
 
 	workerTask_ = APPROXIMATE_LQ;
 	workerWakeUpCondition_.notify_all();
 
-
-	if(mp_options_.debugPrintMP_) std::cout<<"[MP]: Will wait now until workers have linearized dynamics of subsystem " << i <<std::endl;
+	if(mp_options_.debugPrintMP_){
+		std::string output;	output = "[MP]: Will wait now until workers have linearized dynamics of subsystem " + std::to_string(i);
+		std::cout << output << std::endl;
+	}
 
 	std::unique_lock<std::mutex> waitLock(kCompletedMutex_);
 	// with timeout 20 000 milliseconds
 
-	if(kCompletedCondition_.wait_for(waitLock, std::chrono::milliseconds(20000),[this]{return (kCompleted_.load() >= KMax_subsystem_) ;}))
+	if(kCompletedCondition_.wait_for(waitLock, std::chrono::milliseconds(20000),[this]{return (kCompleted_.load() >= KMax_subsystem_approx_) ;}))
 	{
-		if(mp_options_.debugPrintMP_) std::cout<<"[MP]: Back to main thread, workers should now have linearized dynamics of subsystem " << i <<std::endl;
+		if(mp_options_.debugPrintMP_){
+			std::string output;	output = "[MP]: Back to main thread, workers should now have linearized dynamics of subsystem " + std::to_string(i);
+			std::cout << output << std::endl;
+		}
 	}
 	else
 	{
@@ -1405,7 +1370,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControl
 
 		kTaken_ = 0;
 		kCompleted_ = 0;
-		KMax_subsystem_  = SsTimeTrajectoryStock_[i].size();; // number of elements in the trajectory of this subsystem
+		KMax_subsystem_ctrl_  = SsTimeTrajectoryStock_[i].size();; // number of elements in the trajectory of this subsystem
 
 		// initialize interpolators
 		for(size_t n = 0; n< mp_options_.nThreads_+1; n++)
@@ -1452,16 +1417,16 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControl
 		}
 
 		controllers_[mp_options_.nThreads_][i].time_ = SsTimeTrajectoryStock_[i];
-		controllers_[mp_options_.nThreads_][i].k_.resize(KMax_subsystem_);
-		controllers_[mp_options_.nThreads_][i].uff_.resize(KMax_subsystem_);
-		controllers_[mp_options_.nThreads_][i].deltaUff_.resize(KMax_subsystem_);
+		controllers_[mp_options_.nThreads_][i].k_.resize(KMax_subsystem_ctrl_);
+		controllers_[mp_options_.nThreads_][i].uff_.resize(KMax_subsystem_ctrl_);
+		controllers_[mp_options_.nThreads_][i].deltaUff_.resize(KMax_subsystem_ctrl_);
 
-		feedForwardConstraintInputStock_[i].resize(KMax_subsystem_);
+		feedForwardConstraintInputStock_[i].resize(KMax_subsystem_ctrl_);
 
 		lagrangeControllerStock_[i].time_ = SsTimeTrajectoryStock_[i];
-		lagrangeControllerStock_[i].k_.resize(KMax_subsystem_);
-		lagrangeControllerStock_[i].uff_.resize(KMax_subsystem_);
-		lagrangeControllerStock_[i].deltaUff_.resize(KMax_subsystem_);
+		lagrangeControllerStock_[i].k_.resize(KMax_subsystem_ctrl_);
+		lagrangeControllerStock_[i].uff_.resize(KMax_subsystem_ctrl_);
+		lagrangeControllerStock_[i].deltaUff_.resize(KMax_subsystem_ctrl_);
 
 
 		if(mp_options_.debugPrintMP_)
@@ -1479,7 +1444,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControl
 
 		std::unique_lock<std::mutex> waitLock(kCompletedMutex_);
 		// .. with timeout for 20 000 milliseconds
-		if (kCompletedCondition_.wait_for(waitLock,  std::chrono::milliseconds(20000), [this]{return kCompleted_.load() >= KMax_subsystem_ ;})) // problem: this does sometimes not get notified
+		if (kCompletedCondition_.wait_for(waitLock,  std::chrono::milliseconds(20000), [this]{return kCompleted_.load() >= KMax_subsystem_ctrl_ ;})) // problem: this does sometimes not get notified
 		{
 			if(mp_options_.debugPrintMP_) std::cout<<"[MP]: Back to main thread, workers should now have designed controllers for subsystem " << i <<std::endl;
 		}
@@ -1496,60 +1461,123 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControl
 }
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsystemLQWorker(size_t threadId)
+size_t SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsystemLQWorker(size_t threadId)
 {
-	while(true)
-	{
-		size_t k = kTaken_++;
-		/*Here: IMPORTANT LESSON LEARNED:
-		 * if we write the above statement instead as "const size_t k = kTaken; kTaken_++;"
-		 * it screws up everything, because then different threads access the same kTaken at the same time!
-		 * It seems like for the atomic datatype, everything is fine if we bound the assignment to k and the
-		 * incrementation into the same statement!!!*/
+	size_t subsystem = subsystemProcessed_;
 
-		if(mp_options_.debugPrintMP_)if (k%10 == 0)  	std::cout<<"[Thread "<<threadId<<"]: Start approximating system LQ on index k = " << k << std::endl;
-
-		if (k >= KMax_subsystem_) // if all k's are already covered, notify and return
-		{
-			if((kCompleted_>=KMax_subsystem_) == true)
-				kCompletedCondition_.notify_all();
-
-			return;
-		}
-
-		executeApproximateSubsystemLQ(threadId, k);
-
-		kCompleted_++;
-	}
-}
-
-
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControllerAndLagrangianWorker(size_t threadId)
-{
 	while(true)
 	{
 		size_t k = kTaken_++;
 
-		if(mp_options_.debugPrintMP_)
-			if (k%10 == 0)  std::cout<<"[Thread "<<threadId<<"]: Start calculating controller on index k = " << k << std::endl;
 
-		if (k >= KMax_subsystem_)	// if all k's are already covered, notify and return
-		{
-			if((kCompleted_>=KMax_subsystem_) == true)
-				kCompletedCondition_.notify_all();
+//		if (k >= KMax_subsystem_approx_) // if all k's are already covered, notify and return
+//		{
+//			if(kCompleted_.load() >=KMax_subsystem_approx_)
+//			{
+//				kCompletedCondition_.notify_all();
+//				std::string test;	test = "thread " + std::to_string(threadId) + " leaving AND NOTIFYING "; // todo: fix everywhere
+//				std::cout << test << std::endl;
+//			}
+//			else
+//				std::cout << "thread " << threadId << " leaving but not notifying " << std::endl;
+//
+//			return subsystem; // todo: may be wrong value here
+//		}
 
-			return;
+		if(k < KMax_subsystem_approx_){
+
+			if(mp_options_.debugPrintMP_){
+	//			if (k%10 == 0) {
+					std::string output;	output = "[Thread " + std::to_string(threadId) + "]: Start approximating system LQ on index k = " + std::to_string(k) +
+					" out of " + std::to_string(KMax_subsystem_approx_-1);
+					std::cout << output << std::endl;
+	//			}
+			}
+
+			subsystem = executeApproximateSubsystemLQ(threadId, k);
+			kCompleted_++;
 		}
 
-		executeCalculateControllerAndLagrangian(threadId, k);
+		if (k >= KMax_subsystem_approx_-1) // if all k's are already covered, notify and return
+		{
+			if(kCompleted_.load() >=KMax_subsystem_approx_)
+			{
+				kCompletedCondition_.notify_all();
+				if(mp_options_.debugPrintMP_){
+					std::string output;	output = "[Thread " + std::to_string(threadId) + "]: leaving AND NOTIFYING "; // todo: fix everywhere
+					std::cout << output << std::endl;
+				}
+			}
+			else{
+				{
+					if(mp_options_.debugPrintMP_){
+					std::string output;	output = "[Thread " + std::to_string(threadId) + "]: leaving but NOT notifying "; // todo: fix everywhere
+					std::cout << output << std::endl;
+					}
+				}
+			}
 
-		kCompleted_++;
+			return subsystem; // todo: may be wrong value here
+		}
 	}
+
+	return subsystem;
 }
 
+
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeApproximateSubsystemLQ(size_t threadId, size_t k)
+size_t SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControllerAndLagrangianWorker(size_t threadId)
+{
+
+	size_t subsystem = subsystemProcessed_;
+
+	while(true)
+	{
+		size_t k = kTaken_++;
+
+		if(k < KMax_subsystem_ctrl_){
+
+			if(mp_options_.debugPrintMP_){
+				//			if (k%10 == 0) {
+				std::string output;	output = "[Thread " + std::to_string(threadId) + "]: Start calculating controller on index k = " + std::to_string(k) +
+				" out of " + std::to_string(KMax_subsystem_ctrl_-1);
+				std::cout << output << std::endl;
+				//			}
+			}
+
+			subsystem = executeCalculateControllerAndLagrangian(threadId, k);
+			kCompleted_++;
+		}
+
+
+		if (k >= KMax_subsystem_ctrl_-1)	// if all k's are already covered, notify and return
+		{
+			if(kCompleted_.load()>=KMax_subsystem_ctrl_){
+				kCompletedCondition_.notify_all();
+				if(mp_options_.debugPrintMP_){
+					std::string output;	output = "[Thread " + std::to_string(threadId) + "]: leaving AND NOTIFYING ";
+					std::cout << output << std::endl;
+				}
+			}else
+			{
+				{
+					if(mp_options_.debugPrintMP_){
+					std::string output;	output = "[Thread " + std::to_string(threadId) + "]: leaving but NOT notifying ";
+					std::cout << output << std::endl;
+					}
+				}
+			}
+
+			return subsystem;
+		}
+	}
+
+	return subsystem;
+}
+
+
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+size_t SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeApproximateSubsystemLQ(size_t threadId, size_t k)
 {
 	const size_t i = subsystemProcessed_;
 
@@ -1582,11 +1610,13 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeApproxima
 	costFunctions_[threadId][i]->controlSecondDerivative(RmTrajectoryStock_[i][k]);
 	RmInverseTrajectoryStock_[i][k] = RmTrajectoryStock_[i][k].inverse();
 	costFunctions_[threadId][i]->stateControlDerivative(PmTrajectoryStock_[i][k]);
+
+	return i;
 }
 
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeCalculateControllerAndLagrangian(size_t threadId, size_t k)
+size_t SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeCalculateControllerAndLagrangian(size_t threadId, size_t k)
 {
 
 	const size_t i = subsystemProcessed_;
@@ -1595,7 +1625,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeCalculate
 	size_t greatestLessTimeStampIndex;
 
 	// local variables
-	output_vector_t nominalOutput;	// todo: ask michael if this is a good idea?
+	output_vector_t nominalOutput;
 	control_vector_t nominalInput;
 	control_gain_matrix_t Bm;
 	control_feedback_t Pm;
@@ -1683,7 +1713,224 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeCalculate
 	catch(const std::exception& error)  {
 		std::cerr << "what(): " << error.what() << " at time " << lagrangeControllerStock_[i].time_[k] << " [sec]." << std::endl;
 	}
+
+	return i;
 }
 
+
+
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker(size_t threadId)
+{
+	if(mp_options_.debugPrintMP_)
+		{std::cout<<"[Thread "<<threadId<<"]: Starting lineSearchWorker " <<std::endl;}
+
+
+	// local search forward simulation's variables
+	scalar_t lsTotalCost;
+	scalar_t lsTotalMerit;
+	scalar_t lsConstraint1ISE;
+	std::vector<controller_t>           lsControllersStock(NUM_SUBSYSTEMS);
+	std::vector<lagrange_t>             lsLagrangeControllersStock(NUM_SUBSYSTEMS);
+	std::vector<scalar_array_t>         lsTimeTrajectoriesStock(NUM_SUBSYSTEMS);
+	std::vector<state_vector_array_t>   lsStateTrajectoriesStock(NUM_SUBSYSTEMS);
+	std::vector<control_vector_array_t> lsInputTrajectoriesStock(NUM_SUBSYSTEMS);
+	std::vector<output_vector_array_t>  lsOutputTrajectoriesStock(NUM_SUBSYSTEMS);
+	std::vector<std::vector<size_t> >   lsNc1TrajectoriesStock(NUM_SUBSYSTEMS);
+	std::vector<constraint1_vector_array_t> lsEvTrajectoryStock(NUM_SUBSYSTEMS);
+	std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> >> lsLagrangeTrajectoriesStock(NUM_SUBSYSTEMS);
+
+
+	while(true)
+	{
+		size_t alphaExp = alphaTaken_++;
+
+		scalar_t learningRate  = options_.maxLearningRateGSLQP_ * std::pow(options_.lineSearchContractionRate_, alphaExp);
+
+
+		if (learningRate < options_.minLearningRateGSLQP_ || alphaBestFound_.load() == true)
+		{
+			if(mp_options_.debugPrintMP_)
+			{
+				if (alphaBestFound_.load() == true)
+					std::cout<<"[Thread "<<threadId<<"]: Leaving lineSearchWorker because best alpha is found ..." <<std::endl;
+				else
+					std::cout<<"[Thread "<<threadId<<"]: Leaving lineSearchWorker because learningRate < options_.minLearningRateGSLQP_" <<std::endl;
+			}
+
+			break;
+		}
+
+		if(mp_options_.debugPrintMP_){
+			std::cout<<"[Thread "<<threadId<<"]: Trying learningRate " << learningRate <<std::endl;}
+
+
+		lsControllersStock 			= initLScontrollersStock_;
+		lsLagrangeControllersStock 	= initLSlagrangeMultiplierFunctionsStock_;
+
+
+		executeLineSearch(
+				threadId,
+				learningRate,
+				lsTotalCost,
+				lsTotalMerit,
+				lsConstraint1ISE,
+				lsControllersStock,
+				lsLagrangeControllersStock,
+				lsTimeTrajectoriesStock,
+				lsStateTrajectoriesStock,
+				lsInputTrajectoriesStock,
+				lsOutputTrajectoriesStock,
+				lsNc1TrajectoriesStock,
+				lsEvTrajectoryStock,
+				lsLagrangeTrajectoriesStock);
+
+		// wait for the thread with a lower alphaExp index to finish first. Why?
+		// observations tell us it is better to use a bigger stepsize!
+		while(std::accumulate(alphaProcessed_.begin(), std::next(alphaProcessed_.begin(), alphaExp), 0) < alphaExp && alphaBestFound_.load() == false)
+		{
+			std::chrono::milliseconds dura( static_cast<int>(5) );	// Sleep 5ms until we check again. TODO: which time should we select?
+			std::this_thread::sleep_for( dura );
+		}
+
+		// make sure we do not alter an existing result
+		if (alphaBestFound_.load() == true)
+		{
+			if(mp_options_.debugPrintMP_){
+				std::cout<<"[Thread "<<threadId<<"]: Leaving lineSearchWorker because best alpha already found by another thread." <<std::endl;}
+
+			break;
+		}
+
+
+		lineSearchResultMutex_.lock();
+		if (lsTotalMerit <  (nominalTotalMerit_ * (1-1e-3*learningRate)))	// that is a common criterion in optimization
+		{
+			if(mp_options_.debugPrintMP_){
+				std::cout<<"[LineSearch, Thread "<<threadId<<"]: Lower cost found: "<<lsTotalMerit<<" at learningRate: "<<learningRate<<std::endl;}
+
+			alphaExpBest_ 	  = alphaExp;
+			lowestTotalMerit_ = lsTotalMerit;
+
+			nominalTotalCost_      				= lsTotalCost;
+			nominalTotalMerit_     				= lsTotalMerit;
+			nominalConstraint1ISE_ 				= lsConstraint1ISE;
+			controllers_[mp_options_.nThreads_] = lsControllersStock;
+			nominalTimeTrajectoriesStock_  		= lsTimeTrajectoriesStock;
+			nominalStateTrajectoriesStock_  	= lsStateTrajectoriesStock;		// todo: swap to save time
+			nominalInputTrajectoriesStock_  	= lsInputTrajectoriesStock;
+			nominalOutputTrajectoriesStock_ 	= lsOutputTrajectoriesStock;
+			nc1TrajectoriesStock_ 				= lsNc1TrajectoriesStock;
+			EvTrajectoryStock_ 					= lsEvTrajectoryStock;
+			learningRateStar_ 					= learningRate;
+			lagrangeControllerStock_ 			= lsLagrangeControllersStock;
+			nominalLagrangeTrajectoriesStock_ 	= lsLagrangeTrajectoriesStock;
+
+		}
+		else
+		{
+			if(mp_options_.debugPrintMP_)
+				std::cout<<"[LineSearch, Thread "<<threadId<<"]: No lower cost found, cost "<<lsTotalMerit<<" at learningRate "<<learningRate<<" . Best cost was "<<lowestTotalMerit_ <<std::endl;
+		}
+
+		alphaProcessed_[alphaExp] = 1;
+
+		// we now check if all alphas prior to the best have been processed, this also covers the case that there is no better alpha
+		bool allPreviousAlphasProcessed = true;
+		for (size_t i=0; i<alphaExpBest_; i++)
+		{
+			if (alphaProcessed_[i] != 1)
+			{
+				allPreviousAlphasProcessed = false;
+				break;
+			}
+		}
+		if (allPreviousAlphasProcessed)
+		{
+			alphaBestFound_ = true;
+		}
+
+		lineSearchResultMutex_.unlock();
+
+	}
+
+	lsWorkerCompleted_++; // todo hack
+
+
+	if (lsWorkerCompleted_.load() >= mp_options_.nThreads_)
+	{
+		// only the very last thread leaving line search notifies. TODO: improve, that might be time consuming
+		alphaBestFoundCondition_.notify_all();
+
+		if(mp_options_.debugPrintMP_)
+			std::cout << "NOTIFYING by LS WORKER since all workers are now done " << std::endl;
+	}
+
+	if(mp_options_.debugPrintMP_)
+		std::cout<<"[Thread "<<threadId<<"]: Leaving lineSearchWorker " <<std::endl;
+}
+
+
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeLineSearch(
+		size_t threadId,
+		double learningRate,
+		scalar_t& lsTotalCost,
+		scalar_t& lsTotalMerit,
+		scalar_t& lsConstraint1ISE,
+		std::vector<controller_t>& lsControllersStock,
+		std::vector<lagrange_t>& lsLagrangeControllersStock,
+		std::vector<scalar_array_t>& lsTimeTrajectoriesStock,
+		std::vector<state_vector_array_t>& lsStateTrajectoriesStock,
+		std::vector<control_vector_array_t>& lsInputTrajectoriesStock,
+		std::vector<output_vector_array_t>& lsOutputTrajectoriesStock,
+		std::vector<std::vector<size_t> >& lsNc1TrajectoriesStock,
+		std::vector<constraint1_vector_array_t>& lsEvTrajectoryStock,
+		std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> >>& lsLagrangeTrajectoriesStock){
+
+	// modifying uff by local increments
+	for (int i=0; i<NUM_SUBSYSTEMS; i++)
+		for (int k=0; k<lsControllersStock[i].time_.size(); k++)
+			lsControllersStock[i].uff_[k] += learningRate * lsControllersStock[i].deltaUff_[k];
+
+
+	// modifying vff by the local increments
+	for (int i=0; i<NUM_SUBSYSTEMS; i++)
+		for (int k=0; k < lsLagrangeControllersStock[i].time_.size(); k++)
+			lsLagrangeControllersStock[i].uff_[k] += learningRate * lsLagrangeControllersStock[i].deltaUff_[k];
+
+
+	try {
+		rollout(threadId, initState_, lsControllersStock, lsTimeTrajectoriesStock,
+				lsStateTrajectoriesStock, lsInputTrajectoriesStock, lsOutputTrajectoriesStock,
+				lsNc1TrajectoriesStock, lsEvTrajectoryStock);
+
+		// calculate rollout cost
+		calculateCostFunction(lsTimeTrajectoriesStock, lsOutputTrajectoriesStock, lsInputTrajectoriesStock, lsTotalCost, threadId);
+
+		// calculate the merit function
+		if (options_.lineSearchByMeritFuntion_==true)
+		{
+			// calculate the lagrange multiplier
+			calculateRolloutLagrangeMultiplier(lsTimeTrajectoriesStock, lsOutputTrajectoriesStock, lsLagrangeControllersStock, lsLagrangeTrajectoriesStock);
+			// calculate the merit function value
+			calculateMeritFunction(lsTimeTrajectoriesStock, lsNc1TrajectoriesStock, lsEvTrajectoryStock, lsLagrangeTrajectoriesStock, lsTotalCost, lsTotalMerit, lsConstraint1ISE);
+		} else
+		{
+			lsTotalMerit = lsTotalCost;
+			calculateConstraintISE(lsTimeTrajectoriesStock, lsNc1TrajectoriesStock, lsEvTrajectoryStock, lsConstraint1ISE);
+		}
+
+		// display
+		if (options_.dispayGSLQP_)  std::cerr << "\t learningRate " << learningRate << " \t cost: " << lsTotalCost << " \t merit: " << lsTotalMerit <<
+				" \t constraint ISE: " << lsConstraint1ISE << std::endl;
+	}
+	catch(const std::exception& error)
+	{
+		std::cerr << "\t rollout with learningRate " << learningRate << " is terminated due to the slow simulation!" << std::endl;
+		lsTotalMerit = std::numeric_limits<scalar_t>::max();
+		lsTotalCost  = std::numeric_limits<scalar_t>::max();
+	}
+}
 
 } // namespace ocs2

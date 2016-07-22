@@ -24,7 +24,6 @@
 #include <cstddef>
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
-#include <pthread.h>
 
 #include "Dimensions.h"
 
@@ -139,8 +138,11 @@ public:
 	  iteration_(0),
 	  options_(options),
 	  mp_options_(mp_options),
-	  feedForwardConstraintInputStock_(NUM_SUBSYSTEMS)
+	  feedForwardConstraintInputStock_(NUM_SUBSYSTEMS),
+	  learningRateStar_(1.0)
 	{
+		Eigen::initParallel();
+
 		// resize instances to correct number of threads + 1
 		dynamics_.resize(mp_options_.nThreads_+1);
 		linearizedSystems_.resize(mp_options_.nThreads_+1);
@@ -234,7 +236,8 @@ public:
 	void calculateCostFunction(const std::vector<scalar_array_t>& timeTrajectoriesStock,
 			const std::vector<output_vector_array_t>& stateTrajectoriesStock,
 			const std::vector<control_vector_array_t>& inputTrajectoriesStock,
-			scalar_t& totalCost);
+			scalar_t& totalCost,
+			size_t threadId);
 
 	void calculateMeritFunction(const std::vector<scalar_array_t>& timeTrajectoriesStock,
 			const std::vector<std::vector<size_t> >& nc1TrajectoriesStock,
@@ -283,9 +286,7 @@ protected:
 			const std::vector<output_vector_array_t>& outputTrajectoriesStock,
 			std::vector<output_vector_array_t>& costateTrajectoriesStock);
 
-	void lineSearch(const std::vector<control_vector_array_t>& feedForwardConstraintInputStock,
-			scalar_t& learningRateStar,
-			scalar_t maxLearningRateStar=1.0);
+	void lineSearch();
 
 	template <typename Derived>
 	bool makePSD(Eigen::MatrixBase<Derived>& squareMatrix);
@@ -297,16 +298,31 @@ private:
 	void threadWork(size_t threadId);
 
 	// main function for sub-tasks
-	void approximateSubsystemLQ(); // computes the linearized dynamics for a particular subsystem
+	void approximateSubsystemLQ(const size_t sysIndex); // computes the linearized dynamics for a particular subsystem
 	void calculateControllerAndLagrangian();
 
 	// worker functions
-	void approximateSubsystemLQWorker(size_t threadId);		//Worker function for linearized dynamics
-	void calculateControllerAndLagrangianWorker(size_t threadId);
+	size_t approximateSubsystemLQWorker(size_t threadId);		//Worker functions
+	size_t calculateControllerAndLagrangianWorker(size_t threadId);
+	void lineSearchWorker(size_t threadId);
 
 	// execute methods
-	void executeApproximateSubsystemLQ(size_t threadId, size_t k);	// Computes the linearized dynamics
-	void executeCalculateControllerAndLagrangian(size_t threadId, size_t k);
+	size_t executeApproximateSubsystemLQ(size_t threadId, size_t k);	// Computes the linearized dynamics
+	size_t executeCalculateControllerAndLagrangian(size_t threadId, size_t k);
+	void executeLineSearch(
+			size_t threadId, double learningRate,
+			scalar_t& lsTotalCost,
+			scalar_t& lsTotalMerit,
+			scalar_t& lsConstraint1ISE,
+			std::vector<controller_t>& lsControllersStock,
+			std::vector<lagrange_t>& lsLagrangeControllersStock,
+			std::vector<scalar_array_t>& lsTimeTrajectoriesStock,
+			std::vector<state_vector_array_t>& lsStateTrajectoriesStock,
+			std::vector<control_vector_array_t>& lsInputTrajectoriesStock,
+			std::vector<output_vector_array_t>& lsOutputTrajectoriesStock,
+			std::vector<std::vector<size_t> >& lsNc1TrajectoriesStock,
+			std::vector<constraint1_vector_array_t>& lsEvTrajectoryStock,
+			std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> >>& lsLagrangeTrajectoriesStock);
 
 	// for generating unique identifiers for subsystem, task, iteration:
 	// just a heuristics that generates a unique id for a process, such that we can manage the tasks
@@ -392,7 +408,14 @@ private:
 	std::mutex alphaBestFoundMutex_;
 	std::condition_variable alphaBestFoundCondition_;
 
-	std::atomic_size_t KMax_subsystem_;		// denotes the number of integration steps for a particular subsystem i
+	std::mutex debugMutex_; // to lock all threads for debugging, todo: remove
+
+
+	double learningRateStar_;
+
+	size_t KMax_subsystem_approx_;		// denotes the number of integration steps for a particular subsystem i
+	size_t KMax_subsystem_ctrl_;
+	std::atomic_size_t KMax_subsystem_ls_;	// todo: these guys don't need to be atomic
 
 	std::atomic_size_t alphaTaken_;
 	size_t alphaMax_;
@@ -400,6 +423,9 @@ private:
 	size_t alphaExpMax_;
 	std::atomic_bool alphaBestFound_;
 	std::vector<size_t> alphaProcessed_;
+	double lowestTotalMerit_;
+//	double lowestCostPrevious_;
+	std::atomic_size_t lsWorkerCompleted_;
 
 	std::atomic_size_t kTaken_;
 	std::atomic_size_t kCompleted_;
@@ -420,8 +446,13 @@ private:
 	std::vector<LinearInterpolation<control_constraint1_matrix_t,Eigen::aligned_allocator<control_constraint1_matrix_t> >> DmDagerFunc_;
 	std::vector<LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> >> RmFunc_;
 
+
 	std::vector<control_vector_array_t> feedForwardConstraintInputStock_;
 	bool nominalLagrangeMultiplierUpdated_;
+
+	// needed for lineSearch
+	std::vector<controller_t> initLScontrollersStock_;
+	std::vector<lagrange_t> initLSlagrangeMultiplierFunctionsStock_;
 
 public:
 	template <size_t GSLQP_STATE_DIM, size_t GSLQP_INPUT_DIM, size_t GSLQP_OUTPUT_DIM, size_t GSLQP_NUM_SUBSYSTEMS>

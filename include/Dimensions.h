@@ -86,6 +86,7 @@ public:
 			maxIterationGSLQP_(10),
 			minLearningRateGSLQP_(0.05),
 			maxLearningRateGSLQP_(1.0),
+			lineSearchContractionRate_(0.5),
 			minRelCostGSLQP_(1e-3),
 			meritFunctionRho_(1.0),
 			constraintStepSize_(1.0),
@@ -115,6 +116,7 @@ public:
 			std::cout << "maxIterationGSLQP_                 " << maxIterationGSLQP_                  << std::endl;
 			std::cout << "minLearningRateGSLQP_              " << minLearningRateGSLQP_               << std::endl;
 			std::cout << "maxLearningRateGSLQP_              " << maxLearningRateGSLQP_               << std::endl;
+			std::cout << "lineSearchContractionRate_         " << lineSearchContractionRate_          << std::endl;
 			std::cout << "minRelCostGSLQP_                   " << minRelCostGSLQP_                    << std::endl;
 			std::cout << "meritFunctionRho_                  " << meritFunctionRho_                   << std::endl;
 			std::cout << "constraintStepSize_                " << constraintStepSize_                 << std::endl;
@@ -140,6 +142,7 @@ public:
 		size_t maxIterationGSLQP_;
 		double minLearningRateGSLQP_;
 		double maxLearningRateGSLQP_;
+		double lineSearchContractionRate_;
 		double minRelCostGSLQP_;
 		double meritFunctionRho_;
 		double constraintStepSize_;

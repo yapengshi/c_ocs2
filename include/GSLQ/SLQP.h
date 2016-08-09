@@ -27,6 +27,8 @@
 #include "GSLQ/SequentialRiccatiEquations.h"
 #include "GSLQ/SequentialErrorEquation.h"
 
+#include <chrono>
+
 namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>

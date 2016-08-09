@@ -65,7 +65,7 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	SLQP_MP<2,2,2,3>::Options_t slqpOptions;
-	slqpOptions.dispayGSLQP_ = 1;
+	slqpOptions.dispayGSLQP_ = 0;
 	slqpOptions.maxIterationGSLQP_ = 100;
 	slqpOptions.meritFunctionRho_ = 2000.0;
 	slqpOptions.constraintStepSize_ = 0.2;
@@ -73,9 +73,10 @@ int main (int argc, char* argv[])
 	if (argc>1) slqpOptions.meritFunctionRho_ = std::atof(argv[1]);
 
 	SLQP_MP<2,2,2,3>::MP_Options_t mpOptions;
-	mpOptions.nThreads_ = 4;
+	mpOptions.nThreads_ = 1;
 	mpOptions.debugPrintMP_ = 0;
 
+	while(true){
 	// Single core SLQP
 	SLQP<2,2,2,3> slqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, slqpOptions);
 
@@ -83,48 +84,48 @@ int main (int argc, char* argv[])
 	SLQP_MP<2,2,2,3> slqp_mp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, slqpOptions, mpOptions);
 
 	// run slqp for reference
-//	std::cout << " =========================== Starting single core SLQP ===============================" << std::endl;
-//	slqp.run(initState, switchingTimes);
-//	std::cout << " =========================== End of single core SLQP ===============================" << std::endl;
+	std::cout << " =========================== Starting single core SLQP ===============================" << std::endl;
+	slqp.run(initState, switchingTimes);
+	std::cout << " =========================== End of single core SLQP ===============================" << std::endl;
 
 	std::cout << " =========================== Starting multi core SLQP ===============================" << std::endl;
 	slqp_mp.run(initState, switchingTimes);
 	std::cout << " =========================== End of multi core SLQP ===============================" << std::endl;
-
+	}
 	exit(0);
-
-	// get controller
-	slqp.getController(controllersStock);
-
-	// rollout
-	std::vector<SLQP_MP<2,2,2,3>::scalar_array_t> timeTrajectoriesStock;
-	std::vector<SLQP_MP<2,2,2,3>::state_vector_array_t> stateTrajectoriesStock;
-	std::vector<SLQP_MP<2,2,2,3>::control_vector_array_t> controlTrajectoriesStock;
-//	slqp.rollout(initState, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
-
-	// compute cost
-	double rolloutCost;
-//	slqp.calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
-
-	// value funtion
-	double totalCost;
-	slqp.getValueFuntion(0.0, initState, totalCost);
-
-//	// value funtion derivative
-//	Eigen::Matrix<double,2,1> costFuntionDerivative;
-//	slqp.getCostFuntionDerivative(costFuntionDerivative);
-
-	/******************************************************************************************************/
-	/******************************************************************************************************/
-	/******************************************************************************************************/
-	std::cout << std::endl;
-
-	std::cout << "Switching times are: [" << switchingTimes[0] << ", ";
-	for (size_t i=1; i<switchingTimes.size()-1; i++)  std::cout << switchingTimes[i] << ", ";
-	std::cout << switchingTimes.back() << "]\n";
-
-	std::cout << "The total cost: " << totalCost << std::endl;
-//	std::cout << "The total cost in the test rollout: " << rolloutCost << std::endl;
-//	std::cout << "The total cost derivative: " << costFuntionDerivative.transpose() << std::endl;
+//
+//	// get controller
+//	slqp.getController(controllersStock);
+//
+//	// rollout
+//	std::vector<SLQP_MP<2,2,2,3>::scalar_array_t> timeTrajectoriesStock;
+//	std::vector<SLQP_MP<2,2,2,3>::state_vector_array_t> stateTrajectoriesStock;
+//	std::vector<SLQP_MP<2,2,2,3>::control_vector_array_t> controlTrajectoriesStock;
+////	slqp.rollout(initState, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
+//
+//	// compute cost
+//	double rolloutCost;
+////	slqp.calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
+//
+//	// value funtion
+//	double totalCost;
+//	slqp.getValueFuntion(0.0, initState, totalCost);
+//
+////	// value funtion derivative
+////	Eigen::Matrix<double,2,1> costFuntionDerivative;
+////	slqp.getCostFuntionDerivative(costFuntionDerivative);
+//
+//	/******************************************************************************************************/
+//	/******************************************************************************************************/
+//	/******************************************************************************************************/
+//	std::cout << std::endl;
+//
+//	std::cout << "Switching times are: [" << switchingTimes[0] << ", ";
+//	for (size_t i=1; i<switchingTimes.size()-1; i++)  std::cout << switchingTimes[i] << ", ";
+//	std::cout << switchingTimes.back() << "]\n";
+//
+//	std::cout << "The total cost: " << totalCost << std::endl;
+////	std::cout << "The total cost in the test rollout: " << rolloutCost << std::endl;
+////	std::cout << "The total cost derivative: " << costFuntionDerivative.transpose() << std::endl;
 
 }

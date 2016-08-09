@@ -1298,19 +1298,37 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 		if (options_.dispayGSLQP_)  std::cerr << "\n#### Iteration " <<  iteration_ << std::endl;
 
 		// linearizing the dynamics and quadratizing the cost function along nominal trajectories
-		approximateOptimalControlProblem(); // todo parallelize
+		auto start = std::chrono::high_resolution_clock::now();
+		approximateOptimalControlProblem();
+		auto end = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double, std::milli> diff = end - start;
+		std::cout << "iteration " << iteration_ << ": single core LQ approximation took " << diff.count() << "ms" << std::endl;
+
 
 		// solve Riccati equations
-		solveSequentialRiccatiEquations(1.0 /*nominal learningRate*/); //todo do not touch
+		auto start2 = std::chrono::high_resolution_clock::now();
+		solveSequentialRiccatiEquations(1.0 /*nominal learningRate*/); //todo do not parallize
+		auto end2 = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double, std::milli> diff2 = end2 - start2;
+		std::cout << "iteration " << iteration_ << ": single core solving riccati took " << diff2.count() << "ms" << std::endl;
 
 		// calculate controller and lagrange multiplier
+		auto start3 = std::chrono::high_resolution_clock::now();
 		std::vector<control_vector_array_t> feedForwardConstraintInputStock(NUM_SUBSYSTEMS);
 		calculateControllerAndLagrangian(nominalControllersStock_, lagrangeControllerStock_,
 				feedForwardConstraintInputStock, ~nominalLagrangeMultiplierUpdated); // todo parallelize
+		auto end3 = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double, std::milli> diff3 = end3 - start3;
+		std::cout << "iteration " << iteration_ << ": single core calc controller and lagr took " << diff3.count() << "ms" << std::endl;
+
 		nominalLagrangeMultiplierUpdated = true;
 
 		// finding the optimal learningRate
+		auto start4 = std::chrono::high_resolution_clock::now();
 		lineSearch(feedForwardConstraintInputStock, learningRateStar, options_.maxLearningRateGSLQP_); // todo parallelize
+		auto end4 = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double, std::milli> diff4 = end4 - start4;
+		std::cout << "iteration " << iteration_ << ": single core line search took " << diff4.count() << "ms" << std::endl;
 
 		// calculates type-1 constraint ISE and maximum norm
 		double constraint1MaxNorm = calculateConstraintISE(nominalTimeTrajectoriesStock_, nc1TrajectoriesStock_, EvTrajectoryStock_, nominalConstraint1ISE_);

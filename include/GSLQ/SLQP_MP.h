@@ -136,10 +136,18 @@ public:
 	  SmTrajectoryStock_(NUM_SUBSYSTEMS),
 	  switchingTimes_(NUM_SUBSYSTEMS+1),
 	  iteration_(0),
+	  workerTask_(IDLE),
+	  subsystemProcessed_(0),
 	  options_(options),
 	  mp_options_(mp_options),
 	  feedForwardConstraintInputStock_(NUM_SUBSYSTEMS),
-	  learningRateStar_(1.0)
+	  learningRateStar_(1.0),
+	  kTaken_approx_(NUM_SUBSYSTEMS),
+	  kCompleted_approx_(NUM_SUBSYSTEMS),
+	  kTaken_ctrl_(NUM_SUBSYSTEMS),
+	  kCompleted_ctrl_(NUM_SUBSYSTEMS),
+	  KMax_subsystem_approx_(NUM_SUBSYSTEMS),
+	  KMax_subsystem_ctrl_(NUM_SUBSYSTEMS)
 	{
 		Eigen::initParallel();
 
@@ -302,13 +310,13 @@ private:
 	void calculateControllerAndLagrangian();
 
 	// worker functions
-	size_t approximateSubsystemLQWorker(size_t threadId);		//Worker functions
-	size_t calculateControllerAndLagrangianWorker(size_t threadId);
+	size_t approximateSubsystemLQWorker(size_t threadId, size_t subsystemProcessed);		//Worker functions
+	size_t calculateControllerAndLagrangianWorker(size_t threadId, size_t subsystemProcessed);
 	void lineSearchWorker(size_t threadId);
 
 	// execute methods
-	size_t executeApproximateSubsystemLQ(size_t threadId, size_t k);	// Computes the linearized dynamics
-	size_t executeCalculateControllerAndLagrangian(size_t threadId, size_t k);
+	size_t executeApproximateSubsystemLQ(size_t threadId, size_t k, size_t subsystemProcessed);	// Computes the linearized dynamics
+	size_t executeCalculateControllerAndLagrangian(size_t threadId, size_t k, size_t subsystemProcessed);
 	void executeLineSearch(
 			size_t threadId, double learningRate,
 			scalar_t& lsTotalCost,
@@ -413,8 +421,8 @@ private:
 
 	double learningRateStar_;
 
-	size_t KMax_subsystem_approx_;		// denotes the number of integration steps for a particular subsystem i
-	size_t KMax_subsystem_ctrl_;
+	std::vector<size_t> KMax_subsystem_approx_;		// denotes the number of integration steps for a particular subsystem i
+	std::vector<size_t> KMax_subsystem_ctrl_;
 	std::atomic_size_t KMax_subsystem_ls_;	// todo: these guys don't need to be atomic
 
 	std::atomic_size_t alphaTaken_;
@@ -427,8 +435,10 @@ private:
 //	double lowestCostPrevious_;
 	std::atomic_size_t lsWorkerCompleted_;
 
-	std::atomic_size_t kTaken_;
-	std::atomic_size_t kCompleted_;
+	std::vector<std::atomic_size_t> kTaken_approx_;
+	std::vector<std::atomic_size_t> kCompleted_approx_;
+	std::vector<std::atomic_size_t> kTaken_ctrl_;
+	std::vector<std::atomic_size_t> kCompleted_ctrl_;
 
 	// for controller design
 	// functions for controller and lagrange multiplier

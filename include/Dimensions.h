@@ -100,6 +100,7 @@ public:
 			constraintStepSize_(1.0),
 			lineSearchByMeritFuntion_(false),
 			dispayGSLQP_(false),
+			displayShortSummary_(true),
 			warmStartGSLQP_(false),
 			useLQForDerivatives_(false),
 
@@ -130,6 +131,7 @@ public:
 			std::cout << "constraintStepSize_                " << constraintStepSize_                 << std::endl;
 			std::cout << "lineSearchByMeritFuntion_          " << lineSearchByMeritFuntion_           << std::endl;
 			std::cout << "dispayGSLQP_                       " << dispayGSLQP_                        << std::endl;
+			std::cout << "displayShortSummary_               " << displayShortSummary_                << std::endl;
 			std::cout << "warmStartGSLQP_                    " << warmStartGSLQP_                     << std::endl;
             std::cout << "                                   " << ""                                  << std::endl;
 			std::cout << "AbsTolODE_                         " << AbsTolODE_                          << std::endl;
@@ -156,6 +158,7 @@ public:
 		double constraintStepSize_;
 		bool lineSearchByMeritFuntion_;
 		bool dispayGSLQP_;
+		bool displayShortSummary_;
 		bool warmStartGSLQP_;
 		bool useLQForDerivatives_;
 
@@ -179,9 +182,13 @@ public:
 		{
 			nThreads_ = 1;
 			debugPrintMP_ = false;
+			lsStepsizeGreedy_ = true;
 		}
 		size_t nThreads_;
 		bool debugPrintMP_;
+
+		//mp line search options
+		bool lsStepsizeGreedy_;	// otherwise it's merit-greedy
 	};
 
 private:

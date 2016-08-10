@@ -118,6 +118,14 @@ void loadOptions(const std::string& filename, typename Dimensions<STATE_DIM, INP
 	}
 
 	try	{
+		opt.displayShortSummary_ = pt.get<bool>("ocs2.displayShortSummary");
+		if (verbose)  std::cout << " #### Option loader : option 'displayShortSummary'                " << opt.displayShortSummary_ << std::endl;
+	}
+	catch (const std::exception& e){
+		if (verbose)  std::cout << " #### Option loader : option 'displayShortSummary'                " << opt.displayShortSummary_ << "\t(default)" << std::endl;
+	}
+
+	try	{
 		opt.warmStartGSLQP_ = pt.get<bool>("ocs2.warmStartGSLQP");
 		if (verbose)  std::cout << " #### Option loader : option 'warmStartGSLQP'             " << opt.warmStartGSLQP_ << std::endl;
 	}
@@ -262,6 +270,14 @@ void loadMPOptions(const std::string& filename, typename Dimensions<STATE_DIM, I
 	}
 	catch (const std::exception& e){
 		if (verbose)  std::cout << " #### MP Option loader : option 'debugPrintMP'  " << mp_opt.debugPrintMP_ << "\t(default)" << std::endl;
+	}
+
+	try	{
+		mp_opt.lsStepsizeGreedy_ = pt.get<bool>("mp.lsStepsizeGreedy");
+		if (verbose)  std::cout << " #### MP Option loader : option 'lsStepsizeGreedy'  " << mp_opt.lsStepsizeGreedy_ << std::endl;
+	}
+	catch (const std::exception& e){
+		if (verbose)  std::cout << " #### MP Option loader : option 'lsStepsizeGreedy'  " << mp_opt.lsStepsizeGreedy_ << "\t(default)" << std::endl;
 	}
 
 	if(verbose)

@@ -1351,6 +1351,10 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 			std::cerr << "constraint ISE:     " << nominalConstraint1ISE_ << std::endl;
 			std::cerr << "constraint MaxNorm: " << constraint1MaxNorm << std::endl;
 		}
+		if(options_.displayShortSummary_){
+			std::cout << "#### Iter " << iteration_-1 << ".   opt. cost: " << nominalTotalCost_ << ".    constraint ISE: " << nominalConstraint1ISE_ <<
+					".   constr MaxNorm: " << constraint1MaxNorm << std::endl;
+		}
 	}  // end of while loop
 
 

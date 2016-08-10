@@ -636,6 +636,8 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch() {
 	}
 
 	lowestTotalMerit_ = nominalTotalMerit_;
+	lowestTotalCost_  = nominalTotalCost_;
+	lowestConstraint1ISE_ = nominalConstraint1ISE_;
 
 
 	// display
@@ -690,10 +692,14 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch() {
 	}
 
 	// reset integrator events
-	killIntegrationEventHandler_->resetEvent();	// kill all integrations
+	killIntegrationEventHandler_->resetEvent();	// reset all integrations
 
 	// display
 	if (options_.dispayGSLQP_)  {std::cerr << "The chosen learningRate is: " << learningRateStar_ << std::endl;}
+
+	nominalTotalMerit_ = lowestTotalMerit_;
+	nominalTotalCost_ =	lowestTotalCost_;
+	nominalConstraint1ISE_ = lowestConstraint1ISE_;
 }
 
 
@@ -1056,44 +1062,62 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 
 		// linearizing the dynamics and quadratizing the cost function along nominal trajectories
 		auto start = std::chrono::high_resolution_clock::now();
+
 		approximateOptimalControlProblem();
+
 		auto end = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double, std::milli> diff = end - start;
-		std::string output;
-		output = "iteration " + std::to_string(iteration_) + ": mp LQ approximation took " + std::to_string(diff.count()) + "ms";
-//		std::cout << output << std::endl;
+		if(mp_options_.debugPrintMP_){
+			std::chrono::duration<double, std::milli> diff = end - start;
+			std::string output;
+			output = "iteration " + std::to_string(iteration_) + ": mp LQ approximation took " + std::to_string(diff.count()) + "ms";
+			std::cout << output << std::endl;
+		}
 
 		// solve Riccati equations
 		auto start2 = std::chrono::high_resolution_clock::now();
+
 		solveSequentialRiccatiEquations(1.0 /*nominal learningRate*/); //todo do not parallize
+
 		auto end2 = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double, std::milli> diff2 = end2 - start2;
-		std::string output2;
-		output2 = "iteration " + std::to_string(iteration_) + ": mp solve riccati took " + std::to_string(diff2.count()) + "ms";
-//		std::cout << output2 << std::endl;
+		if(mp_options_.debugPrintMP_){
+			std::chrono::duration<double, std::milli> diff2 = end2 - start2;
+			std::string output2;
+			output2 = "iteration " + std::to_string(iteration_) + ": mp solve riccati took " + std::to_string(diff2.count()) + "ms";
+			std::cout << output2 << std::endl;
+		}
 
 		auto start3 = std::chrono::high_resolution_clock::now();
 		Eigen::setNbThreads(1); // disable Eigen multi-threading
+
 		calculateControllerAndLagrangian();
+
 		Eigen::setNbThreads(0); // restore default Eigen thread number
 		auto end3 = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double, std::milli> diff3 = end3 - start3;
-		std::string output3;
-		output3 = "iteration " + std::to_string(iteration_) + ": mp calc controller and lagrangian took " + std::to_string(diff3.count()) + "ms";
-//		std::cout << output3 << std::endl;
+
+		if(mp_options_.debugPrintMP_){
+			std::chrono::duration<double, std::milli> diff3 = end3 - start3;
+			std::string output3;
+			output3 = "iteration " + std::to_string(iteration_) + ": mp calc controller and lagrangian took " + std::to_string(diff3.count()) + "ms";
+			std::cout << output3 << std::endl;
+		}
 
 		nominalLagrangeMultiplierUpdated_ = true;
 
 		// finding the optimal learningRate
 		auto start4 = std::chrono::high_resolution_clock::now();
 		Eigen::setNbThreads(1); // disable Eigen multi-threading
+
 		lineSearch();
+
 		Eigen::setNbThreads(0); // restore default Eigen thread number
 		auto end4 = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double, std::milli> diff4 = end4 - start4;
-		std::string output4;
-		output4 = "iteration " + std::to_string(iteration_) + ": mp line search took " + std::to_string(diff4.count()) + "ms";
-		std::cout << output4 << std::endl;
+
+		if(mp_options_.debugPrintMP_){
+			std::chrono::duration<double, std::milli> diff4 = end4 - start4;
+			std::string output4;
+			output4 = "iteration " + std::to_string(iteration_) + ": mp line search took " + std::to_string(diff4.count()) + "ms";
+			std::cout << output4 << std::endl;
+		}
 
 		// calculates type-1 constraint ISE and maximum norm
 		double constraint1MaxNorm = calculateConstraintISE(nominalTimeTrajectoriesStock_, nc1TrajectoriesStock_, EvTrajectoryStock_, nominalConstraint1ISE_);
@@ -1111,6 +1135,10 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 			std::cerr << "optimization cost:  " << nominalTotalCost_ << std::endl;
 			std::cerr << "constraint ISE:     " << nominalConstraint1ISE_ << std::endl;
 			std::cerr << "constraint MaxNorm: " << constraint1MaxNorm << std::endl;
+		}
+		if(options_.displayShortSummary_){
+			std::cout << "#### Iter " << iteration_-1 << ".   opt. cost: " << nominalTotalCost_ << ".    constraint ISE: " << nominalConstraint1ISE_ <<
+					".   constr MaxNorm: " << constraint1MaxNorm << std::endl;
 		}
 	}  // end of while loop
 
@@ -1221,7 +1249,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 		if (!workersActive_)
 			break;
 
-		switch(workerTask_local /*workerTask_ */)
+		switch(workerTask_local)
 		{
 		case APPROXIMATE_LQ:
 		{
@@ -1836,13 +1864,6 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 				lsEvTrajectoryStock,
 				lsLagrangeTrajectoriesStock);
 
-		// wait for the thread with a lower alphaExp index to finish first. Why?
-		// observations tell us it is better to use a bigger stepsize, even if the cost is worse!
-		while(std::accumulate(alphaProcessed_.begin(), std::next(alphaProcessed_.begin(), alphaExp), 0) < alphaExp && alphaBestFound_.load() == false)
-		{
-			std::chrono::microseconds dura( static_cast<int>(1) );	//sleep and check again. TODO: which time should we select?
-			std::this_thread::sleep_for( dura );
-		}
 
 		// make sure we do not alter an existing result
 		if (alphaBestFound_.load() == true)
@@ -1853,19 +1874,60 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 			break;
 		}
 
+		bool updatePolicy = false;
+		if(mp_options_.lsStepsizeGreedy_ == true)
+		{
+			// act stepsize greedy, merit should be better than in last iteration but learning rate should be as high as possible
+			if(lsTotalMerit <  (nominalTotalMerit_ * (1-1e-3*learningRate)) && learningRate > learningRateStar_)
+			{
+				updatePolicy = true;
+				if(mp_options_.debugPrintMP_){
+					std::string output;
+					output = "[LineSearch, Thread " + std::to_string(threadId) + "]: stepsize-greedy mode : better stepsize and merit found: " + std::to_string(lsTotalMerit)
+					 + " at learningRate: " + std::to_string(learningRate);
+					std::cout<<output << std::endl;
+				}
+			}
+			else{
+				if(mp_options_.debugPrintMP_){
+					std::string output;
+					output = "[LineSearch, Thread " + std::to_string(threadId) + "]: stepsize-greedy mode : no better combination found, merit " + std::to_string(lsTotalMerit)
+					 + " at learningRate: " + std::to_string(learningRate);
+					std::cout<<output << std::endl;
+				}
+			}
+		}
+		else // line search acts merit greedy, minimize merit as much as possible
+		{
+			if(lsTotalMerit <  (lowestTotalMerit_ * (1-1e-3*learningRate)))
+			{
+				updatePolicy = true;
+				if(mp_options_.debugPrintMP_){
+					std::string output;
+					output = "[LineSearch, Thread " + std::to_string(threadId) + "]: merit-greedy mode : better merit found: " + std::to_string(lsTotalMerit)
+					 + " at learningRate: " + std::to_string(learningRate);
+					std::cout<<output << std::endl;
+				}
+			}
+			else{
+				if(mp_options_.debugPrintMP_){
+					std::string output;
+					output = "[LineSearch, Thread " + std::to_string(threadId) + "]: merit-greedy mode : no better merit found, merit " + std::to_string(lsTotalMerit)
+					 + " at learningRate: " + std::to_string(learningRate) + ". Best merit was " + std::to_string(lowestTotalMerit_);
+					std::cout<<output << std::endl;
+				}
+			}
+		}
+
 
 		lineSearchResultMutex_.lock();
-		if (lsTotalMerit <  (nominalTotalMerit_ * (1-1e-3*learningRate)))	// that is a common criterion in optimization
+		if (updatePolicy == true)
 		{
-			if(mp_options_.debugPrintMP_){
-				std::cout<<"[LineSearch, Thread "<<threadId<<"]: Lower cost found: "<<lsTotalMerit<<" at learningRate: "<<learningRate<<std::endl;}
-
-			alphaExpBest_ 	  = alphaExp;
-			lowestTotalMerit_ = lsTotalMerit;
-			nominalTotalCost_      				= lsTotalCost;
-			nominalTotalMerit_     				= lsTotalMerit;
-			nominalConstraint1ISE_ 				= lsConstraint1ISE;
-			learningRateStar_ 					= learningRate;
+			alphaExpBest_ 	  	= alphaExp;
+			lowestTotalMerit_ 	= lsTotalMerit;
+			lowestTotalCost_ 	= lsTotalCost;
+			lowestConstraint1ISE_ = lsConstraint1ISE;
+			learningRateStar_ 	= learningRate;
 
 			for (size_t i = 0; i<NUM_SUBSYSTEMS; i++)	// swapping where possible for improved efficiency
 			{
@@ -1879,11 +1941,6 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 				lagrangeControllerStock_[i].swap(lsLagrangeControllersStock[i]);;
 				nominalLagrangeTrajectoriesStock_[i].swap(lsLagrangeTrajectoriesStock[i]);
 			}
-		}
-		else
-		{
-			if(mp_options_.debugPrintMP_)
-				std::cout<<"[LineSearch, Thread "<<threadId<<"]: No lower cost found, cost "<<lsTotalMerit<<" at learningRate "<<learningRate<<" . Best cost was "<<lowestTotalMerit_ <<std::endl;
 		}
 
 		alphaProcessed_[alphaExp] = 1;
@@ -1902,6 +1959,9 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 		{
 			alphaBestFound_ = true;
 			killIntegrationEventHandler_->setEvent();	// kill all integrators
+			if (options_.dispayGSLQP_) {
+				std::cerr << "\t LS: terminate other rollouts with different alphas. alpha_best found. " << std::endl;
+			}
 		}
 
 		lineSearchResultMutex_.unlock();
@@ -1920,8 +1980,11 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 			std::cout << "NOTIFYING by LS WORKER since all workers are now done " << std::endl;
 	}
 
-	if(mp_options_.debugPrintMP_)
-		std::cout<<"[Thread "<<threadId<<"]: Leaving lineSearchWorker " <<std::endl;
+	if(mp_options_.debugPrintMP_){
+		std::string output;
+		output = "[Thread " + std::to_string(threadId) + "]: Leaving lineSearchWorker ";
+		std::cout<< output <<std::endl;
+	}
 }
 
 
@@ -1976,8 +2039,12 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeLineSearc
 		}
 
 		// display
-		if (options_.dispayGSLQP_)  std::cerr << "\t learningRate " << learningRate << " \t cost: " << lsTotalCost << " \t merit: " << lsTotalMerit <<
-				" \t constraint ISE: " << lsConstraint1ISE << std::endl;
+		if (options_.dispayGSLQP_){
+			std::string output;
+			output = "\t [Thread" + std::to_string(threadId) + "] - learningRate " + std::to_string(learningRate) + " \t cost: " + std::to_string(lsTotalCost) +" \t merit: " + std::to_string(lsTotalMerit) +
+				" \t constraint ISE: " + std::to_string(lsConstraint1ISE);
+			std::cerr << output << std::endl;
+		}
 	}
 	catch(const std::exception& error)
 	{

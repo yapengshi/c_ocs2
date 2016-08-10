@@ -430,7 +430,6 @@ private:
 
 	std::vector<size_t> KMax_subsystem_approx_;		// denotes the number of integration steps for a particular subsystem i
 	std::vector<size_t> KMax_subsystem_ctrl_;
-//	size_t KMax_subsystem_ls_;
 
 	std::atomic_size_t alphaTaken_;
 	size_t alphaMax_;
@@ -439,7 +438,8 @@ private:
 	std::atomic_bool alphaBestFound_;
 	std::vector<size_t> alphaProcessed_;
 	double lowestTotalMerit_;
-//	double lowestCostPrevious_;
+	double lowestTotalCost_;
+	double lowestConstraint1ISE_;
 	std::atomic_size_t lsWorkerCompleted_;
 
 	std::vector<std::atomic_size_t> kTaken_approx_;

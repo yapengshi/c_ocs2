@@ -73,10 +73,18 @@ public:
 
 	template <int DIM1, int DIM2=1>
 	struct LinearFunction_t {
+	public:
 		scalar_array_t time_;
 		std::vector<Eigen::Matrix<double, DIM1, DIM2>, Eigen::aligned_allocator<Eigen::Matrix<double, DIM1, DIM2>> > uff_;
 		std::vector<Eigen::Matrix<double, DIM1, DIM2>, Eigen::aligned_allocator<Eigen::Matrix<double, DIM1, DIM2>> > deltaUff_;
 		std::vector<Eigen::Matrix<double, DIM1, OUTPUT_DIM>, Eigen::aligned_allocator<Eigen::Matrix<double, DIM1, OUTPUT_DIM>> > k_;
+
+		void swap(LinearFunction_t& arg)
+		{
+			uff_.swap(arg.uff_);
+			deltaUff_.swap(arg.deltaUff_);
+			k_.swap(arg.k_);
+		}
 	};
 	typedef LinearFunction_t<INPUT_DIM> controller_t;
 

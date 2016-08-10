@@ -403,7 +403,11 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptim
 			std::cout << output << std::endl;
 		}
 
+		Eigen::setNbThreads(1); // disable Eigen multi-threading
+
 		approximateSubsystemLQ(i);
+
+		Eigen::setNbThreads(0); // restore default Eigen thread number
 
 		if(mp_options_.debugPrintMP_)
 		{
@@ -411,68 +415,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptim
 			output = "[MP] ended approximation of subsystem " + std::to_string(i);
 			std::cout << output << std::endl;
 		}
-	}
 
-	// todo: continue parallelization here
-	// constrained coefficients
-	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
-
-		int N = nominalTimeTrajectoriesStock_[i].size();
-
-		RmConstrainedTrajectoryStock_[i].resize(N);
-		DmDagerTrajectoryStock_[i].resize(N);
-
-		AmConstrainedTrajectoryStock_[i].resize(N);
-		QmConstrainedTrajectoryStock_[i].resize(N);
-		QvConstrainedTrajectoryStock_[i].resize(N);
-
-		EvProjectedTrajectoryStock_[i].resize(N);
-		CmProjectedTrajectoryStock_[i].resize(N);
-		DmProjectedTrajectoryStock_[i].resize(N);
-
-		for (int k=0; k<N; k++) {
-			size_t nc1 = nc1TrajectoriesStock_[i][k];
-
-			if (nc1 == 0)
-			{
-				DmDagerTrajectoryStock_[i][k].setZero();
-				EvProjectedTrajectoryStock_[i][k].setZero();
-				CmProjectedTrajectoryStock_[i][k].setZero();
-				DmProjectedTrajectoryStock_[i][k].setZero();
-
-				AmConstrainedTrajectoryStock_[i][k] = AmTrajectoryStock_[i][k];
-				QmConstrainedTrajectoryStock_[i][k] = QmTrajectoryStock_[i][k];
-				QvConstrainedTrajectoryStock_[i][k] = QvTrajectoryStock_[i][k];
-				RmConstrainedTrajectoryStock_[i][k] = RmTrajectoryStock_[i][k];
-
-			}
-			else
-			{
-				Eigen::MatrixXd Cm = CmTrajectoryStock_[i][k].topRows(nc1);
-				Eigen::MatrixXd Dm = DmTrajectoryStock_[i][k].topRows(nc1);
-				Eigen::MatrixXd Ev = EvTrajectoryStock_[i][k].head(nc1);
-
-				Eigen::MatrixXd RmProjected = ( Dm*RmInverseTrajectoryStock_[i][k]*Dm.transpose() ).inverse();
-				Eigen::MatrixXd DmDager = RmInverseTrajectoryStock_[i][k] * Dm.transpose() * RmProjected;
-
-				DmDagerTrajectoryStock_[i][k].leftCols(nc1) = DmDager;
-				EvProjectedTrajectoryStock_[i][k] = DmDager * Ev;
-				CmProjectedTrajectoryStock_[i][k] = DmDager * Cm;
-				DmProjectedTrajectoryStock_[i][k] = DmDager * Dm;
-
-				control_matrix_t DmNullSpaceProjection = control_matrix_t::Identity() - DmProjectedTrajectoryStock_[i][k];
-				state_matrix_t   PmTransDmDagerCm = PmTrajectoryStock_[i][k].transpose()*CmProjectedTrajectoryStock_[i][k];
-
-				AmConstrainedTrajectoryStock_[i][k] = AmTrajectoryStock_[i][k] - BmTrajectoryStock_[i][k]*CmProjectedTrajectoryStock_[i][k];
-				QmConstrainedTrajectoryStock_[i][k] = QmTrajectoryStock_[i][k] + Cm.transpose()*RmProjected*Cm - PmTransDmDagerCm - PmTransDmDagerCm.transpose();
-				QvConstrainedTrajectoryStock_[i][k] = QvTrajectoryStock_[i][k] - CmProjectedTrajectoryStock_[i][k].transpose()*RvTrajectoryStock_[i][k];
-				RmConstrainedTrajectoryStock_[i][k] = DmNullSpaceProjection.transpose() * RmTrajectoryStock_[i][k] * DmNullSpaceProjection;
-			}
-
-			// making sure that constrained Qm is PSD
-			makePSD(QmConstrainedTrajectoryStock_[i][k]);
-
-		}  // end of k loop
 	}  // end of i loop
 }
 
@@ -745,6 +688,9 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch() {
 			lagrangeControllerStock_[i].deltaUff_.clear();
 		}
 	}
+
+	// reset integrator events
+	killIntegrationEventHandler_->resetEvent();	// kill all integrations
 
 	// display
 	if (options_.dispayGSLQP_)  {std::cerr << "The chosen learningRate is: " << learningRateStar_ << std::endl;}
@@ -1027,7 +973,8 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBS
 template <typename Derived>
 bool SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::makePSD(Eigen::MatrixBase<Derived>& squareMatrix) {
 
-	if (squareMatrix.rows() != squareMatrix.cols())  throw std::runtime_error("Not a square matrix: makePSD() method is for square matrix.");
+	if (squareMatrix.rows() != squareMatrix.cols())
+		throw std::runtime_error("Not a square matrix: makePSD() method is for square matrix.");
 
 	Eigen::SelfAdjointEigenSolver<Derived> eig(squareMatrix);
 	Eigen::VectorXd lambda = eig.eigenvalues();
@@ -1112,30 +1059,41 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 		approximateOptimalControlProblem();
 		auto end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double, std::milli> diff = end - start;
-		std::cout << "iteration " << iteration_ << ": mp LQ approximation took " << diff.count() << "ms" << std::endl;
+		std::string output;
+		output = "iteration " + std::to_string(iteration_) + ": mp LQ approximation took " + std::to_string(diff.count()) + "ms";
+//		std::cout << output << std::endl;
 
 		// solve Riccati equations
 		auto start2 = std::chrono::high_resolution_clock::now();
 		solveSequentialRiccatiEquations(1.0 /*nominal learningRate*/); //todo do not parallize
 		auto end2 = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double, std::milli> diff2 = end2 - start2;
-		std::cout << "iteration " << iteration_ << ": mp solve riccati took " << diff2.count() << "ms" << std::endl;
+		std::string output2;
+		output2 = "iteration " + std::to_string(iteration_) + ": mp solve riccati took " + std::to_string(diff2.count()) + "ms";
+//		std::cout << output2 << std::endl;
 
 		auto start3 = std::chrono::high_resolution_clock::now();
+		Eigen::setNbThreads(1); // disable Eigen multi-threading
 		calculateControllerAndLagrangian();
+		Eigen::setNbThreads(0); // restore default Eigen thread number
 		auto end3 = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double, std::milli> diff3 = end3 - start3;
-		std::cout << "iteration " << iteration_ << ": mp calc controller and lagrangian took " << diff3.count() << "ms" << std::endl;
+		std::string output3;
+		output3 = "iteration " + std::to_string(iteration_) + ": mp calc controller and lagrangian took " + std::to_string(diff3.count()) + "ms";
+//		std::cout << output3 << std::endl;
 
 		nominalLagrangeMultiplierUpdated_ = true;
 
 		// finding the optimal learningRate
 		auto start4 = std::chrono::high_resolution_clock::now();
+		Eigen::setNbThreads(1); // disable Eigen multi-threading
 		lineSearch();
+		Eigen::setNbThreads(0); // restore default Eigen thread number
 		auto end4 = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double, std::milli> diff4 = end4 - start4;
-		std::cout << "iteration " << iteration_ << ": mp line search took " << diff4.count() << "ms" << std::endl;
-
+		std::string output4;
+		output4 = "iteration " + std::to_string(iteration_) + ": mp line search took " + std::to_string(diff4.count()) + "ms";
+		std::cout << output4 << std::endl;
 
 		// calculates type-1 constraint ISE and maximum norm
 		double constraint1MaxNorm = calculateConstraintISE(nominalTimeTrajectoriesStock_, nc1TrajectoriesStock_, EvTrajectoryStock_, nominalConstraint1ISE_);
@@ -1220,7 +1178,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 		if(mp_options_.debugPrintMP_){
 			std::string output;
 			output = "[Thread " + std::to_string(threadId) + "]: previous procId: " + std::to_string(uniqueProcessID) +
-					", current procId: " +std::to_string(generateUniqueProcessID(iteration_, workerTask_, subsystemProcessed_));
+					", current procId: " +std::to_string(generateUniqueProcessID(iteration_, (int) workerTask_.load(), (int) subsystemProcessed_.load()));
 			std::cout << output << std::endl;
 		}
 
@@ -1233,7 +1191,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 		 * - the workerTask_ is IDLE
 		 * - or we are finished both workerTask_ is not yet reset, thus the process ID is still the same
 		 * */
-		if ( workerTask_ == IDLE || uniqueProcessID == generateUniqueProcessID(iteration_, workerTask_, subsystemProcessed_))
+		if ( workerTask_ == IDLE || uniqueProcessID == generateUniqueProcessID(iteration_, (int) workerTask_.load(), (int) subsystemProcessed_.load()))
 		{
 			if(mp_options_.debugPrintMP_){
 				std::string output;	output = "[Thread " + std::to_string(threadId) + "]: going to sleep !";
@@ -1245,7 +1203,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 			// sleep until the state is not IDLE any more and we have a different process ID than before
 
 			workerWakeUpCondition_.wait(waitLock, [this , uniqueProcessID]{
-				return (workerTask_ != IDLE &&  (uniqueProcessID != generateUniqueProcessID(iteration_, workerTask_, subsystemProcessed_) ) );
+				return (workerTask_ != IDLE &&  (uniqueProcessID != generateUniqueProcessID(iteration_, (int)workerTask_.load(), (int) subsystemProcessed_.load()) ) );
 			});
 
 			subsystemProcessed_local = subsystemProcessed_.load();
@@ -1326,6 +1284,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 	kTaken_approx_[i] = 0;
 	kCompleted_approx_[i]= 0;
 	KMax_subsystem_approx_[i]  = nominalTimeTrajectoriesStock_[i].size(); // number of elements in the trajectory of this subsystem
+	size_t N = KMax_subsystem_approx_[i]; // abbreviation
 
 	// initialize subsystem i dynamics derivatives
 	for(size_t j = 0; j< mp_options_.nThreads_; j++)
@@ -1334,18 +1293,28 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 		linearizedSystems_[j][i]->initializeModel(switchingTimes_, nominalStateTrajectoriesStock_[i].front(), i, "GSLPQ");
 	}
 
-	AmTrajectoryStock_[i].resize(KMax_subsystem_approx_[i]);
-	BmTrajectoryStock_[i].resize(KMax_subsystem_approx_[i]);
-	CmTrajectoryStock_[i].resize(KMax_subsystem_approx_[i]);
-	DmTrajectoryStock_[i].resize(KMax_subsystem_approx_[i]);
+	AmTrajectoryStock_[i].resize(N);
+	BmTrajectoryStock_[i].resize(N);
+	CmTrajectoryStock_[i].resize(N);
+	DmTrajectoryStock_[i].resize(N);
 
-	qTrajectoryStock_[i].resize(KMax_subsystem_approx_[i]);
-	QvTrajectoryStock_[i].resize(KMax_subsystem_approx_[i]);
-	QmTrajectoryStock_[i].resize(KMax_subsystem_approx_[i]);
-	RvTrajectoryStock_[i].resize(KMax_subsystem_approx_[i]);
-	RmTrajectoryStock_[i].resize(KMax_subsystem_approx_[i]);
-	RmInverseTrajectoryStock_[i].resize(KMax_subsystem_approx_[i]);
-	PmTrajectoryStock_[i].resize(KMax_subsystem_approx_[i]);
+	qTrajectoryStock_[i].resize(N);
+	QvTrajectoryStock_[i].resize(N);
+	QmTrajectoryStock_[i].resize(N);
+	RvTrajectoryStock_[i].resize(N);
+	RmTrajectoryStock_[i].resize(N);
+	RmInverseTrajectoryStock_[i].resize(N);
+	PmTrajectoryStock_[i].resize(N);
+
+	// for constraints
+	RmConstrainedTrajectoryStock_[i].resize(N);
+	DmDagerTrajectoryStock_[i].resize(N);
+	AmConstrainedTrajectoryStock_[i].resize(N);
+	QmConstrainedTrajectoryStock_[i].resize(N);
+	QvConstrainedTrajectoryStock_[i].resize(N);
+	EvProjectedTrajectoryStock_[i].resize(N);
+	CmProjectedTrajectoryStock_[i].resize(N);
+	DmProjectedTrajectoryStock_[i].resize(N);
 
 
 	if(mp_options_.debugPrintMP_){
@@ -1364,7 +1333,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 	std::unique_lock<std::mutex> waitLock(kCompletedMutex_);
 
 
-	if(kCompletedCondition_.wait_for(waitLock, std::chrono::milliseconds(20000),[this, i]{return (kCompleted_approx_[i].load() >= KMax_subsystem_approx_[i]) ;}))
+	if(kCompletedCondition_.wait_for(waitLock, std::chrono::milliseconds(20000),[this, i, N]{return (kCompleted_approx_[i].load() >= N) ;}))
 	{
 		if(mp_options_.debugPrintMP_){
 			std::string output;	output = "[MP]: Back to main thread, workers should now have linearized dynamics of subsystem " + std::to_string(i);
@@ -1646,6 +1615,49 @@ size_t SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeApproxi
 	RmInverseTrajectoryStock_[i][k] = RmTrajectoryStock_[i][k].inverse();
 	costFunctions_[threadId][i]->stateControlDerivative(PmTrajectoryStock_[i][k]);
 
+
+	// constraints
+	size_t nc1 = nc1TrajectoriesStock_[i][k];
+
+	if (nc1 == 0)
+	{
+		DmDagerTrajectoryStock_[i][k].setZero();
+		EvProjectedTrajectoryStock_[i][k].setZero();
+		CmProjectedTrajectoryStock_[i][k].setZero();
+		DmProjectedTrajectoryStock_[i][k].setZero();
+
+		AmConstrainedTrajectoryStock_[i][k] = AmTrajectoryStock_[i][k];
+		QmConstrainedTrajectoryStock_[i][k] = QmTrajectoryStock_[i][k];
+		QvConstrainedTrajectoryStock_[i][k] = QvTrajectoryStock_[i][k];
+		RmConstrainedTrajectoryStock_[i][k] = RmTrajectoryStock_[i][k];
+
+	}
+	else
+	{
+		Eigen::MatrixXd Cm = CmTrajectoryStock_[i][k].topRows(nc1);
+		Eigen::MatrixXd Dm = DmTrajectoryStock_[i][k].topRows(nc1);
+		Eigen::MatrixXd Ev = EvTrajectoryStock_[i][k].head(nc1);
+
+		Eigen::MatrixXd RmProjected = ( Dm*RmInverseTrajectoryStock_[i][k]*Dm.transpose() ).inverse();
+		Eigen::MatrixXd DmDager = RmInverseTrajectoryStock_[i][k] * Dm.transpose() * RmProjected;
+
+		DmDagerTrajectoryStock_[i][k].leftCols(nc1) = DmDager;
+		EvProjectedTrajectoryStock_[i][k] = DmDager * Ev;
+		CmProjectedTrajectoryStock_[i][k] = DmDager * Cm;
+		DmProjectedTrajectoryStock_[i][k] = DmDager * Dm;
+
+		control_matrix_t DmNullSpaceProjection = control_matrix_t::Identity() - DmProjectedTrajectoryStock_[i][k];
+		state_matrix_t   PmTransDmDagerCm = PmTrajectoryStock_[i][k].transpose()*CmProjectedTrajectoryStock_[i][k];
+
+		AmConstrainedTrajectoryStock_[i][k] = AmTrajectoryStock_[i][k] - BmTrajectoryStock_[i][k]*CmProjectedTrajectoryStock_[i][k];
+		QmConstrainedTrajectoryStock_[i][k] = QmTrajectoryStock_[i][k] + Cm.transpose()*RmProjected*Cm - PmTransDmDagerCm - PmTransDmDagerCm.transpose();
+		QvConstrainedTrajectoryStock_[i][k] = QvTrajectoryStock_[i][k] - CmProjectedTrajectoryStock_[i][k].transpose()*RvTrajectoryStock_[i][k];
+		RmConstrainedTrajectoryStock_[i][k] = DmNullSpaceProjection.transpose() * RmTrajectoryStock_[i][k] * DmNullSpaceProjection;
+	}
+
+	// making sure that constrained Qm is PSD
+	makePSD(QmConstrainedTrajectoryStock_[i][k]);
+
 	return i;
 }
 
@@ -1758,7 +1770,11 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBS
 void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker(size_t threadId)
 {
 	if(mp_options_.debugPrintMP_)
-	{std::cout<<"[Thread "<<threadId<<"]: Starting lineSearchWorker " <<std::endl;}
+	{
+		std::string output;
+		output = "[Thread " + std::to_string(threadId) + "]: Starting lineSearchWorker. ";
+		std::cout<<output <<std::endl;
+	}
 
 
 	// local search forward simulation's variables
@@ -1821,10 +1837,10 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 				lsLagrangeTrajectoriesStock);
 
 		// wait for the thread with a lower alphaExp index to finish first. Why?
-		// observations tell us it is better to use a bigger stepsize!
+		// observations tell us it is better to use a bigger stepsize, even if the cost is worse!
 		while(std::accumulate(alphaProcessed_.begin(), std::next(alphaProcessed_.begin(), alphaExp), 0) < alphaExp && alphaBestFound_.load() == false)
 		{
-			std::chrono::milliseconds dura( static_cast<int>(1) );	// Sleep 5ms until we check again. TODO: which time should we select?
+			std::chrono::microseconds dura( static_cast<int>(1) );	//sleep and check again. TODO: which time should we select?
 			std::this_thread::sleep_for( dura );
 		}
 
@@ -1846,21 +1862,23 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 
 			alphaExpBest_ 	  = alphaExp;
 			lowestTotalMerit_ = lsTotalMerit;
-
 			nominalTotalCost_      				= lsTotalCost;
 			nominalTotalMerit_     				= lsTotalMerit;
 			nominalConstraint1ISE_ 				= lsConstraint1ISE;
-			controllers_[mp_options_.nThreads_] = lsControllersStock;
-			nominalTimeTrajectoriesStock_  		= lsTimeTrajectoriesStock;
-			nominalStateTrajectoriesStock_  	= lsStateTrajectoriesStock;		// todo: swap to save time
-			nominalInputTrajectoriesStock_  	= lsInputTrajectoriesStock;
-			nominalOutputTrajectoriesStock_ 	= lsOutputTrajectoriesStock;
-			nc1TrajectoriesStock_ 				= lsNc1TrajectoriesStock;
-			EvTrajectoryStock_ 					= lsEvTrajectoryStock;
 			learningRateStar_ 					= learningRate;
-			lagrangeControllerStock_ 			= lsLagrangeControllersStock;
-			nominalLagrangeTrajectoriesStock_ 	= lsLagrangeTrajectoriesStock;
 
+			for (size_t i = 0; i<NUM_SUBSYSTEMS; i++)	// swapping where possible for improved efficiency
+			{
+				controllers_[mp_options_.nThreads_][i].swap(lsControllersStock[i]);
+				nominalTimeTrajectoriesStock_[i].swap(lsTimeTrajectoriesStock[i]);
+				nominalStateTrajectoriesStock_[i].swap(lsStateTrajectoriesStock[i]);
+				nominalInputTrajectoriesStock_[i].swap(lsInputTrajectoriesStock[i]);
+				nominalOutputTrajectoriesStock_[i].swap(lsOutputTrajectoriesStock[i]);
+				nc1TrajectoriesStock_[i].swap(lsNc1TrajectoriesStock[i]);
+				EvTrajectoryStock_[i].swap(lsEvTrajectoryStock[i]);
+				lagrangeControllerStock_[i].swap(lsLagrangeControllersStock[i]);;
+				nominalLagrangeTrajectoriesStock_[i].swap(lsLagrangeTrajectoriesStock[i]);
+			}
 		}
 		else
 		{
@@ -1883,6 +1901,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 		if (allPreviousAlphasProcessed)
 		{
 			alphaBestFound_ = true;
+			killIntegrationEventHandler_->setEvent();	// kill all integrators
 		}
 
 		lineSearchResultMutex_.unlock();
@@ -1894,7 +1913,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 
 	if (lsWorkerCompleted_.load() >= mp_options_.nThreads_)
 	{
-		// only the very last thread leaving line search notifies. TODO: improve, that might be time consuming
+		// only the very last thread leaving line search notifies. TODO, FIXME: improve, that might be time consuming
 		alphaBestFoundCondition_.notify_all();
 
 		if(mp_options_.debugPrintMP_)
@@ -1962,7 +1981,9 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeLineSearc
 	}
 	catch(const std::exception& error)
 	{
-		std::cerr << "\t rollout with learningRate " << learningRate << " is terminated due to the slow simulation!" << std::endl;
+		if(mp_options_.debugPrintMP_)
+			std::cout << error.what() << std::endl;
+
 		lsTotalMerit = std::numeric_limits<scalar_t>::max();
 		lsTotalCost  = std::numeric_limits<scalar_t>::max();
 	}

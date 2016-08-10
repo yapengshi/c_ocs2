@@ -920,16 +920,20 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 		nominalTotalCost_      = lsTotalCost;
 		nominalTotalMerit_     = lsTotalMerit;
 		nominalConstraint1ISE_ = lsConstraint1ISE;
-		nominalControllersStock_ = lsControllersStock;
-		nominalTimeTrajectoriesStock_  = lsTimeTrajectoriesStock;
-		nominalStateTrajectoriesStock_  = lsStateTrajectoriesStock;
-		nominalInputTrajectoriesStock_  = lsInputTrajectoriesStock;
-		nominalOutputTrajectoriesStock_ = lsOutputTrajectoriesStock;
-		nc1TrajectoriesStock_ = lsNc1TrajectoriesStock;
-		EvTrajectoryStock_ = lsEvTrajectoryStock;
 		learningRateStar = learningRate;
-		lagrangeControllerStock_ = lsLagrangeControllersStock;
-		nominalLagrangeTrajectoriesStock_ = lsLagrangeTrajectoriesStock;
+
+		for (size_t i = 0; i<NUM_SUBSYSTEMS; i++)	// swapping where possible for efficiency
+		{
+			nominalControllersStock_[i].swap(lsControllersStock[i]);
+			nominalTimeTrajectoriesStock_[i].swap(lsTimeTrajectoriesStock[i]);
+			nominalStateTrajectoriesStock_[i].swap(lsStateTrajectoriesStock[i]);
+			nominalInputTrajectoriesStock_[i].swap(lsInputTrajectoriesStock[i]);
+			nominalOutputTrajectoriesStock_[i].swap(lsOutputTrajectoriesStock[i]);
+			nc1TrajectoriesStock_[i].swap(lsNc1TrajectoriesStock[i]);
+			EvTrajectoryStock_[i].swap(lsEvTrajectoryStock[i]);
+			lagrangeControllerStock_[i].swap(lsLagrangeControllersStock[i]);;
+			nominalLagrangeTrajectoriesStock_[i].swap(lsLagrangeTrajectoriesStock[i]);
+		}
 
 	} else // since the open loop input is not change, the nominal trajectories will be unchanged
 		learningRateStar = 0.0;
@@ -1302,7 +1306,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 		approximateOptimalControlProblem();
 		auto end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double, std::milli> diff = end - start;
-		std::cout << "iteration " << iteration_ << ": single core LQ approximation took " << diff.count() << "ms" << std::endl;
+//		std::cout << "iteration " << iteration_ << ": single core LQ approximation took " << diff.count() << "ms" << std::endl;
 
 
 		// solve Riccati equations
@@ -1310,7 +1314,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 		solveSequentialRiccatiEquations(1.0 /*nominal learningRate*/); //todo do not parallize
 		auto end2 = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double, std::milli> diff2 = end2 - start2;
-		std::cout << "iteration " << iteration_ << ": single core solving riccati took " << diff2.count() << "ms" << std::endl;
+//		std::cout << "iteration " << iteration_ << ": single core solving riccati took " << diff2.count() << "ms" << std::endl;
 
 		// calculate controller and lagrange multiplier
 		auto start3 = std::chrono::high_resolution_clock::now();
@@ -1319,7 +1323,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 				feedForwardConstraintInputStock, ~nominalLagrangeMultiplierUpdated); // todo parallelize
 		auto end3 = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double, std::milli> diff3 = end3 - start3;
-		std::cout << "iteration " << iteration_ << ": single core calc controller and lagr took " << diff3.count() << "ms" << std::endl;
+//		std::cout << "iteration " << iteration_ << ": single core calc controller and lagr took " << diff3.count() << "ms" << std::endl;
 
 		nominalLagrangeMultiplierUpdated = true;
 

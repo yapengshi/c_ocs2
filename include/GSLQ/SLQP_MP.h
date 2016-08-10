@@ -32,6 +32,7 @@
 #include "costs/CostFunctionBaseOCS2.h"
 
 #include "integration/Integrator.h"
+#include "integration/KillIntegrationEventHandler.h"
 #include "misc/LinearInterpolation.h"
 
 #include "GSLQ/SequentialRiccatiEquations.h"
@@ -156,7 +157,10 @@ public:
 		linearizedSystems_.resize(mp_options_.nThreads_+1);
 		costFunctions_.resize(mp_options_.nThreads_+1);
 		integratorsODE45_.resize(mp_options_.nThreads_+1);
+		killIntegrationEventHandlers_.resize(mp_options_.nThreads_+1);
 		controllers_.resize(mp_options_.nThreads_+1);
+
+		killIntegrationEventHandler_ = std::make_shared<KillIntegrationEventHandler<STATE_DIM>> ();
 
 		// for all threads + 1
 		for (size_t i=0; i<mp_options.nThreads_+1; i++)
@@ -177,7 +181,8 @@ public:
 				controllers_[i].push_back(initialControllersStock[j]);
 
 				// initialize integrators
-				integratorsODE45_[i].push_back(std::shared_ptr<ODE45<STATE_DIM>>(new ODE45<STATE_DIM> ((dynamics_[i]).back())));
+				killIntegrationEventHandlers_[i].push_back(std::make_shared<KillIntegrationEventHandler<STATE_DIM>> ());
+				integratorsODE45_[i].push_back(std::shared_ptr<ODE45<STATE_DIM>>(new ODE45<STATE_DIM> ((dynamics_[i]).back(), killIntegrationEventHandler_)));
 			}
 		}
 
@@ -335,7 +340,7 @@ private:
 	// for generating unique identifiers for subsystem, task, iteration:
 	// just a heuristics that generates a unique id for a process, such that we can manage the tasks
 	// note: arguments must not be passed by value here
-	size_t generateUniqueProcessID (const size_t& iterateNo, const std::atomic_int& workerState, const std::atomic_int& subsystemId)
+	size_t generateUniqueProcessID (const size_t& iterateNo, const int workerState, const int subsystemId)
 	{
 		return (10e9*(workerState +1) + 10e6 * (subsystemId +1) + iterateNo+1);
 	}
@@ -345,6 +350,8 @@ private:
 	std::vector<std::vector<std::shared_ptr<CostFunctionBaseOCS2<OUTPUT_DIM, INPUT_DIM> > > > costFunctions_;
 
 	std::vector<std::vector<std::shared_ptr<ODE45<STATE_DIM> > > > integratorsODE45_;
+	std::vector<std::vector<std::shared_ptr<KillIntegrationEventHandler<STATE_DIM>>>> killIntegrationEventHandlers_;
+	std::shared_ptr<KillIntegrationEventHandler<STATE_DIM>> killIntegrationEventHandler_;
 
 	std::vector<std::vector<controller_t> > controllers_;
 
@@ -423,7 +430,7 @@ private:
 
 	std::vector<size_t> KMax_subsystem_approx_;		// denotes the number of integration steps for a particular subsystem i
 	std::vector<size_t> KMax_subsystem_ctrl_;
-	std::atomic_size_t KMax_subsystem_ls_;	// todo: these guys don't need to be atomic
+//	size_t KMax_subsystem_ls_;
 
 	std::atomic_size_t alphaTaken_;
 	size_t alphaMax_;

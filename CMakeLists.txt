@@ -103,9 +103,6 @@ add_executable(exp2_gslqp_test src/test/EXP2GSLQPTest.cpp)
 add_executable(exp2_test src/test/EXP2Test.cpp)
 
 ## Declare a cpp executable 
-#add_executable(exp1_numerical_derivative_test src/test/SystemDynamicsDerivativeTest.cpp)
-
-## Declare a cpp executable 
 add_executable(exp1_cost_derivative_test src/test/EXP1DerivativesCheck.cpp)
 
 ## Declare a cpp executable 
@@ -117,14 +114,14 @@ add_executable(exp3_numerical_derivative_test src/test/EXP3SystemDynamicsDerivat
 # add_dependencies(c_ocs2_node c_ocs2_generate_messages_cpp)
 
 
-# Specify libraries to link a library or executable target against
+## Specify libraries to link a library or executable target against
 target_link_libraries(exp1_slqp_mp_test
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
   pthread
 )
 
-# Specify libraries to link a library or executable target against
+## Specify libraries to link a library or executable target against
 target_link_libraries(exp3_slqp_mp_test
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
@@ -169,6 +166,7 @@ target_link_libraries(exp2_test
   ${Boost_LIBRARIES}
 )
 
+## Specify libraries to link a library or executable target against
 target_link_libraries(exp1_cost_derivative_test
   ${catkin_LIBRARIES}
   ${IPOPT_LIBS}

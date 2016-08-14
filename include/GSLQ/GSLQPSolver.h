@@ -26,6 +26,7 @@ public:
 	typedef Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::Options Options_t;
+	typedef typename DIMENSIONS::MP_Options MP_Options_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
 	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
 	typedef typename DIMENSIONS::eigen_scalar_t       eigen_scalar_t;
@@ -52,7 +53,8 @@ public:
 			const state_vector_array_t&   stateOperatingPoints,
 			const control_vector_array_t& inputOperatingPoints,
 			const std::vector<size_t>& systemStockIndex,
-			const Options_t& options = Options_t::Options() )
+			const Options_t& options = Options_t::Options(),
+			const MP_Options_t& mpOptions = MP_Options_t::MP_Options() )
 
 	: subsystemDynamicsPtr_(subsystemDynamicsPtr),
 	  subsystemDerivativesPtr_(subsystemDerivativesPtr),
@@ -61,6 +63,7 @@ public:
 	  inputOperatingPoints_(inputOperatingPoints),
 	  systemStockIndex_(systemStockIndex),
 	  options_(options),
+	  mp_options_(mpOptions),
 	  controllersStock_(NUM_Subsystems)
 	{}
 
@@ -78,6 +81,7 @@ public:
 	}
 
 	Options_t& options()  { return options_; }
+	MP_Options_t& mp_options()  { return mp_options_; }
 
 	void run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes);
 
@@ -97,6 +101,7 @@ private:
 	std::vector<size_t> systemStockIndex_;
 
 	Options_t options_;
+	MP_Options_t mp_options_;
 
 	std::vector<parameters_t, Eigen::aligned_allocator<parameters_t> > parametersBag_;
 	std::vector<std::vector<controller_t> > controllersStockBag_;

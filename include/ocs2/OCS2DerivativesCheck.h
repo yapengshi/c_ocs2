@@ -25,6 +25,7 @@ public:
 	typedef Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::Options Options_t;
+	typedef typename DIMENSIONS::MP_Options MP_Options_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
 	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
 	typedef typename DIMENSIONS::eigen_scalar_t       eigen_scalar_t;
@@ -53,7 +54,7 @@ public:
 			const std::vector<size_t>& systemStockIndex)
 
 	: gslqpSolver_(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
-	  				stateOperatingPoints, inputOperatingPoints, systemStockIndex, Options_t())
+	  				stateOperatingPoints, inputOperatingPoints, systemStockIndex, Options_t(), MP_Options_t())
 	{}
 
 	virtual ~OCS2DerivativesCheck() {}

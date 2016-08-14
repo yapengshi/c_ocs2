@@ -91,6 +91,8 @@ public:
 	struct Options {
 	public:
 		Options() :
+			useMultiThreading_(false),
+
 			maxIterationGSLQP_(10),
 			minLearningRateGSLQP_(0.05),
 			maxLearningRateGSLQP_(1.0),
@@ -122,6 +124,7 @@ public:
 		void print()
 		{
 			std::cout << " #### ========================== Options ============================ ####" << std::endl;
+			std::cout << "useMultiThreading_                 " << useMultiThreading_                  << std::endl;
 			std::cout << "maxIterationGSLQP_                 " << maxIterationGSLQP_                  << std::endl;
 			std::cout << "minLearningRateGSLQP_              " << minLearningRateGSLQP_               << std::endl;
 			std::cout << "maxLearningRateGSLQP_              " << maxLearningRateGSLQP_               << std::endl;
@@ -148,6 +151,8 @@ public:
 			std::cout << " #### ============================ end ============================== ####" << std::endl;
 			std::cout << std::endl;
 		}
+
+		bool useMultiThreading_;
 
 		size_t maxIterationGSLQP_;
 		double minLearningRateGSLQP_;
@@ -178,20 +183,24 @@ public:
 	};
 
 	struct MP_Options{
-		MP_Options()
-		{
-			nThreads_ = 1;
-			debugPrintMP_ = false;
-			lsStepsizeGreedy_ = true;
-		}
+		MP_Options():
+			nThreads_(4),
+			debugPrintMP_(false),
+			lsStepsizeGreedy_(true)
+		{}
+
+		MP_Options(const MP_Options& other) :
+			nThreads_(other.nThreads_),
+			debugPrintMP_(other.debugPrintMP_),
+			lsStepsizeGreedy_(other.lsStepsizeGreedy_)
+		{}
+
 		size_t nThreads_;
 		bool debugPrintMP_;
 
 		//mp line search options
 		bool lsStepsizeGreedy_;	// otherwise it's merit-greedy
 	};
-
-private:
 
 };
 

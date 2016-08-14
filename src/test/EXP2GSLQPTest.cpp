@@ -79,8 +79,14 @@ int main (int argc, char* argv[])
 	gslqpOptions.dispayGSLQP_ = 1;
 	gslqpOptions.lineSearchByMeritFuntion_ = false;
 
+	GSLQP<2,1,2,2>::MP_Options_t mpOptions;
+	mpOptions.nThreads_ = 4;
+	mpOptions.debugPrintMP_ = 0;
+	mpOptions.lsStepsizeGreedy_ = 1;
+
+
 	// GSLQ
-	GSLQP<2,1,2,2> gslqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);
+	GSLQP<2,1,2,2> gslqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions, mpOptions);
 
 	gslqp.run(initState, switchingTimes);
 

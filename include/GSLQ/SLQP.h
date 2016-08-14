@@ -8,33 +8,22 @@
 #ifndef SLQP_OCS2_H_
 #define SLQP_OCS2_H_
 
-#include <vector>
-#include <array>
-#include <algorithm>
-#include <cstddef>
-#include <Eigen/Dense>
-#include <Eigen/StdVector>
 
 #include "Dimensions.h"
 
-#include "dynamics/ControlledSystemBase.h"
-#include "dynamics/DerivativesBase.h"
-#include "costs/CostFunctionBaseOCS2.h"
+#include "GSLQ/SLQP_BASE.h"
 
-#include "integration/Integrator.h"
-#include "misc/LinearInterpolation.h"
-
-#include "GSLQ/SequentialRiccatiEquations.h"
-#include "GSLQ/SequentialErrorEquation.h"
-
-#include <chrono>
 
 namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-class SLQP
+class SLQP : public SLQP_BASE<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+	typedef SLQP_BASE<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> BASE;
+
 	typedef SequentialRiccatiEquations<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> RiccatiEquations_t;
 	typedef SequentialErrorEquation<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> ErrorEquation_t;
 
@@ -80,47 +69,12 @@ public:
 			const std::vector<controller_t>& initialControllersStock,
 			const std::vector<size_t>& systemStockIndex,
 			const Options_t& options = Options_t::Options())
-
-    : subsystemDynamicsPtrStock_(NUM_SUBSYSTEMS),
+    :
+      subsystemDynamicsPtrStock_(NUM_SUBSYSTEMS),
       subsystemDerivativesPtrStock_(NUM_SUBSYSTEMS),
       subsystemCostFunctionsPtrStock_(NUM_SUBSYSTEMS),
       subsystemSimulatorsStockPtr_(NUM_SUBSYSTEMS),
       nominalControllersStock_(initialControllersStock),
-      nominalTimeTrajectoriesStock_(NUM_SUBSYSTEMS),
-      nominalStateTrajectoriesStock_(NUM_SUBSYSTEMS),
-      nominalInputTrajectoriesStock_(NUM_SUBSYSTEMS),
-      nominalOutputTrajectoriesStock_(NUM_SUBSYSTEMS),
-      nominalcostateTrajectoriesStock_(NUM_SUBSYSTEMS),
-      nominalLagrangeTrajectoriesStock_(NUM_SUBSYSTEMS),
-      lagrangeControllerStock_(NUM_SUBSYSTEMS),
-      AmTrajectoryStock_(NUM_SUBSYSTEMS),
-      BmTrajectoryStock_(NUM_SUBSYSTEMS),
-      nc1TrajectoriesStock_(NUM_SUBSYSTEMS),
-      EvTrajectoryStock_(NUM_SUBSYSTEMS),
-      CmTrajectoryStock_(NUM_SUBSYSTEMS),
-      DmTrajectoryStock_(NUM_SUBSYSTEMS),
-      qTrajectoryStock_(NUM_SUBSYSTEMS),
-      QvTrajectoryStock_(NUM_SUBSYSTEMS),
-      QmTrajectoryStock_(NUM_SUBSYSTEMS),
-      RvTrajectoryStock_(NUM_SUBSYSTEMS),
-      RmTrajectoryStock_(NUM_SUBSYSTEMS),
-      PmTrajectoryStock_(NUM_SUBSYSTEMS),
-      RmInverseTrajectoryStock_(NUM_SUBSYSTEMS),
-      AmConstrainedTrajectoryStock_(NUM_SUBSYSTEMS),
-      QmConstrainedTrajectoryStock_(NUM_SUBSYSTEMS),
-      QvConstrainedTrajectoryStock_(NUM_SUBSYSTEMS),
-      RmConstrainedTrajectoryStock_(NUM_SUBSYSTEMS),
-      DmDagerTrajectoryStock_(NUM_SUBSYSTEMS),
-      EvProjectedTrajectoryStock_(NUM_SUBSYSTEMS),
-      CmProjectedTrajectoryStock_(NUM_SUBSYSTEMS),
-      DmProjectedTrajectoryStock_(NUM_SUBSYSTEMS),
-      SsTimeTrajectoryStock_(NUM_SUBSYSTEMS),
-      sTrajectoryStock_(NUM_SUBSYSTEMS),
-      SvTrajectoryStock_(NUM_SUBSYSTEMS),
-      SveTrajectoryStock_(NUM_SUBSYSTEMS),
-      SmTrajectoryStock_(NUM_SUBSYSTEMS),
-      switchingTimes_(NUM_SUBSYSTEMS+1),
-      iteration_(0),
       options_(options)
 	{
 		Eigen::initParallel();
@@ -137,7 +91,6 @@ public:
 			throw std::runtime_error("systemStockIndex has less elements then the number of subsystems");
 
 		for (int i=0; i<NUM_SUBSYSTEMS; i++) {
-
 			subsystemDynamicsPtrStock_[i] = subsystemDynamicsPtr[systemStockIndex[i]]->clone();
 			subsystemDerivativesPtrStock_[i] = subsystemDerivativesPtr[systemStockIndex[i]]->clone();
 			subsystemCostFunctionsPtrStock_[i] = subsystemCostFunctionsPtr[systemStockIndex[i]]->clone();
@@ -190,7 +143,7 @@ public:
 
 	void getController(std::vector<controller_t>& controllersStock);
 
-	void getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion); // todo: getValueFunction
+	void getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion); // fixme: getValueFunction
 
 	void getCostFuntion(const output_vector_t& initOutput, scalar_t& costFunction, scalar_t& constriantCostFunction);
 
@@ -200,6 +153,10 @@ public:
 			std::vector<output_vector_array_t>& nominalOutputTrajectoriesStock);
 
 	void run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes);
+
+	virtual std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM>>>& getSubsystemDynamicsPtrStock() override{
+		return subsystemDynamicsPtrStock_;
+	}
 
 
 protected:
@@ -230,62 +187,15 @@ protected:
 
 
 private:
-	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > > subsystemDynamicsPtrStock_;
+	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM>>> subsystemDynamicsPtrStock_;
+
 	std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > > subsystemDerivativesPtrStock_;
 	std::vector<std::shared_ptr<CostFunctionBaseOCS2<OUTPUT_DIM, INPUT_DIM> > > subsystemCostFunctionsPtrStock_;
 
 	std::vector<std::shared_ptr<ODE45<STATE_DIM> > > subsystemSimulatorsStockPtr_;
 
-	scalar_t nominalTotalCost_;
-	scalar_t nominalTotalMerit_;
-	scalar_t nominalConstraint1ISE_;
 	std::vector<controller_t> nominalControllersStock_;
-	std::vector<scalar_array_t> nominalTimeTrajectoriesStock_;
-	std::vector<state_vector_array_t>   nominalStateTrajectoriesStock_;
-	std::vector<control_vector_array_t> nominalInputTrajectoriesStock_;
-	std::vector<output_vector_array_t>  nominalOutputTrajectoriesStock_;
-	std::vector<output_vector_array_t>  nominalcostateTrajectoriesStock_;
-	std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> > >  nominalLagrangeTrajectoriesStock_;
 
-	std::vector<lagrange_t> lagrangeControllerStock_;
-
-	std::vector<state_matrix_array_t>        AmTrajectoryStock_;
-	std::vector<control_gain_matrix_array_t> BmTrajectoryStock_;
-
-	std::vector<std::vector<size_t> >       nc1TrajectoriesStock_;  // nc1: Number of the active constraints
-	std::vector<constraint1_vector_array_t> EvTrajectoryStock_;
-	std::vector<constraint1_state_matrix_array_t>   CmTrajectoryStock_;
-	std::vector<constraint1_control_matrix_array_t> DmTrajectoryStock_;
-
-	eigen_scalar_t  qFinal_;
-	output_vector_t QvFinal_;
-	state_matrix_t  QmFinal_;
-	std::vector<eigen_scalar_array_t> qTrajectoryStock_;
-	std::vector<output_vector_array_t> QvTrajectoryStock_;
-	std::vector<state_matrix_array_t> QmTrajectoryStock_;
-	std::vector<control_vector_array_t> RvTrajectoryStock_;
-	std::vector<control_matrix_array_t> RmTrajectoryStock_;
-	std::vector<control_feedback_array_t> PmTrajectoryStock_;
-
-	std::vector<control_matrix_array_t> RmInverseTrajectoryStock_;
-	std::vector<state_matrix_array_t>   AmConstrainedTrajectoryStock_;
-	std::vector<state_matrix_array_t>   QmConstrainedTrajectoryStock_;
-	std::vector<output_vector_array_t>  QvConstrainedTrajectoryStock_;
-	std::vector<control_matrix_array_t> RmConstrainedTrajectoryStock_;
-	std::vector<control_constraint1_matrix_array_t> DmDagerTrajectoryStock_;
-	std::vector<control_vector_array_t>   EvProjectedTrajectoryStock_;  // DmDager * Ev
-	std::vector<control_feedback_array_t> CmProjectedTrajectoryStock_;  // DmDager * Cm
-	std::vector<control_matrix_array_t>   DmProjectedTrajectoryStock_;  // DmDager * Dm
-
-	std::vector<scalar_array_t> 	  SsTimeTrajectoryStock_;
-	std::vector<eigen_scalar_array_t> sTrajectoryStock_;
-	std::vector<output_vector_array_t> SvTrajectoryStock_;
-	std::vector<output_vector_array_t> SveTrajectoryStock_;
-	std::vector<state_matrix_array_t> SmTrajectoryStock_;
-
-	scalar_array_t switchingTimes_;
-	state_vector_t initState_;
-	size_t iteration_;
 	Options_t options_;
 
 public:

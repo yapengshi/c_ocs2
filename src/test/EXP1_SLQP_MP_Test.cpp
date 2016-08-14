@@ -32,7 +32,7 @@ int main (int argc, char* argv[])
 	const size_t outputDim = stateDim;
 
 	// subsystem dynamics
-	std::vector<std::shared_ptr<ControlledSystemBase<stateDim, controlDim> > > subsystemDynamicsPtr {
+	std::vector<std::shared_ptr<ControlledSystemBase<stateDim, controlDim, outputDim> > > subsystemDynamicsPtr {
 		std::make_shared<EXP1_Sys1>(), std::make_shared<EXP1_Sys2>(), std::make_shared<EXP1_Sys3>()
 	};
 
@@ -80,16 +80,16 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	/******************************************************************************************************/
-	SLQP<stateDim,controlDim, outputDim, nSys>::Options_t slqpOptions;
+	SLQP<stateDim, controlDim, outputDim, nSys>::Options_t slqpOptions;
 	slqpOptions.dispayGSLQP_ = 0;
 	slqpOptions.lineSearchByMeritFuntion_ = false;
 
-	SLQP_MP<stateDim,controlDim, outputDim, nSys>::Options_t slqpOptions_mp;
+	SLQP_MP<stateDim, controlDim, outputDim, nSys>::Options_t slqpOptions_mp;
 	slqpOptions_mp.dispayGSLQP_ = 0;
 	slqpOptions.lineSearchByMeritFuntion_ = false;
 
-	SLQP_MP<stateDim,controlDim, outputDim, nSys>::MP_Options_t mpOptions;
-	mpOptions.nThreads_ = 1;
+	SLQP_MP<stateDim, controlDim, outputDim, nSys>::MP_Options_t mpOptions;
+	mpOptions.nThreads_ = 4;
 	mpOptions.debugPrintMP_ = false;
 
 	// SLQP
@@ -97,21 +97,10 @@ int main (int argc, char* argv[])
 	SLQP_MP <stateDim,controlDim, outputDim, nSys> slqp_mp	(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock_mp, systemStockIndex, slqpOptions_mp, mpOptions);
 
 	std::cout << "Starting SLQP_MP" << std::endl;
-	std::clock_t begin_mp = std::clock();
 	slqp_mp.run(initState, switchingTimes);
-	std::clock_t end_mp = std::clock();
-	double elapsed_secs_mp = double(end_mp - begin_mp) / CLOCKS_PER_SEC;
-
 
 	std::cout << "Starting SLQP single core" << std::endl;
-	std::clock_t begin = std::clock();
 	slqp.run(initState, switchingTimes);
-	std::clock_t end = std::clock();
-	double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-
-
-	std::cout << "seconds spent in single core version:  " << elapsed_secs << std::endl;
-	std::cout << "seconds spent in multi core version:   " << elapsed_secs_mp << std::endl;
 
 
 	double totalCost_mp;
@@ -126,8 +115,6 @@ int main (int argc, char* argv[])
 	slqp.getValueFuntion(0.0, initState, totalValue);
 	slqp.getCostFuntion(initState, totalCost, constrCost);
 
-//	std::cout << "SLQ_MP value			" << totalValue_mp << std::endl;
-//	std::cout << "single core value		" << totalValue << std::endl;
 	std::cout << "SLQ_MP cost			" << totalCost_mp << std::endl;
 	std::cout << "single core cost 		" << totalCost << std::endl;
 

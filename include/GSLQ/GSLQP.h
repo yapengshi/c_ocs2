@@ -26,7 +26,10 @@
 
 #include "GSLQ/SensitivitySequentialRiccatiEquations.h"
 #include "GSLQ/RolloutSensitivityEquations.h"
+#include "GSLQ/GLQP.h"
+#include "GSLQ/SLQP_BASE.h"
 #include "GSLQ/SLQP.h"
+#include "GSLQ/SLQP_MP.h"
 #include "GSLQ/SolveBVP.h"
 
 
@@ -45,6 +48,7 @@ public:
 	typedef typename DIMENSIONS::template LinearFunction_t<Eigen::Dynamic> lagrange_t;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::Options Options_t;
+	typedef typename DIMENSIONS::MP_Options MP_Options_t;
 	typedef typename DIMENSIONS::scalar_t 		scalar_t;
 	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
 	typedef typename DIMENSIONS::eigen_scalar_t       eigen_scalar_t;
@@ -98,10 +102,10 @@ public:
 			const std::vector<std::shared_ptr<CostFunctionBaseOCS2<OUTPUT_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
 			const std::vector<controller_t>& initialControllersStock,
 			const std::vector<size_t>& systemStockIndex,
-			const Options_t& options = Options_t::Options())
-
-    : slqp_(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, initialControllersStock, systemStockIndex, options),
-      nominalOutputTimeDerivativeTrajectoriesStock_(NUM_SUBSYSTEMS),
+			const Options_t& options  = Options_t(),
+			const MP_Options_t& mpOptions = MP_Options_t()
+	)
+    : nominalOutputTimeDerivativeTrajectoriesStock_(NUM_SUBSYSTEMS),
       nominalSensitivityControllersStock_(NUM_SUBSYSTEMS),
       sensitivityTimeTrajectoryStock_(NUM_SUBSYSTEMS),
       nablaOutputTrajectoryStock_(NUM_SUBSYSTEMS),
@@ -114,8 +118,19 @@ public:
       nablaSvTrajectoryStock_(NUM_SUBSYSTEMS),
       nablaSmTrajectoryStock_(NUM_SUBSYSTEMS),
       switchingTimes_(NUM_SUBSYSTEMS+1),
-      options_(options)
-	{}
+      options_(options),
+      mp_options_(mpOptions)
+	{
+		// select between single- and multithreading implementation
+		if (options_.useMultiThreading_){
+			slqp_ = std::shared_ptr<SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>> (new SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>(
+					subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, initialControllersStock, systemStockIndex, options, mpOptions));
+		}
+		else{
+			slqp_ = std::shared_ptr<SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>> (new SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>(
+					subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, initialControllersStock, systemStockIndex, options));
+		}
+	}
 
 	~GSLQP() {}
 
@@ -212,7 +227,8 @@ protected:
 	void calculateBVPCostFunctionDerivative(Eigen::Matrix<double,NUM_SUBSYSTEMS-1,1>& costFunctionDerivative);
 
 private:
-	SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> slqp_;
+
+	std::shared_ptr<SLQP_BASE   <STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>> slqp_;
 
 	Eigen::Matrix<double,NUM_SUBSYSTEMS-1,1> nominalCostFuntionDerivative_;
 	std::vector<output_vector_array_t>  nominalOutputTimeDerivativeTrajectoriesStock_;
@@ -236,6 +252,7 @@ private:
 	scalar_array_t switchingTimes_;
 	state_vector_t initState_;
 	Options_t options_;
+	MP_Options_t mp_options_;
 };
 
 } // namespace ocs2

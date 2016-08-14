@@ -54,6 +54,14 @@ void loadOptions(const std::string& filename, typename Dimensions<STATE_DIM, INP
 	}
 
 	try	{
+		opt.useMultiThreading_ = pt.get<bool>("ocs2.useMultiThreading");
+		if (verbose)  std::cout << " #### Option loader : option 'useMultiThreading'          " << opt.useMultiThreading_ << std::endl;
+	}
+	catch (const std::exception& e){
+		if (verbose)  std::cout << " #### Option loader : option 'useMultiThreading'          " << opt.useMultiThreading_ << "\t(default)" << std::endl;
+	}
+
+	try	{
 		opt.maxIterationGSLQP_ = pt.get<int>("ocs2.maxIterationGSLQP");
 		if (verbose)  std::cout << " #### Option loader : option 'maxIterationGSLQP'          " << opt.maxIterationGSLQP_ << std::endl;
 	}

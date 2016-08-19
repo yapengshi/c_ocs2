@@ -136,6 +136,14 @@ public:
 			std::vector<state_vector_array_t>& stateTrajectoriesStock,
 			std::vector<control_vector_array_t>& inputTrajectoriesStock) = 0;
 
+	virtual void rollout(const state_vector_t& initState,
+			const std::vector<controller_t>& controllersStock,
+			const double& stoppingTime,
+			state_vector_t& stateVectorWhereStopped,
+			control_vector_t& controlInputWhereStopped,
+			output_vector_t& outputWhereStopped,
+			size_t& numSubsystemWhereStopped) = 0;
+
 	virtual void calculateCostFunction(const std::vector<scalar_array_t>& timeTrajectoriesStock,
 			const std::vector<output_vector_array_t>& stateTrajectoriesStock,
 			const std::vector<control_vector_array_t>& inputTrajectoriesStock,
@@ -155,6 +163,8 @@ public:
 			scalar_t& constraintISE) = 0;
 
 	virtual void getController(std::vector<controller_t>& controllersStock) = 0;
+
+	virtual void setController(const std::vector<controller_t>& controllersStock) = 0;
 
 	virtual void getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion) = 0;
 

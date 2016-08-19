@@ -196,13 +196,6 @@ public:
 			std::vector<state_vector_array_t>& stateTrajectoriesStock,
 			std::vector<control_vector_array_t>& inputTrajectoriesStock) override;
 
-	// only for interfacing with GSLQP
-	void calculateCostFunction(
-			const std::vector<scalar_array_t>& timeTrajectoriesStock,
-			const std::vector<output_vector_array_t>& stateTrajectoriesStock,
-			const std::vector<control_vector_array_t>& inputTrajectoriesStock,
-			scalar_t& totalCost) override;
-
 	void rollout(
 			const size_t& threadId,
 			const state_vector_t& initState,
@@ -231,12 +224,27 @@ public:
 			std::vector<state_vector_array_t>& stateTrajectoriesStock,
 			std::vector<control_vector_array_t>& inputTrajectoriesStock);
 
+	void rollout(const state_vector_t& initState,
+			const std::vector<controller_t>& controllersStock,
+			const double& stoppingTime,
+			state_vector_t& stateVectorWhereStopped,
+			control_vector_t& controlInputWhereStopped,
+			output_vector_t& outputWhereStopped,
+			size_t& numSubsystemWhereStopped) override;
+
 	void calculateCostFunction(
 			const std::vector<scalar_array_t>& timeTrajectoriesStock,
 			const std::vector<output_vector_array_t>& stateTrajectoriesStock,
 			const std::vector<control_vector_array_t>& inputTrajectoriesStock,
 			scalar_t& totalCost,
 			size_t threadId);
+
+	// for interfacing with GSLQP
+	void calculateCostFunction(
+			const std::vector<scalar_array_t>& timeTrajectoriesStock,
+			const std::vector<output_vector_array_t>& stateTrajectoriesStock,
+			const std::vector<control_vector_array_t>& inputTrajectoriesStock,
+			scalar_t& totalCost) override;
 
 	void calculateMeritFunction(const std::vector<scalar_array_t>& timeTrajectoriesStock,
 			const std::vector<std::vector<size_t> >& nc1TrajectoriesStock,
@@ -252,6 +260,8 @@ public:
 			scalar_t& constraintISE) override;
 
 	void getController(std::vector<controller_t>& controllersStock) override;
+
+	void setController(const std::vector<controller_t>& controllersStock) override;
 
 	void getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion) override;
 

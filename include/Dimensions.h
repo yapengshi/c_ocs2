@@ -79,11 +79,16 @@ public:
 		std::vector<Eigen::Matrix<double, DIM1, DIM2>, Eigen::aligned_allocator<Eigen::Matrix<double, DIM1, DIM2>> > deltaUff_;
 		std::vector<Eigen::Matrix<double, DIM1, OUTPUT_DIM>, Eigen::aligned_allocator<Eigen::Matrix<double, DIM1, OUTPUT_DIM>> > k_;
 
-		void swap(LinearFunction_t& arg)
-		{
+		void swap(LinearFunction_t& arg){
 			uff_.swap(arg.uff_);
 			deltaUff_.swap(arg.deltaUff_);
 			k_.swap(arg.k_);
+		}
+
+		void setZero(){
+			std::fill(uff_.begin(), uff_.end(), Eigen::Matrix<double, DIM1, DIM2>::Zero());
+			std::fill(deltaUff_.begin(), deltaUff_.end(), Eigen::Matrix<double, DIM1, DIM2>::Zero());
+			std::fill(k_.begin(), k_.end(), Eigen::Matrix<double, DIM1, OUTPUT_DIM>::Zero());
 		}
 	};
 	typedef LinearFunction_t<INPUT_DIM> controller_t;

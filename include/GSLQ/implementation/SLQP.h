@@ -80,10 +80,86 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state
 }
 
 
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
+		const state_vector_t& initState,
+		const std::vector<controller_t>& controllersStock,
+		const double& stoppingTime_in,
+		state_vector_t& stateVectorWhereStopped,
+		control_vector_t& controlInputWhereStopped,
+		output_vector_t& outputWhereStopped,
+		size_t& numSubsystemWhereStopped){
+
+	double stoppingTime = stoppingTime_in;
+
+	if(stoppingTime > BASE::switchingTimes_.back()){
+		std::cerr << "WARNING: final integration time cannot be bigger than last switching time. Truncating stopping time." << std::endl;
+		stoppingTime = BASE::switchingTimes_.back();
+	}
+
+	if (controllersStock.size() != NUM_SUBSYSTEMS)
+		throw std::runtime_error("controllersStock has less controllers then the number of subsystems");
+
+	std::vector<scalar_array_t> timeTrajectoriesStock;
+	std::vector<state_vector_array_t> stateTrajectoriesStock;
+	timeTrajectoriesStock.resize(NUM_SUBSYSTEMS);
+	stateTrajectoriesStock.resize(NUM_SUBSYSTEMS);
+
+	state_vector_t x0 = initState;
+	int i = 0;
+	while (i<NUM_SUBSYSTEMS) {
+
+		timeTrajectoriesStock[i].clear();
+		stateTrajectoriesStock[i].clear();
+
+		size_t maxNumSteps = options_.maxNumStepsPerSecond_*(BASE::switchingTimes_[i+1]-BASE::switchingTimes_[i]);
+		maxNumSteps = ((1000>maxNumSteps) ? 1000 : maxNumSteps);
+
+		// initialize subsystem i
+		subsystemDynamicsPtrStock_[i]->initializeModel(BASE::switchingTimes_, x0, i, "GSLPQ");
+		// set controller for subsystem i
+		subsystemDynamicsPtrStock_[i]->setController(controllersStock[i]);
+
+		// determine correct stopping time for this subsystem
+		double t_stop_thisSubsystem;
+		bool stopAfterThisSubsystem = false;
+		if(stoppingTime > BASE::switchingTimes_[i+1])
+			t_stop_thisSubsystem = BASE::switchingTimes_[i+1];
+		else{
+			t_stop_thisSubsystem = stoppingTime;
+			stopAfterThisSubsystem = true;
+		}
+
+		// simulate subsystem i
+		subsystemSimulatorsStockPtr_[i]->integrate(
+				x0, BASE::switchingTimes_[i], t_stop_thisSubsystem,
+				stateTrajectoriesStock[i], timeTrajectoriesStock[i],
+				1e-3, options_.AbsTolODE_, options_.RelTolODE_, maxNumSteps);
+
+		if (stateTrajectoriesStock[i].back() != stateTrajectoriesStock[i].back())
+				throw std::runtime_error("System became unstable during the SLQP rollout.");
+
+		if(stopAfterThisSubsystem == true){
+			numSubsystemWhereStopped = i;
+			stateVectorWhereStopped = stateTrajectoriesStock[i].back();
+			subsystemDynamicsPtrStock_[i]->computeOutput(timeTrajectoriesStock[i].back(), stateVectorWhereStopped, outputWhereStopped);
+			subsystemDynamicsPtrStock_[i]->computeInput(timeTrajectoriesStock[i].back(), outputWhereStopped, controlInputWhereStopped);
+			break;
+		}
+
+		// reset the initial state
+		x0 = stateTrajectoriesStock[i].back();
+
+		i++;
+	}
+}
+
+
 /******************************************************************************************************/
 // rolling out, where output trajectories are of no interest.
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state_vector_t& initState,
+void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
+		const state_vector_t& initState,
 		const std::vector<controller_t>& controllersStock,
 		std::vector<scalar_array_t>& timeTrajectoriesStock,
 		std::vector<state_vector_array_t>& stateTrajectoriesStock,
@@ -96,7 +172,8 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state
 
 /******************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const state_vector_t& initState,
+void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
+		const state_vector_t& initState,
 		const std::vector<controller_t>& controllersStock,
 		std::vector<scalar_array_t>& timeTrajectoriesStock,
 		std::vector<state_vector_array_t>& stateTrajectoriesStock,
@@ -954,6 +1031,12 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBS
 void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getController(std::vector<controller_t>& controllersStock) {
 
 	controllersStock = nominalControllersStock_;
+}
+
+
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::setController(const std::vector<controller_t>& controllersStock){
+	nominalControllersStock_ = controllersStock;
 }
 
 

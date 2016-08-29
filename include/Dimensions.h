@@ -107,7 +107,7 @@ public:
 			constraintStepSize_(1.0),
 			lineSearchByMeritFuntion_(false),
 			dispayGSLQP_(false),
-			displayShortSummary_(true),
+			displayShortSummary_(false),
 			warmStartGSLQP_(false),
 			useLQForDerivatives_(false),
 

@@ -7,6 +7,9 @@
  *      Author: mgiftthaler
  */
 
+#ifndef _OCS2_PATH_TWEAKER_H_
+#define _OCS2_PATH_TWEAKER_H_
+
 #include <boost/filesystem.hpp>
 #include <string>
 
@@ -39,3 +42,6 @@ private:
 
 
 } //namespace ocs2
+
+
+#endif

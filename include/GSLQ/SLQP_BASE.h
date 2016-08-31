@@ -179,6 +179,8 @@ public:
 
 	virtual std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM>>>& getSubsystemDynamicsPtrStock() = 0;
 
+	virtual void setNewCostReferenceState(const output_vector_t& newReference) = 0;
+
 protected:
 
 	scalar_t nominalTotalCost_;

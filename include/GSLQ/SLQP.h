@@ -168,6 +168,11 @@ public:
 		return subsystemDynamicsPtrStock_;
 	}
 
+	void setNewCostReferenceState(const output_vector_t& newReference){	// todo: move to implementation
+		for (size_t i = 0; i<subsystemCostFunctionsPtrStock_.size(); i++)
+			subsystemCostFunctionsPtrStock_[i]->updateReferenceState(newReference);
+	}
+
 
 protected:
 	void solveSequentialRiccatiEquations(const scalar_t& learningRate);

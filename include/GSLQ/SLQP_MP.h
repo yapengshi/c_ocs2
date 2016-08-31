@@ -281,6 +281,19 @@ public:
 	}
 
 
+	void setNewCostReferenceState(const output_vector_t& newReference){	// todo: move to implementation
+		// for all threads + 1
+		for (size_t i=0; i<mp_options_.nThreads_+1; i++)
+		{
+			// .. initialize all subsystems, etc.
+			for(size_t j = 0; j<NUM_SUBSYSTEMS; j++)
+			{
+				costFunctions_[i][j]->updateReferenceState(newReference);
+			}
+		}
+	}
+
+
 protected:
 	void solveSequentialRiccatiEquations(const scalar_t& learningRate);
 

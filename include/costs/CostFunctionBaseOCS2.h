@@ -55,6 +55,8 @@ public:
 	virtual void terminalCostStateDerivative(state_vector_t& dPhidx) = 0;
 	virtual void terminalCostStateSecondDerivative(state_matrix_t& dPhidxx) = 0;
 
+	virtual void updateReferenceState(const state_vector_t& newRefrenceState) {}
+
 protected:
 	scalar_t t_;
 	state_vector_t x_;

@@ -1,50 +1,45 @@
 /*
- * GLQP.h
+ * LQP.h
  *
- *  Created on: Jan 5, 2016
+ *  Created on: Aug 3, 2016
  *      Author: farbod
  */
 
-#ifndef GLQP_OCS2_H_
-#define GLQP_OCS2_H_
+#ifndef LQP_OCS2_H_
+#define LQP_OCS2_H_
 
-#include <iostream>
 #include <vector>
-#include <memory>
 #include <algorithm>
+#include <iostream>
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
 
 #include "Dimensions.h"
-
 #include "dynamics/ControlledSystemBase.h"
 #include "dynamics/DerivativesBase.h"
 #include "costs/CostFunctionBaseOCS2.h"
 
 #include "integration/Integrator.h"
-#include "misc/LinearInterpolation.h"
-
-#include "GSLQ/PartialRiccatiEquations.h"
+#include "GSLQ/SolveBVP.h"
 
 
 namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
-class GLQP
+class LQP
 {
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
 	const bool INFO_ON_ = false;
-	typedef std::shared_ptr<GLQP<STATE_DIM,INPUT_DIM,OUTPUT_DIM,NUM_Subsystems>> Ptr;
-	typedef PartialRiccatiEquations<OUTPUT_DIM, INPUT_DIM, NUM_Subsystems> RiccatiEquations_t;
 	//
 	typedef Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
-	typedef typename DIMENSIONS::scalar_t 		scalar_t;
+	typedef typename DIMENSIONS::Options Options_t;
+	typedef typename DIMENSIONS::scalar_t 		 scalar_t;
+	typedef typename DIMENSIONS::scalar_array_t  scalar_array_t;
 	typedef typename DIMENSIONS::eigen_scalar_t       eigen_scalar_t;
 	typedef typename DIMENSIONS::eigen_scalar_array_t eigen_scalar_array_t;
-	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
 	typedef typename DIMENSIONS::state_vector_t 	  state_vector_t;
 	typedef typename DIMENSIONS::state_vector_array_t state_vector_array_t;
 	typedef typename DIMENSIONS::control_vector_t 		control_vector_t;
@@ -61,12 +56,14 @@ public:
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
 
 
-	GLQP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDynamicsPtr,
+	LQP(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDynamicsPtr,
 			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDerivativesPtr,
 			const std::vector<std::shared_ptr<CostFunctionBaseOCS2<OUTPUT_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
 			const state_vector_array_t&   stateOperatingPoints,
 			const control_vector_array_t& inputOperatingPoints,
-			const std::vector<size_t>& systemStockIndex)
+			const std::vector<size_t>& systemStockIndex,
+			const Options_t& options = Options_t::Options(),
+			const bool& runAsInitializer = true)
 
 		: subsystemDynamicsPtrStock_(NUM_Subsystems),
 		  subsystemDerivativesPtrStock_(NUM_Subsystems),
@@ -74,18 +71,20 @@ public:
 		  stateOperatingPointsStock_(NUM_Subsystems),
 		  inputOperatingPointsStock_(NUM_Subsystems),
 		  outputOperatingPointsStock_(NUM_Subsystems),
+		  options_(options),
+		  runAsInitializer_(runAsInitializer),
 		  subsystemSimulatorsStockPtr_(NUM_Subsystems),
 		  controllersStock_(NUM_Subsystems),
 		  AmStock_(NUM_Subsystems),
 		  BmStock_(NUM_Subsystems),
-		  qStock_(NUM_Subsystems),
+		  GvStock_(NUM_Subsystems),
 		  QvStock_(NUM_Subsystems),
 		  QmStock_(NUM_Subsystems),
 		  RvStock_(NUM_Subsystems),
 		  RmStock_(NUM_Subsystems),
+		  RmInverseStock_(NUM_Subsystems),
 		  PmStock_(NUM_Subsystems),
 		  timeTrajectoryStock_(NUM_Subsystems),
-		  sTrajectoryStock_(NUM_Subsystems),
 		  SvTrajectoryStock_(NUM_Subsystems),
 		  SmTrajectoryStock_(NUM_Subsystems),
 		  switchingTimes_(NUM_Subsystems+1)
@@ -114,37 +113,33 @@ public:
 			inputOperatingPointsStock_[i] = inputOperatingPoints[systemStockIndex[i]];
 			subsystemDynamicsPtrStock_[i]->computeOutput(0.0 /*time*/, stateOperatingPointsStock_[i], outputOperatingPointsStock_[i]);
 
-			subsystemSimulatorsStockPtr_[i] = std::make_shared<ODE45<STATE_DIM> >(subsystemDynamicsPtrStock_[i]);
-
+			subsystemSimulatorsStockPtr_[i] = std::shared_ptr<ODE45<STATE_DIM>>( new ODE45<STATE_DIM>(subsystemDynamicsPtrStock_[i]) );
 		}
 	}
 
-	~GLQP() {}
+	~LQP() {}
 
 	void rollout(const state_vector_t& initState,
 			const std::vector<controller_t>& controllersStock,
 			std::vector<scalar_array_t>& timeTrajectoriesStock,
 			std::vector<state_vector_array_t>& stateTrajectoriesStock,
-			std::vector<control_vector_array_t>& controlTrajectoriesStock,
+			std::vector<control_vector_array_t>& inputTrajectoriesStock,
 			std::vector<output_vector_array_t>& outputTrajectoriesStock);
 
 	void rollout(const state_vector_t& initState,
 			const std::vector<controller_t>& controllersStock,
 			std::vector<scalar_array_t>& timeTrajectoriesStock,
 			std::vector<state_vector_array_t>& stateTrajectoriesStock,
-			std::vector<control_vector_array_t>& controlTrajectoriesStock);
+			std::vector<control_vector_array_t>& inputTrajectoriesStock);
 
 	void rolloutCost(const std::vector<scalar_array_t>& timeTrajectoriesStock,
 			const std::vector<output_vector_array_t>& outputTrajectoriesStock,
-			const std::vector<control_vector_array_t>& controlTrajectoriesStock,
+			const std::vector<control_vector_array_t>& inputTrajectoriesStock,
 			scalar_t& totalCost);
 
 	void getController(std::vector<controller_t>& controllersStock);
 
-	void getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion);
-
 	void run(const std::vector<scalar_t>& switchingTimes, const scalar_t& learningRate=1.0);
-
 
 protected:
 	void SolveRiccatiEquations();
@@ -152,8 +147,6 @@ protected:
 	void approximateOptimalControlProblem();
 
 	void calculatecontroller(const scalar_t& learningRate, std::vector<controller_t>& controllersStock);
-
-	void transformeLocalValueFuntion2Global();
 
 	template <typename Derived>
 	bool makePSD(Eigen::MatrixBase<Derived>& squareMatrix);
@@ -167,35 +160,37 @@ private:
 	control_vector_array_t inputOperatingPointsStock_;
 	output_vector_array_t  outputOperatingPointsStock_;
 
+	Options_t options_;
+
+	bool runAsInitializer_;
+
 	std::vector<std::shared_ptr<ODE45<STATE_DIM> > > subsystemSimulatorsStockPtr_;
 
 	std::vector<controller_t> controllersStock_;
 
 	state_matrix_array_t        AmStock_;
 	control_gain_matrix_array_t BmStock_;
+	output_vector_array_t       GvStock_;
 
-	eigen_scalar_t qFinal_;
 	output_vector_t QvFinal_;
 	state_matrix_t QmFinal_;
-	eigen_scalar_array_t qStock_;
 	output_vector_array_t QvStock_;
 	state_matrix_array_t QmStock_;
 	control_vector_array_t RvStock_;
 	control_matrix_array_t RmStock_;
+	control_matrix_array_t RmInverseStock_;
 	control_feedback_array_t PmStock_;
 
-	std::vector<scalar_array_t> 	  timeTrajectoryStock_;
-	std::vector<eigen_scalar_array_t> sTrajectoryStock_;
+	std::vector<scalar_array_t> 	   timeTrajectoryStock_;
 	std::vector<output_vector_array_t> SvTrajectoryStock_;
-	std::vector<state_matrix_array_t> SmTrajectoryStock_;
+	std::vector<state_matrix_array_t>  SmTrajectoryStock_;
 
 	scalar_array_t switchingTimes_;
-
-
 };
 
 } // namespace ocs2
 
-#include "implementation/GLQP.h"
+#include "implementation/LQP.h"
 
-#endif /* GLQP_H_ */
+
+#endif /* LQP_OCS2_H_ */

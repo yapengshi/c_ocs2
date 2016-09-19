@@ -96,7 +96,7 @@ public:
 		SvTrajectory.resize(N);
 		for (int k=0; k<N; k++) {
 			BVP::convert2Matrix(MSvTrajectory[N-1-k], MmTrajectory[k], SvTrajectory[k]);
-			timeTrajectory[k] = (startTime_-finalTime_)*(timeTrajectory[N-1-k]) + finalTime_;
+			timeTrajectory[k] = (startTime_-finalTime_)*(normalizedTimeTrajectory[N-1-k]) + finalTime_;
 		}  // end of k loop
 
 		// testing the numerical stability of the Riccati equations

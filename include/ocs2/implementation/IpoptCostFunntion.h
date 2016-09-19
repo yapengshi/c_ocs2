@@ -317,8 +317,9 @@ void IpoptCostFunntion<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_Subsystems>::solveG
 	gslqp.run(initState_, switchingTimes);
 
 	// cost function
-	double unconstraintCost;
-	gslqp.getCostFuntion(initState_, unconstraintCost, currentTotalCost_);
+	double unconstraintCost, constraintISE;
+	gslqp.getCostFuntion(unconstraintCost, constraintISE);
+	currentTotalCost_ = unconstraintCost;
 
 	// cost function Jacobian
 	gslqp.getCostFuntionDerivative(currentCostFuntionDerivative_);

@@ -39,6 +39,7 @@ public:
 	typedef typename DIMENSIONS::control_feedback_array_t control_feedback_array_t;
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::constraint1_vector_t constraint1_vector_t;
+	typedef typename DIMENSIONS::constraint2_vector_t constraint2_vector_t;
 
 	ControlledSystemBase()
 		: modelUpdated_(true)
@@ -98,6 +99,15 @@ public:
 
 		numConstraint1 = 0;
 	}
+
+	virtual void computeConstriant2(const scalar_t& t, const state_vector_t& x, size_t& numConstraint2, constraint2_vector_t& g2)  {
+		numConstraint2 = 0;
+	}
+
+	virtual void computeFinalConstriant2(const scalar_t& t, const state_vector_t& x, size_t& numFinalConstraint2, constraint2_vector_t& g2Final)  {
+		numFinalConstraint2 = 0;
+	}
+
 
 	virtual void initializeModel(const std::vector<scalar_t>& switchingTimes, const state_vector_t& initState,
 			const size_t& activeSubsystemIndex=0, const char* algorithmName=NULL)

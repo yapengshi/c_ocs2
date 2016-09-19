@@ -94,6 +94,22 @@ void loadOptions(const std::string& filename, typename Dimensions<STATE_DIM, INP
 	}
 
 	try	{
+		opt.stateConstraintPenaltyCoeff_ = pt.get<double>("ocs2.stateConstraintPenaltyCoeff");
+		if (verbose)  std::cerr << " #### Option loader : option 'stateConstraintPenaltyCoeff'" << opt.stateConstraintPenaltyCoeff_ << std::endl;
+	}
+	catch (const std::exception& e){
+		if (verbose)  std::cerr << " #### Option loader : option 'stateConstraintPenaltyCoeff'" << opt.stateConstraintPenaltyCoeff_ << "\t(default)" << std::endl;
+	}
+
+	try	{
+		opt.stateConstraintPenaltyBase_ = pt.get<double>("ocs2.stateConstraintPenaltyBase");
+		if (verbose)  std::cerr << " #### Option loader : option 'stateConstraintPenaltyBase' " << opt.stateConstraintPenaltyBase_ << std::endl;
+	}
+	catch (const std::exception& e){
+		if (verbose)  std::cerr << " #### Option loader : option 'stateConstraintPenaltyBase' " << opt.stateConstraintPenaltyBase_ << "\t(default)" << std::endl;
+	}
+
+	try	{
 		opt.meritFunctionRho_ = pt.get<double>("ocs2.meritFunctionRho");
 		if (verbose)  std::cout << " #### Option loader : option 'meritFunctionRho'           " << opt.meritFunctionRho_ << std::endl;
 	}
@@ -235,6 +251,30 @@ void loadOptions(const std::string& filename, typename Dimensions<STATE_DIM, INP
 	}
 	catch (const std::exception& e){
 		if (verbose)  std::cout << " #### Option loader : option 'maxIterationIPOPT'          " << opt.maxIterationIPOPT_ << "\t(default)" << std::endl;
+	}
+
+	try	{
+		opt.minLearningRateNLP_ = pt.get<double>("ocs2.minLearningRateNLP");
+		if (verbose)  std::cerr << " #### Option loader : option 'minLearningRateNLP'         " << opt.minLearningRateNLP_ << std::endl;
+	}
+	catch (const std::exception& e){
+		if (verbose)  std::cerr << " #### Option loader : option 'minLearningRateNLP'         " << opt.minLearningRateNLP_ << "\t(default)" << std::endl;
+	}
+
+	try	{
+		opt.maxLearningRateNLP_ = pt.get<double>("ocs2.maxLearningRateNLP");
+		if (verbose)  std::cerr << " #### Option loader : option 'maxLearningRateNLP'         " << opt.maxLearningRateNLP_ << std::endl;
+	}
+	catch (const std::exception& e){
+		if (verbose)  std::cerr << " #### Option loader : option 'maxLearningRateNLP'         " << opt.maxLearningRateNLP_ << "\t(default)" << std::endl;
+	}
+
+	try	{
+		opt.useAscendingLineSearchNLP_ = pt.get<bool>("ocs2.useAscendingLineSearchNLP");
+		if (verbose)  std::cerr << " #### Option loader : option 'useAscendingLineSearchNLP'  " << opt.useAscendingLineSearchNLP_ << std::endl;
+	}
+	catch (const std::exception& e){
+		if (verbose)  std::cerr << " #### Option loader : option 'useAscendingLineSearchNLP'  " << opt.useAscendingLineSearchNLP_ << " (default)" << std::endl;
 	}
 
 	try	{

@@ -19,6 +19,7 @@
 
 //#include "ocs2/OCS2.h"
 #include "ocs2/OCS2Ipopt.h"
+#include "ocs2/OCS2Projected.h"
 
 using namespace ocs2;
 
@@ -51,6 +52,10 @@ int main (int argc, char* argv[])
 	gslqpOptions.displayIPOPT_ = true;
 	gslqpOptions.simulationIsConstrained_ = true;
 	gslqpOptions.useLQForDerivatives_ = false;
+	gslqpOptions.minLearningRateNLP_ = 0.01;
+	gslqpOptions.acceptableTolIPOPT_ = 1e-3;
+	gslqpOptions.useAscendingLineSearchNLP_ = true;
+	gslqpOptions.minAcceptedSwitchingTimeDifference_ = 0.01;
 
 
 	/******************************************************************************************************/
@@ -59,10 +64,14 @@ int main (int argc, char* argv[])
 //	OCS2<2,1,2,3> ocs2(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
 //			stateOperatingPoints, inputOperatingPoints, systemStockIndex, initSwitchingTimes, initState, gslqpOptions);
 
-	OCS2Ipopt<2,1,2,3> ocs2 (subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
-			stateOperatingPoints, inputOperatingPoints, systemStockIndex, initSwitchingTimes, initState, gslqpOptions);
+//	OCS2Ipopt<2,1,2,3> ocs2 (subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
+//			stateOperatingPoints, inputOperatingPoints, systemStockIndex, initSwitchingTimes, initState, gslqpOptions);
 
-	ocs2.run();
+	OCS2Projected<2,1,2,3> ocs2 (subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
+			stateOperatingPoints, inputOperatingPoints, systemStockIndex, gslqpOptions);
+
+
+	ocs2.run(initState, initSwitchingTimes);
 
 	/******************************************************************************************************/
 	/******************************************************************************************************/

@@ -32,6 +32,7 @@ public:
 	typedef typename DIMENSIONS::control_gain_matrix_t control_gain_matrix_t;
 	typedef typename DIMENSIONS::constraint1_state_matrix_t   constraint1_state_matrix_t;
 	typedef typename DIMENSIONS::constraint1_control_matrix_t constraint1_control_matrix_t;
+	typedef typename DIMENSIONS::constraint2_state_matrix_t   constraint2_state_matrix_t;
 
 	DerivativesBase() {}
 	virtual ~DerivativesBase() {}
@@ -62,6 +63,8 @@ public:
 	virtual void getDerivativesControl(control_gain_matrix_t& B) = 0;
 	virtual void getConstraint1DerivativesState(constraint1_state_matrix_t& C) {}
 	virtual void getConstraint1DerivativesControl(constraint1_control_matrix_t& D) {}
+	virtual void getConstraint2DerivativesState(constraint2_state_matrix_t& F) {}
+	virtual void getFinalConstraint2DerivativesState(constraint2_state_matrix_t& F) {}
 
 	virtual std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > clone() const = 0;
 

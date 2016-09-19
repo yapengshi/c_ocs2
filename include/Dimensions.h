@@ -25,6 +25,7 @@ public:
 		INPUT_DIM_  = INPUT_DIM,
 		OUTPUT_DIM_ = OUTPUT_DIM,
 		MAX_CONSTRAINT1_DIM_ = INPUT_DIM,
+		MAX_CONSTRAINT2_DIM_ = INPUT_DIM
 	};
 
 	typedef Eigen::Matrix<double, STATE_DIM, 1> state_vector_t;
@@ -65,6 +66,12 @@ public:
     typedef Eigen::Matrix<double, MAX_CONSTRAINT1_DIM_, INPUT_DIM> control_constraint1_matrix_t;
     typedef std::vector<control_constraint1_matrix_t, Eigen::aligned_allocator<control_constraint1_matrix_t> > control_constraint1_matrix_array_t;
 
+    typedef Eigen::Matrix<double, MAX_CONSTRAINT2_DIM_, 1> constraint2_vector_t;
+    typedef std::vector<constraint2_vector_t, Eigen::aligned_allocator<constraint2_vector_t> > constraint2_vector_array_t;
+
+    typedef Eigen::Matrix<double, MAX_CONSTRAINT2_DIM_, OUTPUT_DIM> constraint2_state_matrix_t;
+    typedef std::vector<constraint2_state_matrix_t, Eigen::aligned_allocator<constraint2_state_matrix_t> > constraint2_state_matrix_array_t;
+
 	typedef double scalar_t;
 	typedef std::vector<scalar_t> scalar_array_t;
 
@@ -103,6 +110,8 @@ public:
 			maxLearningRateGSLQP_(1.0),
 			lineSearchContractionRate_(0.5),
 			minRelCostGSLQP_(1e-3),
+			stateConstraintPenaltyCoeff_(0.0),
+			stateConstraintPenaltyBase_(1.0),
 			meritFunctionRho_(1.0),
 			constraintStepSize_(1.0),
 			lineSearchByMeritFuntion_(false),
@@ -123,6 +132,9 @@ public:
 			tolIPOPT_(1e-2),
 			acceptableTolIPOPT_(1e-1),
 			maxIterationIPOPT_(20),
+			minLearningRateNLP_(0.05),
+		    maxLearningRateNLP_(1.0),
+		    useAscendingLineSearchNLP_(true),
 			minAcceptedSwitchingTimeDifference_(0.0)
 		{}
 
@@ -164,6 +176,8 @@ public:
 		double maxLearningRateGSLQP_;
 		double lineSearchContractionRate_;
 		double minRelCostGSLQP_;
+		double stateConstraintPenaltyCoeff_;
+		double stateConstraintPenaltyBase_;
 		double meritFunctionRho_;
 		double constraintStepSize_;
 		bool lineSearchByMeritFuntion_;
@@ -184,6 +198,9 @@ public:
 		double tolIPOPT_;
 		double acceptableTolIPOPT_;
 		size_t maxIterationIPOPT_;
+		double minLearningRateNLP_;
+		double maxLearningRateNLP_;
+		bool useAscendingLineSearchNLP_;
 		double minAcceptedSwitchingTimeDifference_;
 	};
 

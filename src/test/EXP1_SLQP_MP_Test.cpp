@@ -107,13 +107,13 @@ int main (int argc, char* argv[])
 	double constrCost_mp;
 	double totalValue_mp;
 	slqp_mp.getValueFuntion(0.0, initState, totalValue_mp);
-	slqp_mp.getCostFuntion(initState, totalCost_mp, constrCost_mp);
+	slqp_mp.getCostFuntion(totalCost_mp, constrCost_mp);
 
 	double  totalCost;
 	double constrCost;
 	double totalValue;
 	slqp.getValueFuntion(0.0, initState, totalValue);
-	slqp.getCostFuntion(initState, totalCost, constrCost);
+	slqp.getCostFuntion(totalCost, constrCost);
 
 	std::cout << "SLQ_MP cost			" << totalCost_mp << std::endl;
 	std::cout << "single core cost 		" << totalCost << std::endl;

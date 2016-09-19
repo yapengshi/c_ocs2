@@ -64,14 +64,17 @@ public:
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
 	typedef typename DIMENSIONS::constraint1_vector_t constraint1_vector_t;
 	typedef typename DIMENSIONS::constraint1_vector_array_t constraint1_vector_array_t;
-	typedef typename DIMENSIONS::constraint1_matrix_t constraint1_matrix_t;
-	typedef typename DIMENSIONS::constraint1_matrix_array_t constraint1_matrix_array_t;
 	typedef typename DIMENSIONS::constraint1_state_matrix_t constraint1_state_matrix_t;
 	typedef typename DIMENSIONS::constraint1_state_matrix_array_t constraint1_state_matrix_array_t;
 	typedef typename DIMENSIONS::constraint1_control_matrix_t constraint1_control_matrix_t;
 	typedef typename DIMENSIONS::constraint1_control_matrix_array_t constraint1_control_matrix_array_t;
 	typedef typename DIMENSIONS::control_constraint1_matrix_t control_constraint1_matrix_t;
 	typedef typename DIMENSIONS::control_constraint1_matrix_array_t control_constraint1_matrix_array_t;
+	typedef typename DIMENSIONS::constraint2_vector_t       constraint2_vector_t;
+	typedef typename DIMENSIONS::constraint2_vector_array_t constraint2_vector_array_t;
+	typedef typename DIMENSIONS::constraint2_state_matrix_t       constraint2_state_matrix_t;
+	typedef typename DIMENSIONS::constraint2_state_matrix_array_t constraint2_state_matrix_array_t;
+
 
 	enum WORKER_STATE {
 		IDLE = 0,
@@ -90,18 +93,18 @@ public:
 			const MP_Options_t& mp_options = MP_Options_t())
 
 	:
-	  feedForwardConstraintInputStock_(NUM_SUBSYSTEMS),
-	  options_(options),
-	  mp_options_(mp_options),
-	  workerTask_(IDLE),
-	  subsystemProcessed_(0),
-	  learningRateStar_(1.0),
-	  KMax_subsystem_approx_(NUM_SUBSYSTEMS),
-	  KMax_subsystem_ctrl_(NUM_SUBSYSTEMS),
-	  kTaken_approx_(NUM_SUBSYSTEMS),
-	  kCompleted_approx_(NUM_SUBSYSTEMS),
-	  kTaken_ctrl_(NUM_SUBSYSTEMS),
-	  kCompleted_ctrl_(NUM_SUBSYSTEMS)
+		feedForwardConstraintInputStock_(NUM_SUBSYSTEMS),
+		options_(options),
+		mp_options_(mp_options),
+		workerTask_(IDLE),
+		subsystemProcessed_(0),
+		learningRateStar_(1.0),
+		KMax_subsystem_approx_(NUM_SUBSYSTEMS),
+		KMax_subsystem_ctrl_(NUM_SUBSYSTEMS),
+		kTaken_approx_(NUM_SUBSYSTEMS),
+		kCompleted_approx_(NUM_SUBSYSTEMS),
+		kTaken_ctrl_(NUM_SUBSYSTEMS),
+		kCompleted_ctrl_(NUM_SUBSYSTEMS)
 	{
 		Eigen::initParallel();
 
@@ -179,7 +182,11 @@ public:
 			std::vector<control_vector_array_t>& inputTrajectoriesStock,
 			std::vector<output_vector_array_t>& outputTrajectoriesStock,
 			std::vector<std::vector<size_t> >& nc1TrajectoriesStock,
-			std::vector<constraint1_vector_array_t>& EvTrajectoryStock) override;
+			std::vector<constraint1_vector_array_t>& EvTrajectoryStock,
+			std::vector<std::vector<size_t> >& nc2TrajectoriesStock,
+			std::vector<constraint2_vector_array_t>& HvTrajectoryStock,
+			std::vector<size_t>& nc2FinalStock,
+			std::vector<constraint2_vector_t>& HvFinalStock) override;
 
 	// only for interfacing with GSLQP
 	void rollout(const state_vector_t& initState,
@@ -205,7 +212,11 @@ public:
 			std::vector<control_vector_array_t>& inputTrajectoriesStock,
 			std::vector<output_vector_array_t>& outputTrajectoriesStock,
 			std::vector<std::vector<size_t> >& nc1TrajectoriesStock,
-			std::vector<constraint1_vector_array_t>& EvTrajectoryStock);
+			std::vector<constraint1_vector_array_t>& EvTrajectoryStock,
+			std::vector<std::vector<size_t> >& nc2TrajectoriesStock,
+			std::vector<constraint2_vector_array_t>& HvTrajectoryStock,
+			std::vector<size_t>& nc2FinalStock,
+			std::vector<constraint2_vector_t>& HvFinalStock);
 
 	void rollout(
 			const size_t& threadId,
@@ -246,6 +257,25 @@ public:
 			const std::vector<control_vector_array_t>& inputTrajectoriesStock,
 			scalar_t& totalCost) override;
 
+	void calculateCostFunction(const std::vector<scalar_array_t>& timeTrajectoriesStock,
+			const std::vector<output_vector_array_t>& stateTrajectoriesStock,
+			const std::vector<control_vector_array_t>& inputTrajectoriesStock,
+			const std::vector<std::vector<size_t> >& nc2TrajectoriesStock,
+			const std::vector<constraint2_vector_array_t>& HvTrajectoryStock,
+			const std::vector<size_t>& nc2FinalStock,
+			const std::vector<constraint2_vector_t>& HvFinalStock,
+			scalar_t& totalCost) override;
+
+	void calculateCostFunction(const std::vector<scalar_array_t>& timeTrajectoriesStock,
+				const std::vector<output_vector_array_t>& stateTrajectoriesStock,
+				const std::vector<control_vector_array_t>& inputTrajectoriesStock,
+				const std::vector<std::vector<size_t> >& nc2TrajectoriesStock,
+				const std::vector<constraint2_vector_array_t>& HvTrajectoryStock,
+				const std::vector<size_t>& nc2FinalStock,
+				const std::vector<constraint2_vector_t>& HvFinalStock,
+				scalar_t& totalCost,
+				size_t threadId);
+
 	void calculateMeritFunction(const std::vector<scalar_array_t>& timeTrajectoriesStock,
 			const std::vector<std::vector<size_t> >& nc1TrajectoriesStock,
 			const std::vector<constraint1_vector_array_t>& EvTrajectoryStock,
@@ -265,7 +295,7 @@ public:
 
 	void getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion) override;
 
-	void getCostFuntion(const output_vector_t& initOutput, scalar_t& costFunction, scalar_t& constriantCostFunction) override;
+	void getCostFuntion(scalar_t& costFunction, scalar_t& constriantISE) override;
 
 	void getNominalTrajectories(
 			std::vector<scalar_array_t>& nominalTimeTrajectoriesStock,
@@ -273,7 +303,9 @@ public:
 			std::vector<control_vector_array_t>& nominalInputTrajectoriesStock,
 			std::vector<output_vector_array_t>& nominalOutputTrajectoriesStock) override;
 
-	void run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes) override;
+	void run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes,
+			const std::vector<controller_t>& initialControllersStock=std::vector<controller_t>()) override;
+
 
 	// get subsystem dynamics on main thread
 	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM>>>& getSubsystemDynamicsPtrStock() override {
@@ -292,6 +324,8 @@ public:
 			}
 		}
 	}
+
+	Options_t& options() override {return options_;}
 
 
 protected:
@@ -350,6 +384,10 @@ private:
 			std::vector<output_vector_array_t>& lsOutputTrajectoriesStock,
 			std::vector<std::vector<size_t> >& lsNc1TrajectoriesStock,
 			std::vector<constraint1_vector_array_t>& lsEvTrajectoryStock,
+			std::vector<std::vector<size_t> >&   lsNc2TrajectoriesStock,
+			std::vector<constraint2_vector_array_t>& lsHvTrajectoryStock,
+			std::vector<size_t>&               	lsNc2FinalStock,
+			std::vector<constraint2_vector_t>& 	lsHvFinalStock,
 			std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> >>& lsLagrangeTrajectoriesStock);
 
 	// for generating unique identifiers for subsystem, task, iteration:

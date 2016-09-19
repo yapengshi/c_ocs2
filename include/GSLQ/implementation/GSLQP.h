@@ -35,7 +35,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const stat
 		std::vector<control_vector_array_t>& inputTrajectoriesStock,
 		std::vector<output_vector_array_t>& outputTrajectoriesStock)  {
 
-	slqp_->rollout(initState,
+	slqpPtr_->rollout(initState,
 			controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock, outputTrajectoriesStock);
 
 }
@@ -49,7 +49,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const stat
 		std::vector<state_vector_array_t>& stateTrajectoriesStock,
 		std::vector<control_vector_array_t>& inputTrajectoriesStock)  {
 
-	slqp_->rollout(initState,
+	slqpPtr_->rollout(initState,
 			controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock);
 }
 
@@ -62,11 +62,16 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(const stat
 		std::vector<control_vector_array_t>& inputTrajectoriesStock,
 		std::vector<output_vector_array_t>& outputTrajectoriesStock,
 		std::vector<std::vector<size_t> >& nc1TrajectoriesStock,
-		std::vector<constraint1_vector_array_t>& EvTrajectoryStock)  {
+		std::vector<constraint1_vector_array_t>& EvTrajectoryStock,
+		std::vector<std::vector<size_t> >& nc2TrajectoriesStock,
+		std::vector<constraint2_vector_array_t>& HvTrajectoryStock,
+		std::vector<size_t>& nc2FinalStock,
+		std::vector<constraint2_vector_t>& HvFinalStock)  {
 
-	slqp_->rollout(initState,
+	slqpPtr_->rollout(initState,
 			controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock,
-			outputTrajectoriesStock, nc1TrajectoriesStock, EvTrajectoryStock);
+			outputTrajectoriesStock, nc1TrajectoriesStock, EvTrajectoryStock,
+			nc2TrajectoriesStock, HvTrajectoryStock, nc2FinalStock, HvFinalStock);
 }
 
 
@@ -90,7 +95,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateCostFunct
 		const std::vector<control_vector_array_t>& inputTrajectoriesStock,
 		scalar_t& totalCost)  {
 
-	slqp_->calculateCostFunction(timeTrajectoriesStock, outputTrajectoriesStock, inputTrajectoriesStock,
+	slqpPtr_->calculateCostFunction(timeTrajectoriesStock, outputTrajectoriesStock, inputTrajectoriesStock,
 			totalCost);
 }
 
@@ -121,7 +126,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateMeritFunc
 		scalar_t& meritFuntionValue,
 		scalar_t& constraintISE)  {
 
-	slqp_->calculateMeritFunction(timeTrajectoriesStock, nc1TrajectoriesStock, EvTrajectoryStock, lagrangeTrajectoriesStock, totalCost,
+	slqpPtr_->calculateMeritFunction(timeTrajectoriesStock, nc1TrajectoriesStock, EvTrajectoryStock, lagrangeTrajectoriesStock, totalCost,
 			meritFuntionValue, constraintISE);
 }
 
@@ -147,7 +152,7 @@ double GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateConstra
 		const std::vector<constraint1_vector_array_t>& EvTrajectoriesStock,
 		scalar_t& constraintISE)  {
 
-	return slqp_->calculateConstraintISE(timeTrajectoriesStock, nc1TrajectoriesStock, EvTrajectoriesStock,
+	return slqpPtr_->calculateConstraintISE(timeTrajectoriesStock, nc1TrajectoriesStock, EvTrajectoriesStock,
 			constraintISE);
 }
 
@@ -168,13 +173,13 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::transformLocalValu
 
 	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
 
-		nominalOutputFunc.setTimeStamp( &(slqp_->nominalTimeTrajectoriesStock_[i]) );
-		nominalOutputFunc.setData( &(slqp_->nominalOutputTrajectoriesStock_[i]) );
+		nominalOutputFunc.setTimeStamp( &(slqpPtr_->nominalTimeTrajectoriesStock_[i]) );
+		nominalOutputFunc.setData( &(slqpPtr_->nominalOutputTrajectoriesStock_[i]) );
 
-		for (int k=0; k<slqp_->SsTimeTrajectoryStock_[i].size(); k++) {
+		for (int k=0; k<slqpPtr_->SsTimeTrajectoryStock_[i].size(); k++) {
 
 			output_vector_t nominalOutput;
-			nominalOutputFunc.interpolate(slqp_->SsTimeTrajectoryStock_[i][k], nominalOutput);
+			nominalOutputFunc.interpolate(slqpPtr_->SsTimeTrajectoryStock_[i][k], nominalOutput);
 
 			for (int j=0; j<NUM_SUBSYSTEMS-1; j++)  {
 
@@ -218,7 +223,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getRolloutSensitiv
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getController(std::vector<controller_t>& controllersStock) {
 
-	slqp_->getController(controllersStock);
+	slqpPtr_->getController(controllersStock);
 }
 
 
@@ -237,7 +242,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getController(std:
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion)  {
 
-	slqp_->getValueFuntion(time, output, valueFuntion);
+	slqpPtr_->getValueFuntion(time, output, valueFuntion);
 }
 
 
@@ -254,9 +259,9 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getValueFuntion(co
  * 			+ cost function value plus the constraint ISE multiplied by pho
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getCostFuntion(const output_vector_t& initOutput, scalar_t& costFunction, scalar_t& constriantCostFunction)  {
+void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getCostFuntion(scalar_t& costFunction, scalar_t& constraintISE)  {
 
-	slqp_->getCostFuntion(initOutput, costFunction, constriantCostFunction);
+	slqpPtr_->getCostFuntion(costFunction, constraintISE);
 }
 
 
@@ -319,7 +324,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getNominalTrajecto
 		std::vector<control_vector_array_t>& nominalInputTrajectoriesStock,
 		std::vector<output_vector_array_t>& nominalOutputTrajectoriesStock)   {
 
-	slqp_->getNominalTrajectories(nominalTimeTrajectoriesStock, nominalStateTrajectoriesStock,
+	slqpPtr_->getNominalTrajectories(nominalTimeTrajectoriesStock, nominalStateTrajectoriesStock,
 			nominalInputTrajectoriesStock, nominalOutputTrajectoriesStock);
 }
 
@@ -353,37 +358,44 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSensitivityRi
 
 	// final value for the last Riccati equations
 	typename SensitivityRiccatiEquations_t::all_s_vector_t allSsFinal;
-	nabla_Sm_t nablaQmFinal;  nablaQmFinal.fill(state_matrix_t::Zero());
-	nabla_Sv_t nablaQvFinal;  nablaQvFinal.fill(output_vector_t::Zero());
-	nabla_s_t  nablaqFinal;   nablaqFinal.fill(eigen_scalar_t::Zero());
-	for (int i=0; i<NUM_SUBSYSTEMS-1; i++) {
-		nablaQvFinal[i] = nablaQvFinal_.template block<OUTPUT_DIM,1>(0,i);
-		nablaqFinal[i](0) = nablaqFinal_(i);
-	}
-	SensitivityRiccatiEquations_t::convert2Vector(nablaQmFinal, nablaQvFinal, nablaqFinal, allSsFinal);
+	allSsFinal.setZero();
 
 	for (int i=NUM_SUBSYSTEMS-1; i>=0; i--) {
 
+		// subsystem terminal costs
+		nabla_Sm_t nablaQmFinal;  nablaQmFinal.fill(state_matrix_t::Zero());
+		nabla_Sv_t nablaQvFinal;  nablaQvFinal.fill(output_vector_t::Zero());
+		nabla_s_t  nablaqFinal;   nablaqFinal.fill(eigen_scalar_t::Zero());
+
+		for (int j=0; j<NUM_SUBSYSTEMS-1; j++) {
+			nablaQvFinal[j] = nablaQvFinalStock_[i].col(j);
+			nablaqFinal[j]  = nablaqFinalStock_[i].col(j);
+		}  // end of j loop
+
+		typename SensitivityRiccatiEquations_t::all_s_vector_t allQsFinal;
+		SensitivityRiccatiEquations_t::convert2Vector(nablaQmFinal, nablaQvFinal, nablaqFinal, allQsFinal);
+		allSsFinal += allQsFinal;
+
 		// set data for Riccati equations
-		std::shared_ptr<SensitivityRiccatiEquations_t> riccatiEquationsPtr( new SensitivityRiccatiEquations_t());
-		riccatiEquationsPtr->setData(learningRate,
+		std::shared_ptr<SensitivityRiccatiEquations_t> sensitivityRiccatiEquationsPtr( new SensitivityRiccatiEquations_t());
+		sensitivityRiccatiEquationsPtr->setData(learningRate,
 				i, switchingTimes_[i], switchingTimes_[i+1],
-				&slqp_->SsTimeTrajectoryStock_[i], &slqp_->SmTrajectoryStock_[i], &slqp_->SvTrajectoryStock_[i],
-				&slqp_->nominalTimeTrajectoriesStock_[i],
-				&slqp_->AmConstrainedTrajectoryStock_[i], &slqp_->BmTrajectoryStock_[i],
-				&slqp_->qTrajectoryStock_[i], &slqp_->QvConstrainedTrajectoryStock_[i], &slqp_->QmConstrainedTrajectoryStock_[i],
-				&slqp_->RvTrajectoryStock_[i], &slqp_->RmInverseTrajectoryStock_[i], &slqp_->RmConstrainedTrajectoryStock_[i], &slqp_->PmTrajectoryStock_[i],
+				&slqpPtr_->SsTimeTrajectoryStock_[i], &slqpPtr_->SmTrajectoryStock_[i], &slqpPtr_->SvTrajectoryStock_[i],
+				&slqpPtr_->nominalTimeTrajectoriesStock_[i],
+				&slqpPtr_->AmTrajectoryStock_[i], &slqpPtr_->BmTrajectoryStock_[i],
+				&slqpPtr_->qTrajectoryStock_[i], &slqpPtr_->QvTrajectoryStock_[i], &slqpPtr_->QmTrajectoryStock_[i],
+				&slqpPtr_->RvTrajectoryStock_[i], &slqpPtr_->RmInverseTrajectoryStock_[i], &slqpPtr_->RmTrajectoryStock_[i], &slqpPtr_->PmTrajectoryStock_[i],
 				&sensitivityTimeTrajectoryStock_[i], &nablaqTrajectoryStock_[i],
 				&nablaQvTrajectoryStock_[i], &nablaRvTrajectoryStock_[i]);
 
 		// normalized integration time based on SsTimeTrajectoryStock_
-		int N = slqp_->SsTimeTrajectoryStock_[i].size();
+		int N = slqpPtr_->SsTimeTrajectoryStock_[i].size();
 		scalar_array_t normalizedTimeTrajectory(N);
 		for (int k=0; k<N; k++)
-			normalizedTimeTrajectory[N-1-k] = (slqp_->SsTimeTrajectoryStock_[i][k]-switchingTimes_[i+1])/(switchingTimes_[i]-switchingTimes_[i+1]);
+			normalizedTimeTrajectory[N-1-k] = (slqpPtr_->SsTimeTrajectoryStock_[i][k]-switchingTimes_[i+1])/(switchingTimes_[i]-switchingTimes_[i+1]);
 
 		// integrating the Riccati equations
-		ODE45<SensitivityRiccatiEquations_t::S_DIM_*(NUM_SUBSYSTEMS-1)> ode45(riccatiEquationsPtr);
+		ODE45<SensitivityRiccatiEquations_t::S_DIM_*(NUM_SUBSYSTEMS-1)> ode45(sensitivityRiccatiEquationsPtr);
 
 		std::vector<typename SensitivityRiccatiEquations_t::all_s_vector_t, Eigen::aligned_allocator<typename SensitivityRiccatiEquations_t::all_s_vector_t> > allSsTrajectory;
 		ode45.integrate(allSsFinal, normalizedTimeTrajectory, allSsTrajectory,
@@ -429,29 +441,29 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateSensitivi
 
 	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
 
-		BmFunc.setTimeStamp( &(slqp_->nominalTimeTrajectoriesStock_[i]) );
-		BmFunc.setData( &(slqp_->BmTrajectoryStock_[i]) );
+		BmFunc.setTimeStamp( &(slqpPtr_->nominalTimeTrajectoriesStock_[i]) );
+		BmFunc.setData( &(slqpPtr_->BmTrajectoryStock_[i]) );
 
-		PmFunc.setTimeStamp( &(slqp_->nominalTimeTrajectoriesStock_[i]) );
-		PmFunc.setData( &(slqp_->PmTrajectoryStock_[i]) );
+		PmFunc.setTimeStamp( &(slqpPtr_->nominalTimeTrajectoriesStock_[i]) );
+		PmFunc.setData( &(slqpPtr_->PmTrajectoryStock_[i]) );
 
-		RmInverseFunc.setTimeStamp( &(slqp_->nominalTimeTrajectoriesStock_[i]) );
-		RmInverseFunc.setData( &(slqp_->RmInverseTrajectoryStock_[i]) );
+		RmInverseFunc.setTimeStamp( &(slqpPtr_->nominalTimeTrajectoriesStock_[i]) );
+		RmInverseFunc.setData( &(slqpPtr_->RmInverseTrajectoryStock_[i]) );
 
-		CmProjectedFunc.setTimeStamp( &(slqp_->nominalTimeTrajectoriesStock_[i]) );
-		CmProjectedFunc.setData( &(slqp_->CmProjectedTrajectoryStock_[i]) );
+		CmProjectedFunc.setTimeStamp( &(slqpPtr_->nominalTimeTrajectoriesStock_[i]) );
+		CmProjectedFunc.setData( &(slqpPtr_->CmProjectedTrajectoryStock_[i]) );
 
-		DmProjectedFunc.setTimeStamp( &(slqp_->nominalTimeTrajectoriesStock_[i]) );
-		DmProjectedFunc.setData( &(slqp_->DmProjectedTrajectoryStock_[i]) );
+		DmProjectedFunc.setTimeStamp( &(slqpPtr_->nominalTimeTrajectoriesStock_[i]) );
+		DmProjectedFunc.setData( &(slqpPtr_->DmProjectedTrajectoryStock_[i]) );
 
-		sensitivityControllersStock[i].time_ = slqp_->SsTimeTrajectoryStock_[i];
+		sensitivityControllersStock[i].time_ = slqpPtr_->SsTimeTrajectoryStock_[i];
 
-		size_t N = slqp_->SsTimeTrajectoryStock_[i].size();
+		size_t N = slqpPtr_->SsTimeTrajectoryStock_[i].size();
 		sensitivityControllersStock[i].k_.resize(N);
 
 		for (int k=0; k<N; k++) {
 
-			const double& time = slqp_->SsTimeTrajectoryStock_[i][k];
+			const double& time = slqpPtr_->SsTimeTrajectoryStock_[i][k];
 
 			control_gain_matrix_t Bm;
 			BmFunc.interpolate(time, Bm);
@@ -465,7 +477,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateSensitivi
 			control_matrix_t DmProjected;
 			DmProjectedFunc.interpolate(time, DmProjected, greatestLessTimeStampIndex);
 
-			control_feedback_t Lm  = RmInverse * (Pm + Bm.transpose()*slqp_->SmTrajectoryStock_[i][k]);
+			control_feedback_t Lm  = RmInverse * (Pm + Bm.transpose()*slqpPtr_->SmTrajectoryStock_[i][k]);
 			control_matrix_t DmNullProjection = control_matrix_t::Identity()-DmProjected;
 			sensitivityControllersStock[i].k_[k] = -DmNullProjection*Lm - CmProjected;
 
@@ -475,7 +487,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateSensitivi
 					throw std::runtime_error("sensitivityController feedback gains are unstable.");
 			}
 			catch(const std::exception& error)  {
-			    std::cerr << "what(): " << error.what() << " at time " << sensitivityControllersStock[i].time_[k] << " [sec]." << std::endl;
+				std::cerr << "what(): " << error.what() << " at time " << sensitivityControllersStock[i].time_[k] << " [sec]." << std::endl;
 			}
 
 		}  // end of k loop
@@ -503,10 +515,10 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateLQSensiti
 	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
 
 		// set data
-		BmFunc.setTimeStamp(&slqp_->nominalTimeTrajectoriesStock_[i]);
-		BmFunc.setData(&slqp_->BmTrajectoryStock_[i]);
-		RmInverseFunc.setTimeStamp(&slqp_->nominalTimeTrajectoriesStock_[i]);
-		RmInverseFunc.setData(&slqp_->RmInverseTrajectoryStock_[i]);
+		BmFunc.setTimeStamp(&slqpPtr_->nominalTimeTrajectoriesStock_[i]);
+		BmFunc.setData(&slqpPtr_->BmTrajectoryStock_[i]);
+		RmInverseFunc.setTimeStamp(&slqpPtr_->nominalTimeTrajectoriesStock_[i]);
+		RmInverseFunc.setData(&slqpPtr_->RmInverseTrajectoryStock_[i]);
 		nabla_RvFunc.setTimeStamp(&sensitivityTimeTrajectoryStock_[i]);
 		nabla_RvFunc.setData(&nablaRvTrajectoryStock_[i]);
 
@@ -568,19 +580,19 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateBVPSensit
 	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
 
 		// set data
-		BmFunc.setTimeStamp(&slqp_->nominalTimeTrajectoriesStock_[i]);
-		BmFunc.setData(&slqp_->BmTrajectoryStock_[i]);
-		RmInverseFunc.setTimeStamp(&slqp_->nominalTimeTrajectoriesStock_[i]);
-		RmInverseFunc.setData(&slqp_->RmInverseTrajectoryStock_[i]);
+		BmFunc.setTimeStamp(&slqpPtr_->nominalTimeTrajectoriesStock_[i]);
+		BmFunc.setData(&slqpPtr_->BmTrajectoryStock_[i]);
+		RmInverseFunc.setTimeStamp(&slqpPtr_->nominalTimeTrajectoriesStock_[i]);
+		RmInverseFunc.setData(&slqpPtr_->RmInverseTrajectoryStock_[i]);
 
 		// resizing the
-		size_t N = slqp_->SsTimeTrajectoryStock_[i].size();
+		size_t N = slqpPtr_->SsTimeTrajectoryStock_[i].size();
 		sensitivityControllersStock[i].uff_.resize(N);
 
 		for (size_t k=0; k<N; k++) {
 
 			// time
-			const double& t = slqp_->SsTimeTrajectoryStock_[i][k];
+			const double& t = slqpPtr_->SsTimeTrajectoryStock_[i][k];
 
 			// Bm
 			control_gain_matrix_t Bm;
@@ -624,11 +636,11 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rolloutSensitivity
 	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
 
 		// initialize subsystem i
-		slqp_->getSubsystemDynamicsPtrStock()[i]->initializeModel(switchingTimes_, slqp_->nominalStateTrajectoriesStock_[i].front(), i, "GSLQP");
+		slqpPtr_->getSubsystemDynamicsPtrStock()[i]->initializeModel(switchingTimes_, slqpPtr_->nominalStateTrajectoriesStock_[i].front(), i, "GSLQP");
 
 		rolloutSensitivityEquationsPtr->setData(i, switchingTimes_, &sensitivityControllersStock[i],
-				&slqp_->nominalTimeTrajectoriesStock_[i], &nominalOutputTimeDerivativeTrajectoriesStock_[i],
-				&slqp_->AmTrajectoryStock_[i], &slqp_->BmTrajectoryStock_[i]);
+				&slqpPtr_->nominalTimeTrajectoriesStock_[i], &nominalOutputTimeDerivativeTrajectoriesStock_[i],
+				&slqpPtr_->AmTrajectoryStock_[i], &slqpPtr_->BmTrajectoryStock_[i]);
 
 		// integrating
 		scalar_array_t normalizedSensitivityTimeTrajectory;
@@ -666,8 +678,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rolloutSensitivity
  * 			+ nablaqTrajectoryStock_: dq
  * 			+ nablaQvTrajectoryStock_: dQv
  * 			+ nablaRvTrajectoryStock_: dRv
- * 			+ nablaqFinal_: dq_f
- * 			+ nablaQvFinal_: dQv_f
+ * 			+ nablaqFinalStock_: dq_f
+ * 			+ nablaQvFinalStock_: dQv_f
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateNominalLQPSensitivity2SwitchingTime() {
@@ -681,16 +693,16 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateNominal
 
 	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
 
-		QvFunc.setTimeStamp( &(slqp_->nominalTimeTrajectoriesStock_[i]) );
-		QvFunc.setData( &(slqp_->QvTrajectoryStock_[i]) );
-		QmFunc.setTimeStamp( &(slqp_->nominalTimeTrajectoriesStock_[i]) );
-		QmFunc.setData( &(slqp_->QmTrajectoryStock_[i]) );
-		RvFunc.setTimeStamp( &(slqp_->nominalTimeTrajectoriesStock_[i]) );
-		RvFunc.setData( &(slqp_->RvTrajectoryStock_[i]) );
-		RmFunc.setTimeStamp( &(slqp_->nominalTimeTrajectoriesStock_[i]) );
-		RmFunc.setData( &(slqp_->RmTrajectoryStock_[i]) );
-		PmFunc.setTimeStamp( &(slqp_->nominalTimeTrajectoriesStock_[i]) );
-		PmFunc.setData( &(slqp_->PmTrajectoryStock_[i]) );
+		QvFunc.setTimeStamp( &(slqpPtr_->nominalTimeTrajectoriesStock_[i]) );
+		QvFunc.setData( &(slqpPtr_->QvTrajectoryStock_[i]) );
+		QmFunc.setTimeStamp( &(slqpPtr_->nominalTimeTrajectoriesStock_[i]) );
+		QmFunc.setData( &(slqpPtr_->QmTrajectoryStock_[i]) );
+		RvFunc.setTimeStamp( &(slqpPtr_->nominalTimeTrajectoriesStock_[i]) );
+		RvFunc.setData( &(slqpPtr_->RvTrajectoryStock_[i]) );
+		RmFunc.setTimeStamp( &(slqpPtr_->nominalTimeTrajectoriesStock_[i]) );
+		RmFunc.setData( &(slqpPtr_->RmTrajectoryStock_[i]) );
+		PmFunc.setTimeStamp( &(slqpPtr_->nominalTimeTrajectoriesStock_[i]) );
+		PmFunc.setData( &(slqpPtr_->PmTrajectoryStock_[i]) );
 
 		int N = sensitivityTimeTrajectoryStock_[i].size();
 		nablaqTrajectoryStock_[i].resize(N);
@@ -716,13 +728,11 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateNominal
 			nablaRvTrajectoryStock_[i][k] = Pm*nablaOutputTrajectoryStock_[i][k] + Rm*nablaInputTrajectoryStock_[i][k];
 		}
 
-		if (i==NUM_SUBSYSTEMS-1)  {
-			output_vector_t Qv = slqp_->QvTrajectoryStock_[NUM_SUBSYSTEMS-1].back();
-			state_matrix_t Qm  = slqp_->QmTrajectoryStock_[NUM_SUBSYSTEMS-1].back();
+		output_vector_t Qv = slqpPtr_->QvFinalStock_[i];
+		state_matrix_t Qm  = slqpPtr_->QmFinalStock_[i];
 
-			nablaqFinal_  = Qv.transpose()*nablaOutputTrajectoryStock_[NUM_SUBSYSTEMS-1].back();
-			nablaQvFinal_ = Qm*nablaOutputTrajectoryStock_[NUM_SUBSYSTEMS-1].back();
-		}
+		nablaqFinalStock_[i]  = Qv.transpose()*nablaOutputTrajectoryStock_[i].back();
+		nablaQvFinalStock_[i] = Qm*nablaOutputTrajectoryStock_[i].back();
 	}  // end of i loop
 }
 
@@ -738,18 +748,18 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateOutputTim
 
 	for (size_t i=0; i<NUM_SUBSYSTEMS; i++) {
 
-		slqp_->getSubsystemDynamicsPtrStock()[i]->initializeModel(switchingTimes_, slqp_->nominalStateTrajectoriesStock_[i].front(), i, "GSLQP");
+		slqpPtr_->getSubsystemDynamicsPtrStock()[i]->initializeModel(switchingTimes_, slqpPtr_->nominalStateTrajectoriesStock_[i].front(), i, "GSLQP");
 
-		size_t N = slqp_->nominalTimeTrajectoriesStock_[i].size();
+		size_t N = slqpPtr_->nominalTimeTrajectoriesStock_[i].size();
 		nominalOutputTimeDerivativeTrajectoriesStock_[i].resize(N);
 
 		for (size_t k=0; k<N; k++) {
-			const scalar_t& 	    t = slqp_->nominalTimeTrajectoriesStock_[i][k];
-			const state_vector_t&   x = slqp_->nominalStateTrajectoriesStock_[i][k];
-			const control_vector_t& u = slqp_->nominalInputTrajectoriesStock_[i][k];
+			const scalar_t& 	    t = slqpPtr_->nominalTimeTrajectoriesStock_[i][k];
+			const state_vector_t&   x = slqpPtr_->nominalStateTrajectoriesStock_[i][k];
+			const control_vector_t& u = slqpPtr_->nominalInputTrajectoriesStock_[i][k];
 			state_vector_t dxdt;
-			slqp_->getSubsystemDynamicsPtrStock()[i]->computeDerivative(t, x, u, dxdt);
-			nominalOutputTimeDerivativeTrajectoriesStock_[i][k] = slqp_->getSubsystemDynamicsPtrStock()[i]->computeOutputStateDerivative(t, x, u) * dxdt;
+			slqpPtr_->getSubsystemDynamicsPtrStock()[i]->computeDerivative(t, x, u, dxdt);
+			nominalOutputTimeDerivativeTrajectoriesStock_[i][k] = slqpPtr_->getSubsystemDynamicsPtrStock()[i]->computeOutputStateDerivative(t, x, u) * dxdt;
 
 		}  // end of k loop
 	}  // end of i loop
@@ -786,30 +796,32 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSensitivityBV
 	if (switchingTimeIndex < 1)  throw std::runtime_error("The initial switching time (startTime) is fixed and cost function derivative is not defined.");
 
 	// calculate the BVP coefficients
-	output_vector_array_t bvpGvPositivetraTrajectory(slqp_->nominalTimeTrajectoriesStock_[switchingTimeIndex-1].size());
-	output_vector_array_t bvpQvPositivetraTrajectory(slqp_->nominalTimeTrajectoriesStock_[switchingTimeIndex-1].size());
-	output_vector_array_t bvpGvNegativetraTrajectory(slqp_->nominalTimeTrajectoriesStock_[switchingTimeIndex].size());
-	output_vector_array_t bvpQvNegativetraTrajectory(slqp_->nominalTimeTrajectoriesStock_[switchingTimeIndex].size());
+	output_vector_array_t bvpGvPositivetraTrajectory(slqpPtr_->nominalTimeTrajectoriesStock_[switchingTimeIndex-1].size());
+	output_vector_array_t bvpQvPositivetraTrajectory(slqpPtr_->nominalTimeTrajectoriesStock_[switchingTimeIndex-1].size());
+	output_vector_array_t bvpGvNegativetraTrajectory(slqpPtr_->nominalTimeTrajectoriesStock_[switchingTimeIndex].size());
+	output_vector_array_t bvpQvNegativetraTrajectory(slqpPtr_->nominalTimeTrajectoriesStock_[switchingTimeIndex].size());
 
 	const double scalingFactor = 1/(switchingTimes_[switchingTimeIndex]-switchingTimes_[switchingTimeIndex-1]);
 
-	for (size_t k=0; k<slqp_->nominalTimeTrajectoriesStock_[switchingTimeIndex-1].size(); k++) {
+	for (size_t k=0; k<slqpPtr_->nominalTimeTrajectoriesStock_[switchingTimeIndex-1].size(); k++) {
 		bvpGvPositivetraTrajectory[k] = scalingFactor * nominalOutputTimeDerivativeTrajectoriesStock_[switchingTimeIndex-1][k];
-		bvpQvPositivetraTrajectory[k] = scalingFactor * (slqp_->QvTrajectoryStock_[switchingTimeIndex-1][k]+
-				slqp_->AmTrajectoryStock_[switchingTimeIndex-1][k].transpose()*slqp_->nominalcostateTrajectoriesStock_[switchingTimeIndex-1][k]);
+		bvpQvPositivetraTrajectory[k] = scalingFactor * (slqpPtr_->QvTrajectoryStock_[switchingTimeIndex-1][k]+
+				slqpPtr_->AmTrajectoryStock_[switchingTimeIndex-1][k].transpose()*slqpPtr_->nominalcostateTrajectoriesStock_[switchingTimeIndex-1][k]);
 	}
 
-	for (size_t k=0; k<slqp_->nominalTimeTrajectoriesStock_[switchingTimeIndex].size(); k++) {
+	for (size_t k=0; k<slqpPtr_->nominalTimeTrajectoriesStock_[switchingTimeIndex].size(); k++) {
 		bvpGvNegativetraTrajectory[k] = -scalingFactor * nominalOutputTimeDerivativeTrajectoriesStock_[switchingTimeIndex][k];
-		bvpQvNegativetraTrajectory[k] = -scalingFactor * (slqp_->QvTrajectoryStock_[switchingTimeIndex][k]+
-				slqp_->AmTrajectoryStock_[switchingTimeIndex][k].transpose()*slqp_->nominalcostateTrajectoriesStock_[switchingTimeIndex][k]);
+		bvpQvNegativetraTrajectory[k] = -scalingFactor * (slqpPtr_->QvTrajectoryStock_[switchingTimeIndex][k]+
+				slqpPtr_->AmTrajectoryStock_[switchingTimeIndex][k].transpose()*slqpPtr_->nominalcostateTrajectoriesStock_[switchingTimeIndex][k]);
 	}
 
 	SolveBVP<OUTPUT_DIM, INPUT_DIM> bvpSolver;
 	output_vector_t SvFinal = output_vector_t::Zero();
-	state_matrix_t  MmFinal = slqp_->QmFinal_;
+	state_matrix_t  MmFinal =  state_matrix_t::Zero();
 
 	for (int i=NUM_SUBSYSTEMS-1; i>=0; i--) {
+
+		MmFinal += slqpPtr_->QmFinalStock_[i];
 
 		const output_vector_array_t* GvPtr;
 		const output_vector_array_t* QvPtr;
@@ -825,10 +837,11 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSensitivityBV
 		}
 
 		// set the general BVP solver coefficient
-		bvpSolver.setData(&slqp_->nominalTimeTrajectoriesStock_[i],
-				&slqp_->AmConstrainedTrajectoryStock_[i], NULL,  &slqp_->BmTrajectoryStock_[i], GvPtr,
-				QvPtr, &slqp_->QmConstrainedTrajectoryStock_[i], &slqp_->PmTrajectoryStock_[i],
-				NULL, &slqp_->RmConstrainedTrajectoryStock_[i], &slqp_->RmInverseTrajectoryStock_[i]);
+		bvpSolver.setData(&slqpPtr_->nominalTimeTrajectoriesStock_[i],
+				&slqpPtr_->AmTrajectoryStock_[i], NULL,  &slqpPtr_->BmTrajectoryStock_[i], GvPtr,
+				QvPtr, &slqpPtr_->QmTrajectoryStock_[i], &slqpPtr_->PmTrajectoryStock_[i],
+				NULL, &slqpPtr_->RmTrajectoryStock_[i], &slqpPtr_->RmInverseTrajectoryStock_[i]);
+
 
 		// solve BVP for the given time trajectory
 		bvpSolver.solve(timeTrajectoriesStock[i], SvFinal, MmFinal,
@@ -839,12 +852,12 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSensitivityBV
 		SvFinal = SvTrajectoriesStock[i].front();
 		MmFinal = MmTrajectoriesStock[i].front();
 
-		for (size_t k=0; k<timeTrajectoriesStock[i].size(); k++)
-			if (!MmTrajectoriesStock[i][k].isApprox(slqp_->SmTrajectoryStock_[i][k], 1e-3)) {
-				std::cerr << "In solveSensitivityBVP, Mm and Sm do not match." << std::endl;
-				std::cerr << "Mm[" << i << "][" << k << "]\n" <<  MmTrajectoriesStock[i][k] << std::endl;
-				std::cerr << "Sm[" << i << "][" << k << "]\n" <<  slqp_->SmTrajectoryStock_[i][k] << std::endl;
-			}
+		//		for (size_t k=0; k<timeTrajectoriesStock[i].size(); k++)
+		//			if (!MmTrajectoriesStock[i][k].isApprox(slqpPtr_->SmTrajectoryStock_[i][k], 1e-3)) {
+		//				std::cerr << "In solveSensitivityBVP, Mm and Sm do not match." << std::endl;
+		//				std::cerr << "Mm[" << i << "][" << k << "]\n" <<  MmTrajectoriesStock[i][k] << std::endl;
+		//				std::cerr << "Sm[" << i << "][" << k << "]\n" <<  slqpPtr_->SmTrajectoryStock_[i][k] << std::endl;
+		//			}
 
 	}  // end of i loop
 
@@ -862,16 +875,16 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateBVPCostFu
 		Eigen::Matrix<double,NUM_SUBSYSTEMS-1,1>& costFunctionDerivative)  {
 
 	// final time
-	costFunctionDerivative = nablaOutputTrajectoryStock_.back().back().transpose() * slqp_->QvFinal_;
+	costFunctionDerivative.setZero();
 
 	for (size_t i=0; i<NUM_SUBSYSTEMS; i++) {
 
 		LinearInterpolation<eigen_scalar_t, Eigen::aligned_allocator<eigen_scalar_t> > qFunc(
-				&slqp_->nominalTimeTrajectoriesStock_[i], &slqp_->qTrajectoryStock_[i]);
+				&slqpPtr_->nominalTimeTrajectoriesStock_[i], &slqpPtr_->qTrajectoryStock_[i]);
 		LinearInterpolation<output_vector_t, Eigen::aligned_allocator<output_vector_t> > QvFunc(
-				&slqp_->nominalTimeTrajectoriesStock_[i], &slqp_->QvTrajectoryStock_[i]);
+				&slqpPtr_->nominalTimeTrajectoriesStock_[i], &slqpPtr_->QvTrajectoryStock_[i]);
 		LinearInterpolation<control_vector_t, Eigen::aligned_allocator<control_vector_t> > RvFunc(
-				&slqp_->nominalTimeTrajectoriesStock_[i], &slqp_->RvTrajectoryStock_[i]);
+				&slqpPtr_->nominalTimeTrajectoriesStock_[i], &slqpPtr_->RvTrajectoryStock_[i]);
 
 		Eigen::Matrix<double,NUM_SUBSYSTEMS-1,1> previousIntermediatecostFunctionDev;
 		Eigen::Matrix<double,NUM_SUBSYSTEMS-1,1> currentIntermediatecostFunctionDev;
@@ -905,9 +918,13 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateBVPCostFu
 
 			if (k>0)
 				costFunctionDerivative += 0.5*(sensitivityTimeTrajectoryStock_[i][k]-sensitivityTimeTrajectoryStock_[i][k-1]) *
-					(currentIntermediatecostFunctionDev+previousIntermediatecostFunctionDev);
+				(currentIntermediatecostFunctionDev+previousIntermediatecostFunctionDev);
 
 		}  // end of k loop
+
+		// subsystem final cost
+		costFunctionDerivative += nablaOutputTrajectoryStock_[i].back().transpose() * slqpPtr_->QvFinalStock_[i];
+
 	}  // end of i loop
 
 }
@@ -917,27 +934,10 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateBVPCostFu
 /******************************************************************************************************/
 /******************************************************************************************************/
 /*
- * run the SLQ algorithm for a given state and switching times
+ * run the LQ-based algorithm to compute the cost function derivatives wr.t. switchingTimes
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::runLQBasedMethod(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes)  {
-
-	switchingTimes_ = switchingTimes;
-	initState_ = initState;
-
-	// make sure that the minimum difference between to successive switching times is at least options_.minSimulationTimeDuration_
-	for (size_t i=0; i<NUM_SUBSYSTEMS; i++)
-		if (switchingTimes_[i+1]-switchingTimes_[i] < options_.minSimulationTimeDuration_) {
-			if (i+1 == NUM_SUBSYSTEMS)
-				std::cerr << "WARNING: The minimum simulation time between the last subsystem's stratTime and finalTime should be at least "
-						<< options_.minSimulationTimeDuration_ << "." << std::endl;
-			switchingTimes_[i+1] = switchingTimes_[i]+options_.minSimulationTimeDuration_;
-		}
-
-	// run the SLQ algorithm
-	slqp_->run(initState, switchingTimes_);
-
-	if (options_.dispayGSLQP_)  std::cerr << "\n#### Calculating cost function sensitivity ..." << std::endl;
 
 	// calculate output time derivative
 	calculateOutputTimeDerivative();
@@ -972,9 +972,47 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::runLQBasedMethod(c
 	transformLocalValueFuntionDerivative2Global();
 
 	// calculate the cost function derivatives w.r.t. switchingTimes
-	getValueFuntionDerivative(slqp_->nominalOutputTrajectoriesStock_[0][0], nominalCostFuntionDerivative_);
+	getValueFuntionDerivative(slqpPtr_->nominalOutputTrajectoriesStock_[0][0], nominalCostFuntionDerivative_);
 
 }
+
+
+/******************************************************************************************************/
+/******************************************************************************************************/
+/******************************************************************************************************/
+/*
+ * run the Sweeping-BVP algorithm to compute the cost function derivatives wr.t. switchingTimes
+ */
+
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::runSweepingBVPMethod(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes)  {
+	// calculate output time derivative
+	calculateOutputTimeDerivative();
+
+	// calculate sensitivity controller feedback part
+	calculateSensitivityControllerFeedback(nominalSensitivityControllersStock_);
+
+	// for each switching time solve BVP
+	for (int j=1; j<NUM_SUBSYSTEMS; j++)  {
+		std::vector<state_matrix_array_t>  MmTrajectoriesStock(NUM_SUBSYSTEMS);
+		std::vector<output_vector_array_t> SvTrajectoriesStock(NUM_SUBSYSTEMS);
+
+		// solve boundary value problem of the sensitivity equations for switching time j
+		solveSensitivityBVP(j, slqpPtr_->SsTimeTrajectoryStock_, MmTrajectoriesStock, SvTrajectoriesStock);
+
+		// calculate sensitivity controller feedforward part
+		calculateBVPSensitivityControllerForward(j, SvTrajectoriesStock, nominalSensitivityControllersStock_);
+	} // end of j loop
+
+
+	// calculate nominal rollout sensitivity to switching times
+	rolloutSensitivity2SwitchingTime(nominalSensitivityControllersStock_,
+			sensitivityTimeTrajectoryStock_, nablaOutputTrajectoryStock_, nablaInputTrajectoryStock_);
+
+	// calculate the cost function derivatives w.r.t. switchingTimes
+	calculateBVPCostFunctionDerivative(nominalCostFuntionDerivative_);
+}
+
 
 
 /******************************************************************************************************/
@@ -986,11 +1024,6 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::runLQBasedMethod(c
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes)  {
 
-	if (options_.useLQForDerivatives_==true) {
-		runLQBasedMethod(initState, switchingTimes);
-		return;
-	}
-
 	switchingTimes_ = switchingTimes;
 	initState_ = initState;
 
@@ -999,72 +1032,61 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 		if (switchingTimes_[i+1]-switchingTimes_[i] < options_.minSimulationTimeDuration_) {
 			if (i+1 == NUM_SUBSYSTEMS)
 				std::cerr << "WARNING: The minimum simulation time between the last subsystem's stratTime and finalTime should be at least "
-					<< options_.minSimulationTimeDuration_ << "." << std::endl;
+				<< options_.minSimulationTimeDuration_ << "." << std::endl;
 			switchingTimes_[i+1] = switchingTimes_[i]+options_.minSimulationTimeDuration_;
 		}
 
-	// run the SLQ algorithm
-	slqp_->run(initState, switchingTimes_);
 
-	// calculate output time derivative
-	calculateOutputTimeDerivative();
+	// check if the SLQP solver is provided. TODO: fixme, here we differ, I always use the internal slqp solver
+	slqpPtr_ = slqpPtrInternal_;
 
-//	{
-//		SolveBVP<OUTPUT_DIM, INPUT_DIM> bvpSolver;
-//		std::vector<state_matrix_array_t> MmTrajectoriesStock(NUM_SUBSYSTEMS);
-//		std::vector<state_vector_array_t> SvTrajectoriesStock(NUM_SUBSYSTEMS);
-//		state_vector_t SvFinal = slqp_->QvFinal_;
-//		state_matrix_t MmFinal = slqp_->QmFinal_;
-//		for (int i=NUM_SUBSYSTEMS-1; i>=0; i--) {
-//
-//			bvpSolver.setData(&slqp_->nominalTimeTrajectoriesStock_[i],
-//					&slqp_->AmConstrainedTrajectoryStock_[i], NULL,  &slqp_->BmTrajectoryStock_[i], NULL,
-//					&slqp_->QvConstrainedTrajectoryStock_[i], &slqp_->QmConstrainedTrajectoryStock_[i], &slqp_->PmTrajectoryStock_[i],
-//					&slqp_->RvTrajectoryStock_[i], &slqp_->RmConstrainedTrajectoryStock_[i], &slqp_->RmInverseTrajectoryStock_[i]);
-//
-//			bvpSolver.solve(slqp_->SsTimeTrajectoryStock_[i], SvFinal, MmFinal,
-//					MmTrajectoriesStock[i], SvTrajectoriesStock[i],
-//					options_.AbsTolODE_, options_.RelTolODE_);
-//
-//			SvFinal = SvTrajectoriesStock[i].front();
-//			MmFinal = MmTrajectoriesStock[i].front();
-//
-//			for (size_t k=0; k<slqp_->SsTimeTrajectoryStock_[i].size(); k++) {
-//				if (!MmTrajectoriesStock[i][k].isApprox(slqp_->SmTrajectoryStock_[i][k], 1e-3)) {
-//					std::cout << "Mm[" << i << "][" << k << "]\n" <<  MmTrajectoriesStock[i][k] << std::endl;
-//					std::cout << "Sm[" << i << "][" << k << "]\n" <<  slqp_->SmTrajectoryStock_[i][k] << std::endl;
-//				}
-//				if (!SvTrajectoriesStock[i][k].isApprox(slqp_->SvTrajectoryStock_[i][k], 1e-3)) {
-//					std::cout << "Sv[" << i << "][" << k << "]\n" <<  SvTrajectoriesStock[i][k] << std::endl;
-//					std::cout << "Sv[" << i << "][" << k << "]\n" <<  slqp_->SvTrajectoryStock_[i][k] << std::endl;
-//				}
-//			}
-//		}
-//	}
+	slqpPtr_->run(initState, switchingTimes_);
 
-	// calculate sensitivity controller feedback part
-	calculateSensitivityControllerFeedback(nominalSensitivityControllersStock_);
 
-	// for each switching time solve BVP
-	for (int j=1; j<NUM_SUBSYSTEMS; j++)  {
+	// display
+	if (options_.dispayGSLQP_)  std::cerr << "\n#### Calculating cost function sensitivity ..." << std::endl;
 
-		std::vector<state_matrix_array_t>  MmTrajectoriesStock(NUM_SUBSYSTEMS);
-		std::vector<output_vector_array_t> SvTrajectoriesStock(NUM_SUBSYSTEMS);
 
-		// solve boundary value problem of the sensitivity equations for switching time j
-		solveSensitivityBVP(j, slqp_->SsTimeTrajectoryStock_, MmTrajectoriesStock, SvTrajectoriesStock);
+	// use the LQ-based method or Sweeping-BVP method
+	if (options_.useLQForDerivatives_==true)
+		runLQBasedMethod(initState, switchingTimes);
+	else
+		runSweepingBVPMethod(initState, switchingTimes);
 
-		// calculate sensitivity controller feedforward part
-		calculateBVPSensitivityControllerForward(j, SvTrajectoriesStock, nominalSensitivityControllersStock_);
 
-	} // end of j loop
+	//	{
+	//		SolveBVP<OUTPUT_DIM, INPUT_DIM> bvpSolver;
+	//		std::vector<state_matrix_array_t> MmTrajectoriesStock(NUM_SUBSYSTEMS);
+	//		std::vector<state_vector_array_t> SvTrajectoriesStock(NUM_SUBSYSTEMS);
+	//		state_vector_t SvFinal = slqpPtr_->QvFinal_;
+	//		state_matrix_t MmFinal = slqpPtr_->QmFinal_;
+	//		for (int i=NUM_SUBSYSTEMS-1; i>=0; i--) {
+	//
+	//			bvpSolver.setData(&slqpPtr_->nominalTimeTrajectoriesStock_[i],
+	//					&slqpPtr_->AmConstrainedTrajectoryStock_[i], NULL,  &slqpPtr_->BmTrajectoryStock_[i], NULL,
+	//					&slqpPtr_->QvConstrainedTrajectoryStock_[i], &slqpPtr_->QmConstrainedTrajectoryStock_[i], &slqpPtr_->PmTrajectoryStock_[i],
+	//					&slqpPtr_->RvTrajectoryStock_[i], &slqpPtr_->RmConstrainedTrajectoryStock_[i], &slqpPtr_->RmInverseTrajectoryStock_[i]);
+	//
+	//			bvpSolver.solve(slqpPtr_->SsTimeTrajectoryStock_[i], SvFinal, MmFinal,
+	//					MmTrajectoriesStock[i], SvTrajectoriesStock[i],
+	//					options_.AbsTolODE_, options_.RelTolODE_);
+	//
+	//			SvFinal = SvTrajectoriesStock[i].front();
+	//			MmFinal = MmTrajectoriesStock[i].front();
+	//
+	//			for (size_t k=0; k<slqpPtr_->SsTimeTrajectoryStock_[i].size(); k++) {
+	//				if (!MmTrajectoriesStock[i][k].isApprox(slqpPtr_->SmTrajectoryStock_[i][k], 1e-3)) {
+	//					std::cout << "Mm[" << i << "][" << k << "]\n" <<  MmTrajectoriesStock[i][k] << std::endl;
+	//					std::cout << "Sm[" << i << "][" << k << "]\n" <<  slqpPtr_->SmTrajectoryStock_[i][k] << std::endl;
+	//				}
+	//				if (!SvTrajectoriesStock[i][k].isApprox(slqpPtr_->SvTrajectoryStock_[i][k], 1e-3)) {
+	//					std::cout << "Sv[" << i << "][" << k << "]\n" <<  SvTrajectoriesStock[i][k] << std::endl;
+	//					std::cout << "Sv[" << i << "][" << k << "]\n" <<  slqpPtr_->SvTrajectoryStock_[i][k] << std::endl;
+	//				}
+	//			}
+	//		}
+	//	}
 
-	// calculate nominal rollout sensitivity to switching times
-	rolloutSensitivity2SwitchingTime(nominalSensitivityControllersStock_,
-			sensitivityTimeTrajectoryStock_, nablaOutputTrajectoryStock_, nablaInputTrajectoryStock_);
-
-	// calculate the cost function derivatives w.r.t. switchingTimes
-	calculateBVPCostFunctionDerivative(nominalCostFuntionDerivative_);
 
 }
 

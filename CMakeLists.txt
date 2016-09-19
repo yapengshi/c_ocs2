@@ -4,7 +4,8 @@ project(c_ocs2)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS cmake_modules cereal) 
+find_package(catkin REQUIRED COMPONENTS cmake_modules cereal c_gradient_descent) 
+find_package(Eigen3 REQUIRED)
 find_package(Ceres REQUIRED)
 find_package(Boost REQUIRED system filesystem)
 
@@ -51,8 +52,8 @@ catkin_package(
       ${CERES_INCLUDE_DIRS}
       ${Boost_INCLUDE_DIRS}
   #LIBRARIES c_ocs2 ${Boost_LIBRARIES}
-  CATKIN_DEPENDS cereal  
-  DEPENDS ${IPOPT_LIBS} boost
+  CATKIN_DEPENDS cereal c_gradient_descent
+  DEPENDS ${IPOPT_LIBS} boost eigen
 )
 
 

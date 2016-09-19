@@ -11,6 +11,7 @@
 #include <vector>
 #include <array>
 #include <algorithm>
+#include <numeric>
 #include <cstddef>
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
@@ -35,6 +36,7 @@ template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBS
 class SLQP_BASE
 {
 public:
+	typedef std::shared_ptr<SLQP_BASE<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> > Ptr;
 	typedef SequentialRiccatiEquations<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> RiccatiEquations_t;
 	typedef SequentialErrorEquation<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> ErrorEquation_t;
 
@@ -64,14 +66,17 @@ public:
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
 	typedef typename DIMENSIONS::constraint1_vector_t constraint1_vector_t;
 	typedef typename DIMENSIONS::constraint1_vector_array_t constraint1_vector_array_t;
-	typedef typename DIMENSIONS::constraint1_matrix_t constraint1_matrix_t;
-	typedef typename DIMENSIONS::constraint1_matrix_array_t constraint1_matrix_array_t;
 	typedef typename DIMENSIONS::constraint1_state_matrix_t constraint1_state_matrix_t;
 	typedef typename DIMENSIONS::constraint1_state_matrix_array_t constraint1_state_matrix_array_t;
 	typedef typename DIMENSIONS::constraint1_control_matrix_t constraint1_control_matrix_t;
 	typedef typename DIMENSIONS::constraint1_control_matrix_array_t constraint1_control_matrix_array_t;
 	typedef typename DIMENSIONS::control_constraint1_matrix_t control_constraint1_matrix_t;
 	typedef typename DIMENSIONS::control_constraint1_matrix_array_t control_constraint1_matrix_array_t;
+	typedef typename DIMENSIONS::constraint2_vector_t       constraint2_vector_t;
+	typedef typename DIMENSIONS::constraint2_vector_array_t constraint2_vector_array_t;
+	typedef typename DIMENSIONS::constraint2_state_matrix_t       constraint2_state_matrix_t;
+	typedef typename DIMENSIONS::constraint2_state_matrix_array_t constraint2_state_matrix_array_t;
+
 
 
 	SLQP_BASE()
@@ -88,6 +93,15 @@ public:
       EvTrajectoryStock_(NUM_SUBSYSTEMS),
       CmTrajectoryStock_(NUM_SUBSYSTEMS),
       DmTrajectoryStock_(NUM_SUBSYSTEMS),
+      nc2TrajectoriesStock_(NUM_SUBSYSTEMS),
+      HvTrajectoryStock_(NUM_SUBSYSTEMS),
+      FmTrajectoryStock_(NUM_SUBSYSTEMS),
+      nc2FinalStock_(NUM_SUBSYSTEMS),
+      HvFinalStock_(NUM_SUBSYSTEMS),
+      FmFinalStock_(NUM_SUBSYSTEMS),
+      qFinalStock_(NUM_SUBSYSTEMS),
+      QvFinalStock_(NUM_SUBSYSTEMS),
+      QmFinalStock_(NUM_SUBSYSTEMS),
       qTrajectoryStock_(NUM_SUBSYSTEMS),
       QvTrajectoryStock_(NUM_SUBSYSTEMS),
       QmTrajectoryStock_(NUM_SUBSYSTEMS),
@@ -121,7 +135,11 @@ public:
 			std::vector<control_vector_array_t>& inputTrajectoriesStock,
 			std::vector<output_vector_array_t>& outputTrajectoriesStock,
 			std::vector<std::vector<size_t> >& nc1TrajectoriesStock,
-			std::vector<constraint1_vector_array_t>& EvTrajectoryStock) = 0;
+			std::vector<constraint1_vector_array_t>& EvTrajectoryStock,
+			std::vector<std::vector<size_t> >& nc2TrajectoriesStock,
+			std::vector<constraint2_vector_array_t>& HvTrajectoryStock,
+			std::vector<size_t>& nc2FinalStock,
+			std::vector<constraint2_vector_t>& HvFinalStock) = 0;
 
 	virtual void rollout(const state_vector_t& initState,
 			const std::vector<controller_t>& controllersStock,
@@ -149,6 +167,15 @@ public:
 			const std::vector<control_vector_array_t>& inputTrajectoriesStock,
 			scalar_t& totalCost) = 0;
 
+	virtual void calculateCostFunction(const std::vector<scalar_array_t>& timeTrajectoriesStock,
+			const std::vector<output_vector_array_t>& stateTrajectoriesStock,
+			const std::vector<control_vector_array_t>& inputTrajectoriesStock,
+			const std::vector<std::vector<size_t> >& nc2TrajectoriesStock,
+			const std::vector<constraint2_vector_array_t>& HvTrajectoryStock,
+			const std::vector<size_t>& nc2FinalStock,
+			const std::vector<constraint2_vector_t>& HvFinalStock,
+			scalar_t& totalCost) = 0;
+
 	virtual void calculateMeritFunction(const std::vector<scalar_array_t>& timeTrajectoriesStock,
 			const std::vector<std::vector<size_t> >& nc1TrajectoriesStock,
 			const std::vector<constraint1_vector_array_t>& EvTrajectoryStock,
@@ -168,18 +195,30 @@ public:
 
 	virtual void getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion) = 0;
 
-	virtual void getCostFuntion(const output_vector_t& initOutput, scalar_t& costFunction, scalar_t& constriantCostFunction) = 0;
+	virtual void getCostFuntion(scalar_t& costFunction, scalar_t& constraintISE) = 0;
 
 	virtual void getNominalTrajectories(std::vector<scalar_array_t>& nominalTimeTrajectoriesStock,
 			std::vector<state_vector_array_t>& nominalStateTrajectoriesStock,
 			std::vector<control_vector_array_t>& nominalInputTrajectoriesStock,
 			std::vector<output_vector_array_t>& nominalOutputTrajectoriesStock) = 0;
 
-	virtual void run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes) = 0;
+	virtual void run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes,
+			const std::vector<controller_t>& initialControllersStock=std::vector<controller_t>()) = 0;
 
 	virtual std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM>>>& getSubsystemDynamicsPtrStock() = 0;
 
 	virtual void setNewCostReferenceState(const output_vector_t& newReference) = 0;
+
+	virtual Options_t& options() = 0 ;
+
+	void getIterationsLog(eigen_scalar_array_t& iterationCost, eigen_scalar_array_t& iterationISE1) const {
+		iterationCost = iterationCost_;
+		iterationISE1 = iterationISE1_;
+	}
+
+	void getSwitchingTimes(scalar_array_t& switchingTimes){switchingTimes = switchingTimes_;};
+
+	size_t getNumIterations() const {return iteration_;}
 
 protected:
 
@@ -199,14 +238,21 @@ protected:
 	std::vector<state_matrix_array_t>        AmTrajectoryStock_;
 	std::vector<control_gain_matrix_array_t> BmTrajectoryStock_;
 
-	std::vector<std::vector<size_t> >       nc1TrajectoriesStock_;  	// nc1: Number of the active constraints
+	std::vector<std::vector<size_t> >       nc1TrajectoriesStock_;  	// nc1: Number of the Type-1  active constraints
 	std::vector<constraint1_vector_array_t> EvTrajectoryStock_;
 	std::vector<constraint1_state_matrix_array_t>   CmTrajectoryStock_;
 	std::vector<constraint1_control_matrix_array_t> DmTrajectoryStock_;
 
-	eigen_scalar_t  qFinal_;
-	output_vector_t QvFinal_;
-	state_matrix_t  QmFinal_;
+	std::vector<std::vector<size_t> > 		nc2TrajectoriesStock_;  // nc2: Number of the Type-2 active constraints
+	std::vector<constraint2_vector_array_t> HvTrajectoryStock_;
+	std::vector<constraint2_state_matrix_array_t> FmTrajectoryStock_;
+	std::vector<size_t> 					nc2FinalStock_;
+	std::vector<constraint2_vector_t> 		HvFinalStock_;
+	std::vector<constraint2_state_matrix_t> FmFinalStock_;
+
+	std::vector<eigen_scalar_t>  qFinalStock_;
+	std::vector<output_vector_t> QvFinalStock_;
+	std::vector<state_matrix_t>  QmFinalStock_;
 
 	std::vector<eigen_scalar_array_t> 	qTrajectoryStock_;
 	std::vector<output_vector_array_t> 	QvTrajectoryStock_;
@@ -234,6 +280,10 @@ protected:
 	scalar_array_t switchingTimes_;
 	state_vector_t initState_;
 	size_t iteration_;
+
+	eigen_scalar_array_t iterationCost_;
+	eigen_scalar_array_t iterationISE1_;
+
 
 public:
 	template <size_t GSLQP_STATE_DIM, size_t GSLQP_INPUT_DIM, size_t GSLQP_OUTPUT_DIM, size_t GSLQP_NUM_SUBSYSTEMS>

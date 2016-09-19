@@ -69,6 +69,8 @@ public:
 			const control_vector_array_t* RvPtr, const control_matrix_array_t* RmInversePtr, const control_matrix_array_t* RmPtr,
 			const control_feedback_array_t* PmPtr)  {
 
+		SystemBase<OUTPUT_DIM*OUTPUT_DIM+OUTPUT_DIM+1>::numFunctionCalls_ = 0;
+
 		alpha_ = learningRate;
 
 		activeSubsystem_ = activeSubsystem;
@@ -97,6 +99,8 @@ public:
 	}
 
 	void computeDerivative(const scalar_t& z, const s_vector_t& allSs, s_vector_t& derivatives) {
+
+		SystemBase<OUTPUT_DIM*OUTPUT_DIM+OUTPUT_DIM+1>::numFunctionCalls_++;
 
 		// denormalized time
 		scalar_t t = switchingTimeFinal_ - (switchingTimeFinal_-switchingTimeStart_)*(z-activeSubsystem_);

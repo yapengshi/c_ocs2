@@ -41,6 +41,9 @@ class GSLQP
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
+	typedef std::shared_ptr<GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> > Ptr;
+	typedef SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> slqp_t;
+	typedef std::shared_ptr<SLQP_BASE <STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>> slqp_ptr_t;
 	typedef SensitivitySequentialRiccatiEquations<OUTPUT_DIM, INPUT_DIM, NUM_SUBSYSTEMS> SensitivityRiccatiEquations_t;
 
 	typedef Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM> DIMENSIONS;
@@ -69,14 +72,17 @@ public:
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
 	typedef typename DIMENSIONS::constraint1_vector_t       constraint1_vector_t;
 	typedef typename DIMENSIONS::constraint1_vector_array_t constraint1_vector_array_t;
-	typedef typename DIMENSIONS::constraint1_matrix_t       constraint1_matrix_t;
-	typedef typename DIMENSIONS::constraint1_matrix_array_t constraint1_matrix_array_t;
 	typedef typename DIMENSIONS::constraint1_state_matrix_t       constraint1_state_matrix_t;
 	typedef typename DIMENSIONS::constraint1_state_matrix_array_t constraint1_state_matrix_array_t;
 	typedef typename DIMENSIONS::constraint1_control_matrix_t       constraint1_control_matrix_t;
 	typedef typename DIMENSIONS::constraint1_control_matrix_array_t constraint1_control_matrix_array_t;
 	typedef typename DIMENSIONS::control_constraint1_matrix_t       control_constraint1_matrix_t;
 	typedef typename DIMENSIONS::control_constraint1_matrix_array_t control_constraint1_matrix_array_t;
+	typedef typename DIMENSIONS::constraint2_vector_t       constraint2_vector_t;
+	typedef typename DIMENSIONS::constraint2_vector_array_t constraint2_vector_array_t;
+	typedef typename DIMENSIONS::constraint2_state_matrix_t       constraint2_state_matrix_t;
+	typedef typename DIMENSIONS::constraint2_state_matrix_array_t constraint2_state_matrix_array_t;
+
 
 	typedef RolloutSensitivityEquations<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> RolloutSensitivityEquations_t;
 	typedef typename RolloutSensitivityEquations_t::nabla_output_vector_t       nabla_output_vector_t;
@@ -114,6 +120,8 @@ public:
       nablaQvTrajectoryStock_(NUM_SUBSYSTEMS),
       nablaRvTrajectoryStock_(NUM_SUBSYSTEMS),
       nablaEvTrajectoryStock_(NUM_SUBSYSTEMS),
+      nablaqFinalStock_(NUM_SUBSYSTEMS),
+      nablaQvFinalStock_(NUM_SUBSYSTEMS),
       nablasTrajectoryStock_(NUM_SUBSYSTEMS),
       nablaSvTrajectoryStock_(NUM_SUBSYSTEMS),
       nablaSmTrajectoryStock_(NUM_SUBSYSTEMS),
@@ -121,13 +129,15 @@ public:
       options_(options),
       mp_options_(mpOptions)
 	{
+		slqpPtr_ = NULL;
+
 		// select between single- and multithreading implementation
 		if (options_.useMultiThreading_){
-			slqp_ = std::shared_ptr<SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>> (new SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>(
+			slqpPtrInternal_ = std::shared_ptr<SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>> (new SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>(
 					subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, initialControllersStock, systemStockIndex, options, mpOptions));
 		}
 		else{
-			slqp_ = std::shared_ptr<SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>> (new SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>(
+			slqpPtrInternal_ = std::shared_ptr<SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>> (new SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>(
 					subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, initialControllersStock, systemStockIndex, options));
 		}
 	}
@@ -141,7 +151,12 @@ public:
 			std::vector<control_vector_array_t>& inputTrajectoriesStock,
 			std::vector<output_vector_array_t>& outputTrajectoriesStock,
 			std::vector<std::vector<size_t> >& nc1TrajectoriesStock,
-			std::vector<constraint1_vector_array_t>& EvTrajectoryStock);
+			std::vector<constraint1_vector_array_t>& EvTrajectoryStock,
+			std::vector<std::vector<size_t> >& nc2TrajectoriesStock,
+			std::vector<constraint2_vector_array_t>& HvTrajectoryStock,
+			std::vector<size_t>& nc2FinalStock,
+			std::vector<constraint2_vector_t>& HvFinalStock);
+
 
 	void rollout(const state_vector_t& initState,
 			const std::vector<controller_t>& controllersStock,
@@ -182,7 +197,7 @@ public:
 
 	void getValueFuntion(const scalar_t& time, const output_vector_t& output, scalar_t& valueFuntion);
 
-	void getCostFuntion(const output_vector_t& initOutput, scalar_t& costFunction, scalar_t& constriantCostFunction);
+	void getCostFuntion(scalar_t& costFunction, scalar_t& constriantISE);
 
 	void getValueFuntionDerivative(const output_vector_t& initOutput, Eigen::Matrix<double,NUM_SUBSYSTEMS-1,1>& valueFuntionDerivative);
 
@@ -195,9 +210,12 @@ public:
 
 	void run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes);
 
+protected:
+
 	void runLQBasedMethod(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes);
 
-protected:
+	void runSweepingBVPMethod(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes);
+
 	void solveSensitivityRiccatiEquations(const scalar_t& learningRate);
 
 	void transformLocalValueFuntionDerivative2Global();
@@ -228,7 +246,8 @@ protected:
 
 private:
 
-	std::shared_ptr<SLQP_BASE   <STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>> slqp_;
+	slqp_ptr_t slqpPtr_;
+	slqp_ptr_t slqpPtrInternal_;
 
 	Eigen::Matrix<double,NUM_SUBSYSTEMS-1,1> nominalCostFuntionDerivative_;
 	std::vector<output_vector_array_t>  nominalOutputTimeDerivativeTrajectoriesStock_;
@@ -242,8 +261,9 @@ private:
 	std::vector<nabla_output_matrix_array_t> nablaQvTrajectoryStock_;
 	std::vector<nabla_input_matrix_array_t> nablaRvTrajectoryStock_;
 	std::vector<nabla_constraint1_matrix_array_t> nablaEvTrajectoryStock_;
-	nabla_scalar_rowvector_t nablaqFinal_;
-	nabla_output_matrix_t nablaQvFinal_;
+	nabla_scalar_rowvector_array_t nablaqFinalStock_;
+	nabla_output_matrix_array_t nablaQvFinalStock_;
+
 
 	std::vector<nabla_s_array_t>  nablasTrajectoryStock_;
 	std::vector<nabla_Sv_array_t> nablaSvTrajectoryStock_;

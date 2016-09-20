@@ -1022,7 +1022,8 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::runSweepingBVPMeth
  * run the SLQ algorithm for a given state and switching times based on the BVP method
  */
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes)  {
+void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes,
+		 slqp_ptr_t slqpPtr)  {
 
 	switchingTimes_ = switchingTimes;
 	initState_ = initState;
@@ -1037,11 +1038,15 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_ve
 		}
 
 
-	// check if the SLQP solver is provided. TODO: fixme, here we differ, I always use the internal slqp solver
-	slqpPtr_ = slqpPtrInternal_;
-
-	slqpPtr_->run(initState, switchingTimes_);
-
+	// check if the SLQP solver is provided.
+	// if not: use the internal one and run it once to solve the optimal control problem
+	if (slqpPtr)
+		slqpPtr_ = slqpPtr;
+	else {
+		slqpPtr_ = slqpPtrInternal_;
+		// run the SLQ algorithm
+		slqpPtr_->run(initState, switchingTimes_);
+	}
 
 	// display
 	if (options_.dispayGSLQP_)  std::cerr << "\n#### Calculating cost function sensitivity ..." << std::endl;

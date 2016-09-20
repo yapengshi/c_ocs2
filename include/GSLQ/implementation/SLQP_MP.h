@@ -82,16 +82,6 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
 			controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock);
 }
 
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateCostFunction(
-		const std::vector<scalar_array_t>& timeTrajectoriesStock,
-		const std::vector<output_vector_array_t>& stateTrajectoriesStock,
-		const std::vector<control_vector_array_t>& inputTrajectoriesStock,
-		scalar_t& totalCost) {
-
-	calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock, totalCost, mp_options_.nThreads_);
-}
-
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
@@ -340,6 +330,16 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
 }
 
 
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateCostFunction(
+		const std::vector<scalar_array_t>& timeTrajectoriesStock,
+		const std::vector<output_vector_array_t>& stateTrajectoriesStock,
+		const std::vector<control_vector_array_t>& inputTrajectoriesStock,
+		scalar_t& totalCost) {
+
+	calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock, totalCost, mp_options_.nThreads_);
+}
+
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
@@ -399,6 +399,27 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateCostFun
 	}  // end of i loop
 }
 
+
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateCostFunction(const std::vector<scalar_array_t>& timeTrajectoriesStock,
+			const std::vector<output_vector_array_t>& stateTrajectoriesStock,
+			const std::vector<control_vector_array_t>& inputTrajectoriesStock,
+			const std::vector<std::vector<size_t> >& nc2TrajectoriesStock,
+			const std::vector<constraint2_vector_array_t>& HvTrajectoryStock,
+			const std::vector<size_t>& nc2FinalStock,
+			const std::vector<constraint2_vector_t>& HvFinalStock,
+			scalar_t& totalCost){
+
+	calculateCostFunction(timeTrajectoriesStock,
+			stateTrajectoriesStock,
+			inputTrajectoriesStock,
+			nc2TrajectoriesStock,
+			HvTrajectoryStock,
+			nc2FinalStock,
+			HvFinalStock,
+			totalCost,
+			mp_options_.nThreads_);
+}
 
 /*****************************************************************************************************/
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>

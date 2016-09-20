@@ -208,7 +208,7 @@ public:
 			std::vector<control_vector_array_t>& nominalInputTrajectoriesStock,
 			std::vector<output_vector_array_t>& nominalOutputTrajectoriesStock);
 
-	void run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes);
+	void run(const state_vector_t& initState, const std::vector<scalar_t>& switchingTimes, slqp_ptr_t slpq_ptr = nullptr);
 
 protected:
 

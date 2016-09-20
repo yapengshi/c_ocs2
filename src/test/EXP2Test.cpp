@@ -16,7 +16,6 @@
 #include "test/EXP2.h"
 #include "GSLQ/GLQP.h"
 
-#include "ocs2/OCS2Ipopt.h"
 #include "ocs2/OCS2Projected.h"
 
 
@@ -38,11 +37,13 @@ int main (int argc, char* argv[])
 	std::vector<size_t> systemStockIndex {0, 1};
 
 	std::vector<double> initSwitchingTimes {0, 1, 2};
-	if (argc>1)  initSwitchingTimes[1] = std::atof(argv[1]);
+
+	if (argc>1)
+		initSwitchingTimes[1] = std::atof(argv[1]);
 
 	Eigen::Vector2d initState(0.0, 2.0);
 
-	OCS2Ipopt<2,1,2,2>::Options_t gslqpOptions;
+	OCS2Projected<2,1,2,2>::Options_t gslqpOptions;
 	gslqpOptions.maxIterationGSLQP_ = 50;
 	gslqpOptions.maxIterationIPOPT_ = 5;
 	gslqpOptions.warmStartGSLQP_ = false;
@@ -81,8 +82,7 @@ int main (int argc, char* argv[])
 	ocs2.getCostFunction(cost);
 	ocs2_mp.getCostFunction(cost_mp);
 
-	std::cout << "resulting costs: " << cost << "  " << cost_mp << std::endl;
-
+	std::cout << "resulting costs: single core: " << cost << ", mp " << cost_mp << std::endl;
 }
 
 

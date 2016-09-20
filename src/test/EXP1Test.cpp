@@ -17,8 +17,6 @@
 #include "test/EXP1.h"
 #include "GSLQ/GLQP.h"
 
-//#include "ocs2/OCS2.h"
-#include "ocs2/OCS2Ipopt.h"
 #include "ocs2/OCS2Projected.h"
 
 using namespace ocs2;
@@ -45,7 +43,7 @@ int main (int argc, char* argv[])
 
 	Eigen::Vector2d initState(2.0, 3.0);
 
-	OCS2Ipopt<2,1,2,3>::Options_t gslqpOptions;
+	OCS2Projected<2,1,2,3>::Options_t gslqpOptions;
 	gslqpOptions.maxIterationGSLQP_ = 50;
 	gslqpOptions.warmStartGSLQP_ = true;
 	gslqpOptions.dispayGSLQP_ = false;
@@ -56,6 +54,7 @@ int main (int argc, char* argv[])
 	gslqpOptions.acceptableTolIPOPT_ = 1e-3;
 	gslqpOptions.useAscendingLineSearchNLP_ = true;
 	gslqpOptions.minAcceptedSwitchingTimeDifference_ = 0.01;
+	gslqpOptions.print();
 
 
 	/******************************************************************************************************/

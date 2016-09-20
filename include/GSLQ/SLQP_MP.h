@@ -313,17 +313,8 @@ public:
 	}
 
 
-	void setNewCostReferenceState(const output_vector_t& newReference){	// todo: move to implementation
-		// for all threads + 1
-		for (size_t i=0; i<mp_options_.nThreads_+1; i++)
-		{
-			// .. initialize all subsystems, etc.
-			for(size_t j = 0; j<NUM_SUBSYSTEMS; j++)
-			{
-				costFunctions_[i][j]->updateReferenceState(newReference);
-			}
-		}
-	}
+	// allows to externally update the cost functions reference states
+	void setNewCostReferenceState(const output_vector_t& newReference);
 
 	Options_t& options() override {return options_;}
 
@@ -390,9 +381,11 @@ private:
 			std::vector<constraint2_vector_t>& 	lsHvFinalStock,
 			std::vector<std::vector<Eigen::VectorXd, Eigen::aligned_allocator<Eigen::VectorXd> >>& lsLagrangeTrajectoriesStock);
 
-	// for generating unique identifiers for subsystem, task, iteration:
-	// just a heuristics that generates a unique id for a process, such that we can manage the tasks
-	// note: arguments must not be passed by value here
+
+
+	/*a heuristic that generates a unique id for a process, such that we can manage the tasks.
+	 * Generates a unique identifiers for subsystem, task, iteration:
+	 * */
 	size_t generateUniqueProcessID (const size_t& iterateNo, const int workerState, const int subsystemId)
 	{
 		return (10e9*(workerState +1) + 10e6 * (subsystemId +1) + iterateNo+1);

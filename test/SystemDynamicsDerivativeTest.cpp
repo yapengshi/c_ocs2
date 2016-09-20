@@ -1,9 +1,8 @@
 /*
- * SystemDynamicsDerivativeTest.cpp
+ * A unit test
  *
- *  Created on: Jan 13, 2016
- *  Updated on June 07, 2016
- *      Author: farbod, mgiftthaler
+ *  Created on: Sept 20, 2016
+ *      Author: mgiftthaler
  */
 
 #include <iostream>

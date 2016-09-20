@@ -1,9 +1,8 @@
 /*
- * IntegrationTest.cpp
+ * A unit test
  *
- *  Created on: Dec 30, 2015
- *  Updated on Jun 07,2016
- *      Author: farbod, mgiftthaler
+ *  Created on: Sept 20, 2016
+ *      Author: mgiftthaler
  */
 
 #include <memory>

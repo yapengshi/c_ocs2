@@ -209,6 +209,5 @@ catkin_add_gtest(exp1_gslqp_unittest test/exp1_gslqp_test.cpp)
 catkin_add_gtest(exp2_unittest test/exp2_test.cpp)
 target_link_libraries(exp2_unittest
   ${catkin_LIBRARIES}
-  ${IPOPT_LIBRARIES}
 )
 

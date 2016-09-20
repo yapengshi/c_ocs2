@@ -1,9 +1,8 @@
 /*
- * InterpolationTest.cpp
+ * A unit test
  *
- *  Created on: Dec 27, 2015
- *  Updated on: Jun 7, 2016
- *      Author: farbod, mgiftthaler
+ *  Created on: Sept 20, 2016
+ *      Author: mgiftthaler
  */
 
 #include <iostream>

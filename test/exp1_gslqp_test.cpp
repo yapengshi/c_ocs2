@@ -1,3 +1,9 @@
+/*
+ * A unit test
+ *
+ *  Created on: Sept 20, 2016
+ *      Author: mgiftthaler
+ */
 
 #include <iostream>
 #include <cstdlib>

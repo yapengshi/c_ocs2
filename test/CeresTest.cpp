@@ -3,7 +3,7 @@
  *
  *  Created on: Jan 11, 2016
  *  Updated June 7, 2016
- *      Author: farbod, mgiftthaler
+ *      Author: mgiftthaler
  */
 
 #include <gtest/gtest.h>

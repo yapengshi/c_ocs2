@@ -1,3 +1,9 @@
+/*
+ * A unit test
+ *
+ *  Created on: Sept 20, 2016
+ *      Author: mgiftthaler
+ */
 
 #include <iostream>
 #include <cstdlib>
@@ -13,7 +19,6 @@
 #include "GSLQ/SLQP.h"
 #include "GSLQ/SLQP_MP.h"
 
-#include "ocs2/OCS2Ipopt.h"
 #include "ocs2/OCS2Projected.h"
 
 #include <gtest/gtest.h>
@@ -39,7 +44,7 @@ TEST(exp2_test, exp2_test)
 
 	Eigen::Vector2d initState(0.0, 2.0);
 
-	OCS2Ipopt<2,1,2,2>::Options_t gslqpOptions;
+	OCS2Projected<2,1,2,2>::Options_t gslqpOptions;
 	gslqpOptions.maxIterationGSLQP_ = 50;
 	gslqpOptions.maxIterationIPOPT_ = 5;
 	gslqpOptions.warmStartGSLQP_ = false;

@@ -128,10 +128,10 @@ public:
 			minAbsConstraint1ISE_(1e-3),
 			minRelConstraint1ISE_(1e-3),
 
-			displayIPOPT_(true),
-			tolIPOPT_(1e-2),
-			acceptableTolIPOPT_(1e-1),
-			maxIterationIPOPT_(20),
+			displayGradientDescent_(true),
+			tolGradientDescent_(1e-2),
+			acceptableTolGradientDescent_(1e-1),
+			maxIterationGradientDescent_(20),
 			minLearningRateNLP_(0.05),
 		    maxLearningRateNLP_(1.0),
 		    useAscendingLineSearchNLP_(true),
@@ -160,10 +160,10 @@ public:
 			std::cout << "minAbsConstraint1ISE_              " << minAbsConstraint1ISE_               << std::endl;
 			std::cout << "minRelConstraint1ISE_              " << minRelConstraint1ISE_               << std::endl;
             std::cout << "                                   " << ""                                  << std::endl;
-			std::cout << "displayIPOPT_                      " << displayIPOPT_                       << std::endl;
-			std::cout << "tolIPOPT_                          " << tolIPOPT_                           << std::endl;
-			std::cout << "acceptableTolIPOPT_                " << acceptableTolIPOPT_                 << std::endl;
-			std::cout << "maxIterationIPOPT_                 " << maxIterationIPOPT_                  << std::endl;
+			std::cout << "displayGradientDescent_            " << displayGradientDescent_             << std::endl;
+			std::cout << "tolGradientDescent_                " << tolGradientDescent_                 << std::endl;
+			std::cout << "acceptableTolGradientDescent_      " << acceptableTolGradientDescent_       << std::endl;
+			std::cout << "maxIterationGradientDescent_       " << maxIterationGradientDescent_        << std::endl;
 			std::cout << "minAcceptedSwitchingTimeDifference_" << minAcceptedSwitchingTimeDifference_ << std::endl;
 			std::cout << " #### ============================ end ============================== ####" << std::endl;
 			std::cout << std::endl;
@@ -194,10 +194,10 @@ public:
 		double minAbsConstraint1ISE_;
 		double minRelConstraint1ISE_;
 
-		bool displayIPOPT_;
-		double tolIPOPT_;
-		double acceptableTolIPOPT_;
-		size_t maxIterationIPOPT_;
+		bool displayGradientDescent_;
+		double tolGradientDescent_;
+		double acceptableTolGradientDescent_;
+		size_t maxIterationGradientDescent_;
 		double minLearningRateNLP_;
 		double maxLearningRateNLP_;
 		bool useAscendingLineSearchNLP_;

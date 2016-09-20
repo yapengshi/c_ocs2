@@ -83,9 +83,9 @@ public:
 	  optimizedControllersStock_(NUM_SUBSYSTEMS)
 	{
 		// NLP optimizer options
-		nlpOptions_.displayGradientDescent_ = options_.displayIPOPT_;
-		nlpOptions_.maxIterations_ 	  = options_.maxIterationIPOPT_;
-		nlpOptions_.minRelCost_    	  = options_.acceptableTolIPOPT_;
+		nlpOptions_.displayGradientDescent_ = options_.displayGradientDescent_;
+		nlpOptions_.maxIterations_ 	  = options_.maxIterationGradientDescent_;
+		nlpOptions_.minRelCost_    	  = options_.acceptableTolGradientDescent_;
 		nlpOptions_.maxLearningRate_  = options_.maxLearningRateNLP_;
 		nlpOptions_.minLearningRate_  = options_.minLearningRateNLP_;
 		nlpOptions_.minDisToBoundary_ = options_.minAcceptedSwitchingTimeDifference_;

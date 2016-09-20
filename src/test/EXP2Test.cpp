@@ -45,13 +45,13 @@ int main (int argc, char* argv[])
 
 	OCS2Projected<2,1,2,2>::Options_t gslqpOptions;
 	gslqpOptions.maxIterationGSLQP_ = 50;
-	gslqpOptions.maxIterationIPOPT_ = 5;
+	gslqpOptions.maxIterationGradientDescent_ = 5;
 	gslqpOptions.warmStartGSLQP_ = false;
 	gslqpOptions.dispayGSLQP_ = false;
-	gslqpOptions.displayIPOPT_ = true;
+	gslqpOptions.displayGradientDescent_ = true;
 	gslqpOptions.useLQForDerivatives_ = false;
 	gslqpOptions.minLearningRateNLP_ = 0.01;
-	gslqpOptions.acceptableTolIPOPT_ = 1e-3;
+	gslqpOptions.acceptableTolGradientDescent_ = 1e-3;
 	gslqpOptions.useAscendingLineSearchNLP_ = true;
 	gslqpOptions.minAcceptedSwitchingTimeDifference_ = 0.01;
 	gslqpOptions.print();

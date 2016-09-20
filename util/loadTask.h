@@ -222,35 +222,35 @@ void loadOptions(const std::string& filename, typename Dimensions<STATE_DIM, INP
 	}
 
 	try	{
-		opt.displayIPOPT_ = pt.get<bool>("ocs2.displayIPOPT");
-		if (verbose)  std::cout << " #### Option loader : option 'displayIPOPT'               " << opt.displayIPOPT_ << std::endl;
+		opt.displayGradientDescent_ = pt.get<bool>("ocs2.displayGradientDescent");
+		if (verbose)  std::cout << " #### Option loader : option 'displayGradientDescent'               " << opt.displayGradientDescent_ << std::endl;
 	}
 	catch (const std::exception& e){
-		if (verbose)  std::cout << " #### Option loader : option 'displayIPOPT'               " << opt.displayIPOPT_ << "\t(default)" << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'displayGradientDescent'               " << opt.displayGradientDescent_ << "\t(default)" << std::endl;
 	}
 
 	try	{
-		opt.tolIPOPT_ = pt.get<double>("ocs2.tolIPOPT");
-		if (verbose)  std::cout << " #### Option loader : option 'tolIPOPT'                   " << opt.tolIPOPT_ << std::endl;
+		opt.tolGradientDescent_ = pt.get<double>("ocs2.tolGradientDescent");
+		if (verbose)  std::cout << " #### Option loader : option 'tolGradientDescent'                   " << opt.tolGradientDescent_ << std::endl;
 	}
 	catch (const std::exception& e){
-		if (verbose)  std::cout << " #### Option loader : option 'tolIPOPT'                   " << opt.tolIPOPT_ << "\t(default)" << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'tolGradientDescent'                   " << opt.tolGradientDescent_ << "\t(default)" << std::endl;
 	}
 
 	try	{
-		opt.acceptableTolIPOPT_ = pt.get<double>("ocs2.acceptableTolIPOPT");
-		if (verbose)  std::cout << " #### Option loader : option 'acceptableTolIPOPT'         " << opt.acceptableTolIPOPT_ << std::endl;
+		opt.acceptableTolGradientDescent_ = pt.get<double>("ocs2.acceptableTolGradientDescent");
+		if (verbose)  std::cout << " #### Option loader : option 'acceptableTolGradientDescent'         " << opt.acceptableTolGradientDescent_ << std::endl;
 	}
 	catch (const std::exception& e){
-		if (verbose)  std::cout << " #### Option loader : option 'acceptableTolIPOPT'         " << opt.acceptableTolIPOPT_ << "\t(default)" << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'acceptableTolGradientDescent'         " << opt.acceptableTolGradientDescent_ << "\t(default)" << std::endl;
 	}
 
 	try	{
-		opt.maxIterationIPOPT_ = pt.get<int>("ocs2.maxIterationIPOPT");
-		if (verbose)  std::cout << " #### Option loader : option 'maxIterationIPOPT'          " << opt.maxIterationIPOPT_ << std::endl;
+		opt.maxIterationGradientDescent_ = pt.get<int>("ocs2.maxIterationGradientDescent");
+		if (verbose)  std::cout << " #### Option loader : option 'maxIterationGradientDescent'          " << opt.maxIterationGradientDescent_ << std::endl;
 	}
 	catch (const std::exception& e){
-		if (verbose)  std::cout << " #### Option loader : option 'maxIterationIPOPT'          " << opt.maxIterationIPOPT_ << "\t(default)" << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'maxIterationGradientDescent'          " << opt.maxIterationGradientDescent_ << "\t(default)" << std::endl;
 	}
 
 	try	{

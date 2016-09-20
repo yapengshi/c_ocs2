@@ -47,11 +47,11 @@ int main (int argc, char* argv[])
 	gslqpOptions.maxIterationGSLQP_ = 50;
 	gslqpOptions.warmStartGSLQP_ = true;
 	gslqpOptions.dispayGSLQP_ = false;
-	gslqpOptions.displayIPOPT_ = true;
+	gslqpOptions.displayGradientDescent_ = true;
 	gslqpOptions.simulationIsConstrained_ = true;
 	gslqpOptions.useLQForDerivatives_ = false;
 	gslqpOptions.minLearningRateNLP_ = 0.01;
-	gslqpOptions.acceptableTolIPOPT_ = 1e-3;
+	gslqpOptions.acceptableTolGradientDescent_ = 1e-3;
 	gslqpOptions.useAscendingLineSearchNLP_ = true;
 	gslqpOptions.minAcceptedSwitchingTimeDifference_ = 0.01;
 	gslqpOptions.print();
@@ -60,11 +60,6 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	/******************************************************************************************************/
-//	OCS2<2,1,2,3> ocs2(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
-//			stateOperatingPoints, inputOperatingPoints, systemStockIndex, initSwitchingTimes, initState, gslqpOptions);
-
-//	OCS2Ipopt<2,1,2,3> ocs2 (subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
-//			stateOperatingPoints, inputOperatingPoints, systemStockIndex, initSwitchingTimes, initState, gslqpOptions);
 
 	OCS2Projected<2,1,2,3> ocs2 (subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
 			stateOperatingPoints, inputOperatingPoints, systemStockIndex, gslqpOptions);

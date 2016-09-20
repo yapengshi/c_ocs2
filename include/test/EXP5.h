@@ -1,7 +1,7 @@
 /*
  * EXP5.h
  *
- *  Created on: Apr 15, 2016
+ *  Created on: sept 15, 2016
  *      Author: markus
  */
 
@@ -19,32 +19,42 @@ namespace ocs2{
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-class EXP5_Sys1 : public ControlledSystemBase<2,2>
+class EXP5_Sys1 : public ControlledSystemBase<4,2>
 {
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-	EXP5_Sys1() {}
+	typedef Eigen::Matrix<double, 4, 1> state_vector_t;
+	typedef Eigen::Matrix<double, 2, 1> control_vector_t;
+
+
+	EXP5_Sys1() {
+	}
 	~EXP5_Sys1() {}
 
-	void computeDerivative(const double& t, const Eigen::Vector2d& x, const Eigen::Vector2d& u, Eigen::Vector2d& dxdt)  {
-		dxdt(0) =u(0);
+	void computeDerivative(const double& t, const state_vector_t& x, const control_vector_t& u, state_vector_t& dxdt)  {
+		dxdt(0) = x(1);
 		dxdt(1) = u(1);
+		dxdt(2) = x(3);
+		dxdt(3) = u(2);
 	}
 
-	void computeConstriant2(const double& t, const Eigen::Vector2d& x, size_t& numConstraint1, Eigen::Vector2d& g1)  override {
+	void computeConstriant2(const double& t, const state_vector_t& x, size_t& numConstraint1, control_vector_t& g1)  override {
 		numConstraint1 = 1;
-		g1(0) = x(0)*x(0) + x(1) - 1;
+		g1(0) = x(2) - x(0) - d0;
 	}
 
-	std::shared_ptr<ControlledSystemBase<2, 2> > clone() const { return std::make_shared<EXP5_Sys1>(*this); }
+	std::shared_ptr<ControlledSystemBase<4, 2> > clone() const { return std::make_shared<EXP5_Sys1>(*this); }
+
+public:
+	double d0 = 0.1;
 };
 
 
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-class EXP5_SysDerivative1 : public DerivativesBase<2,2>
+class EXP5_SysDerivative1 : public DerivativesBase<4,2>
 {
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -53,20 +63,24 @@ public:
 	~EXP5_SysDerivative1() {};
 
 	void getDerivativeState(state_matrix_t& A)  {
-		A << 0.0, 0.0, 0.0, 0.0;
+		A.setZero();
+		A(0,1) = 1.0;
+		A(2,3) = 1.0;
 	}
 	void getDerivativesControl(control_gain_matrix_t& B) {
-		B.setZero(); B(0,0) = 1.0; B(1,1)=1.0;
+		B.setZero();
+		B(1,0) = 1.0;
+		B(3,1) = 1.0;
 	}
 	void getConstraint2DerivativesState(constraint2_state_matrix_t& C) {
-		C.topRows<1>() << 2*x_(0), 1.0;
+		C.topRows<1>() << -1.0, 0.0, 1.0, 0.0;
 	}
 
 	void getFinalConstraint2DerivativesState(constraint2_state_matrix_t& F) {
-		F.topRows<1>() << 2*x_(0), 1.0;
+		F.topRows<1>() << -1.0, 0.0, 1.0, 0.0;
 	}
 
-	std::shared_ptr<DerivativesBase<2,2> > clone() const { return std::make_shared<EXP5_SysDerivative1>(*this); }
+	std::shared_ptr<DerivativesBase<4,2> > clone() const { return std::make_shared<EXP5_SysDerivative1>(*this); }
 };
 
 
@@ -74,40 +88,60 @@ public:
 /******************************************************************************************************/
 /******************************************************************************************************/
 /******************************************************************************************************/
-class EXP5_CostFunction1 : public CostFunctionBaseOCS2<2,2>
+class EXP5_CostFunction1 : public CostFunctionBaseOCS2<4,2>
 {
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-	EXP5_CostFunction1() {};
+	EXP5_CostFunction1() {
+		R.setIdentity();
+		Q_final.setZero();
+		Q_final(2,2) = 100.0;
+		Q_final(3,3) = 10.0;
+
+		x_ref.setZero();
+		x_ref(2) = 1.0;
+	};
 	~EXP5_CostFunction1() {};
 
 	void evaluate(scalar_t& L) {
-		L = 0.5 * 0.01*pow(x_(0), 2) + 0.5 * 0.01*pow(x_(1), 2) +0.5 * 0.01*u_(0)*u_(0) +0.5 * 0.01*u_(1)*u_(1);}
-
-	void stateDerivative(state_vector_t& dLdx) {
-		dLdx << 0.01*x_(0), 0.01*x_(1);
+		L = 0.5* u_.transpose()*R*u_;
 	}
 
-	void stateSecondDerivative(state_matrix_t& dLdxx)  { dLdxx << 0.01, 0.0, 0.0, 0.01; }
-	void controlDerivative(control_vector_t& dLdu)  { dLdu << 0.01* u_(0), 0.01*u_(1); }
-	void controlSecondDerivative(control_matrix_t& dLduu)  { dLduu << 0.01, 0.0, 0.0, 0.01; }
+	void stateDerivative(state_vector_t& dLdx) {
+		dLdx.setZero();
+	}
+
+	void stateSecondDerivative(state_matrix_t& dLdxx)  {
+		dLdxx.setZero();
+	}
+
+	void controlDerivative(control_vector_t& dLdu)  {
+		dLdu = R*u_;
+	}
+
+	void controlSecondDerivative(control_matrix_t& dLduu)  { dLduu = R; }
 
 	void stateControlDerivative(control_feedback_t& dLdxu) { dLdxu.setZero(); }
 
 	void terminalCost(scalar_t& Phi) {
-		Phi = 0.5* (x_(1)-1.0) * (x_(1)-1.0); }
+		Phi = 0.5* (x_-x_ref).transpose()*Q_final*(x_-x_ref);
+	}
 
 	void terminalCostStateDerivative(state_vector_t& dPhidx)  {
-		dPhidx << 0.0, (x_(1)-1.0);
+		dPhidx = Q_final*(x_-x_ref);
 	}
-	void terminalCostStateSecondDerivative(state_matrix_t& dPhidxx)  {
-		dPhidxx.setZero(); dPhidxx(1,1) = 1.0;}
 
-	std::shared_ptr<CostFunctionBaseOCS2<2,2> > clone() const { return std::make_shared<EXP5_CostFunction1>(*this); };
+	void terminalCostStateSecondDerivative(state_matrix_t& dPhidxx){
+		dPhidxx = Q_final;
+	}
+
+	std::shared_ptr<CostFunctionBaseOCS2<4,2> > clone() const { return std::make_shared<EXP5_CostFunction1>(*this); };
 
 private:
-	double alpha_ = 0.01;
+	control_matrix_t R;
+	state_matrix_t Q_final;
+	state_vector_t x_ref;
 };
 
 

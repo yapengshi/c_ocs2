@@ -1558,11 +1558,11 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 			std::cerr << "constraint type-1 MaxNorm: " << constraint1MaxNorm << std::endl;
 			std::cerr << "constraint type-2 ISE:     " << nominalConstraint2ISE << std::endl;
 			std::cerr << "constraint type-2 MaxNorm: " << constraint2MaxNorm << std::endl;
-			if (std::accumulate(BASE::nc2FinalStock_.begin(), BASE::nc2FinalStock_.end(), 0) > 0) {
+//			if (std::accumulate(BASE::nc2FinalStock_.begin(), BASE::nc2FinalStock_.end(), 0) > 0) {
 				std::cerr << "final constraint type-2: 	 ";
 				for(size_t i=0; i<NUM_SUBSYSTEMS; i++) std::cerr << "[" << i  << "]: " << BASE::HvFinalStock_[i].head(BASE::nc2FinalStock_[i]).transpose() << ",  ";
 				std::cerr << std::endl;
-			}
+//			}
 		}
 		if(options_.displayShortSummary_){
 			std::cout << "#### Iter " << BASE::iteration_-1 << ".   opt. cost: " << BASE::nominalTotalCost_ << ".    constraint ISE: " << BASE::nominalConstraint1ISE_ <<

@@ -6,7 +6,7 @@ project(c_ocs2)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS cmake_modules cereal c_gradient_descent) 
 find_package(Eigen3 REQUIRED)
-find_package(Ceres REQUIRED)
+#find_package(Ceres REQUIRED)
 find_package(Boost REQUIRED system filesystem)
 
 
@@ -27,7 +27,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -fopenmp -std=c++11 -Wfatal-err
 catkin_package(
   INCLUDE_DIRS include util
       ${EIGEN_INCLUDE_DIRS}
-      ${CERES_INCLUDE_DIRS}
+      #${CERES_INCLUDE_DIRS}
       ${Boost_INCLUDE_DIRS}
   #LIBRARIES c_ocs2 ${Boost_LIBRARIES}
   CATKIN_DEPENDS cereal c_gradient_descent
@@ -47,7 +47,7 @@ include_directories(
   util
   ${catkin_INCLUDE_DIRS}
   ${EIGEN_INCLUDE_DIRS}
-  ${CERES_INCLUDE_DIRS}
+  #${CERES_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
 )
 
@@ -70,6 +70,9 @@ add_executable(exp3_gslqp_test src/test/EXP3GSLQPTest.cpp)
 
 ## Declare a cpp executable
 add_executable(exp4_gslqp_test src/test/EXP4GSLQPTest.cpp)
+
+## Declare a cpp executable
+add_executable(exp5_gslqp_test src/test/EXP5GSLQPTest.cpp)
 
 ## Declare a cpp executable
 add_executable(exp1_test src/test/EXP1Test.cpp)
@@ -125,6 +128,12 @@ target_link_libraries(exp4_gslqp_test
 )
 
 ## Specify libraries to link a library or executable target against
+target_link_libraries(exp5_gslqp_test
+  ${catkin_LIBRARIES}  
+  ${Boost_LIBRARIES}
+)
+
+## Specify libraries to link a library or executable target against
 target_link_libraries(exp1_test
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
@@ -171,11 +180,11 @@ target_link_libraries(integration_test ${Boost_LIBRARIES})
 
 catkin_add_gtest(system_dynamics_derivative_test test/SystemDynamicsDerivativeTest.cpp)
 
-catkin_add_gtest(ceres_test test/CeresTest.cpp)
-target_link_libraries(ceres_test
-  ${catkin_LIBRARIES}
-  ${CERES_LIBRARIES}
-)
+#catkin_add_gtest(ceres_test test/CeresTest.cpp)
+#target_link_libraries(ceres_test
+#  ${catkin_LIBRARIES}
+#  ${CERES_LIBRARIES}
+#)
 
 catkin_add_gtest(exp1_slqp_unittest test/exp1_slqp_test.cpp)
 

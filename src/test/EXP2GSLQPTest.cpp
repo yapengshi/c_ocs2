@@ -18,6 +18,7 @@
 
 #include <PathTweaker.h>
 
+//#define LOG_DATA
 
 using namespace ocs2;
 
@@ -155,6 +156,7 @@ int main (int argc, char* argv[])
 	}
 
 
+#ifdef LOG_DATA
 	PathTweaker pathTweaker(argv);
 
 	std::string resultDir = pathTweaker.getDirectory() +"/src/c_ocs2/cereal/test/exp2_test";
@@ -188,6 +190,7 @@ int main (int argc, char* argv[])
 		cereal::XMLOutputArchive archive_timeSensitivity_xml(xmlTimeSensitivity);
 		archive_timeSensitivity_xml(CEREAL_NVP(sensitivityTimeTrajectory));
 	}
+#endif
 
 }
 

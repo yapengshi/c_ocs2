@@ -19,6 +19,8 @@
 
 #include <PathTweaker.h>
 
+//#define LOG_DATA
+
 
 using namespace ocs2;
 
@@ -131,6 +133,7 @@ int main (int argc, char* argv[])
 		}
 	}
 
+#ifdef LOG_DATA
 	PathTweaker pathTweaker(argv);
 
 	std::string resultDir = pathTweaker.getDirectory() +"/src/c_ocs2/cereal/test/exp4_test";
@@ -152,8 +155,9 @@ int main (int argc, char* argv[])
 		std::ofstream xmlInput(inputFile);
 		cereal::XMLOutputArchive archive_input_xml(xmlInput);
 		archive_input_xml(CEREAL_NVP(inputTrajectory));
-
 	}
+
+#endif
 
 }
 

@@ -101,7 +101,7 @@ int main (int argc, char* argv[])
 	slqp_mp.run(initState, switchingTimes);
 
 	// try to run gslqp
-	gslqp.run(initState, switchingTimes);
+//	gslqp.run(initState, switchingTimes);
 //	gslqp_mp.run(initState, switchingTimes_mp);
 
 

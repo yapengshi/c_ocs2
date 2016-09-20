@@ -14,27 +14,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -fopenmp -std=c++11 -Wfatal-err
 # add flags "-Wl,--no-as-needed" if using gcc 4.8.2 or lower
 
 
-###################################
-## ipopot specific configuration ##
-###################################
-
-#SET(IPOPT_SOURCE_DIR "/home/farbod/Programs/catkin_ws/src/ipopt")
-SET(IPOPT_SOURCE_DIR "/home/gimarkus/ipopt/CoinIpopt")
-
-
-link_directories(${IPOPT_SOURCE_DIR}/build/lib)
-set(IPOPT_LIBS
-    ipopt
-    dl
-    coinmumps
-    coinhsl
-    lapack
-    blas
-    gfortran
-    m
-    quadmath
-    coinmetis
-)
 
 ###################################
 ## catkin specific configuration ##
@@ -48,12 +27,11 @@ set(IPOPT_LIBS
 catkin_package(
   INCLUDE_DIRS include util
       ${EIGEN_INCLUDE_DIRS}
-      "${IPOPT_SOURCE_DIR}/build/include/coin"
       ${CERES_INCLUDE_DIRS}
       ${Boost_INCLUDE_DIRS}
   #LIBRARIES c_ocs2 ${Boost_LIBRARIES}
   CATKIN_DEPENDS cereal c_gradient_descent
-  DEPENDS ${IPOPT_LIBS} boost eigen
+  DEPENDS boost eigen
 )
 
 
@@ -70,7 +48,6 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${EIGEN_INCLUDE_DIRS}
   ${CERES_INCLUDE_DIRS}
-  "${IPOPT_SOURCE_DIR}/build/include/coin"  
   ${Boost_INCLUDE_DIRS}
 )
 
@@ -150,7 +127,6 @@ target_link_libraries(exp4_gslqp_test
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp1_test
   ${catkin_LIBRARIES}
-  ${IPOPT_LIBS}
   ${Boost_LIBRARIES}
 )
 
@@ -170,7 +146,6 @@ target_link_libraries(exp2_test
 ## Specify libraries to link a library or executable target against
 target_link_libraries(exp1_cost_derivative_test
   ${catkin_LIBRARIES}
-  ${IPOPT_LIBS}
   ${Boost_LIBRARIES}
 )
 

@@ -57,22 +57,8 @@ int main (int argc, char* argv[])
 	glqp.run(switchingTimes);
 
 	// get controller
-	std::vector<GLQP<6,4,6,2>::controller_t> controllersStock(3);
+	std::vector<GLQP<6,4,6,2>::controller_t> controllersStock(3), controllersStock_mp(3);
 	glqp.getController(controllersStock);
-
-//	// rollout
-//	std::vector<GLQP<6,4,6,2>::scalar_array_t> timeTrajectoriesStock;
-//	std::vector<GLQP<6,4,6,2>::state_vector_array_t> stateTrajectoriesStock;
-//	std::vector<GLQP<6,4,6,2>::control_vector_array_t> controlTrajectoriesStock;
-//	glqp.rollout(initState, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
-//
-//	// compute cost
-//	double rolloutCost;
-//	glqp.rolloutCost(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
-//
-//	// value funtion
-//	double totalCost;
-//	glqp.getValueFuntion(0.0, initState, totalCost);
 
 
 	/******************************************************************************************************/
@@ -87,24 +73,34 @@ int main (int argc, char* argv[])
 	// GSLQ
 	GSLQP<6,4,6,2> gslqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);
 
-	gslqp.run(initState, switchingTimes);
+	// GSLQ MP Version
+	gslqpOptions.useMultiThreading_ = true;
+	GSLQP<6,4,6,2> gslqp_mp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);
 
-	// get controller
+	// run two different versions
+	gslqp.run(initState, switchingTimes);
+	gslqp_mp.run(initState, switchingTimes);
+
+	// get controllers
 	gslqp.getController(controllersStock);
+	gslqp_mp.getController(controllersStock_mp);
 
 	// rollout
-	std::vector<GSLQP<6,4,6,2>::scalar_array_t> timeTrajectoriesStock;
-	std::vector<GSLQP<6,4,6,2>::state_vector_array_t> stateTrajectoriesStock;
-	std::vector<GSLQP<6,4,6,2>::control_vector_array_t> controlTrajectoriesStock;
+	std::vector<GSLQP<6,4,6,2>::scalar_array_t> timeTrajectoriesStock, timeTrajectoriesStock_mp;
+	std::vector<GSLQP<6,4,6,2>::state_vector_array_t> stateTrajectoriesStock, stateTrajectoriesStock_mp;
+	std::vector<GSLQP<6,4,6,2>::control_vector_array_t> controlTrajectoriesStock, controlTrajectoriesStock_mp;
 	gslqp.rollout(initState, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
+	gslqp_mp.rollout(initState, controllersStock_mp, timeTrajectoriesStock_mp, stateTrajectoriesStock_mp, controlTrajectoriesStock_mp);
 
 	// compute cost
-	double rolloutCost;
+	double rolloutCost, rolloutCost_mp;
 	gslqp.calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
+	gslqp_mp.calculateCostFunction(timeTrajectoriesStock_mp, stateTrajectoriesStock_mp, controlTrajectoriesStock_mp, rolloutCost_mp);
 
 	// value funtion
-	double totalCost;
+	double totalCost, totalCost_mp;
 	gslqp.getValueFuntion(0.0, initState, totalCost);
+	gslqp_mp.getValueFuntion(0.0, initState, totalCost_mp);
 
 
 	/******************************************************************************************************/
@@ -118,6 +114,8 @@ int main (int argc, char* argv[])
 
 	std::cout << "The total cost: " << totalCost << std::endl;
 	std::cout << "The total cost in the test rollout: " << rolloutCost << std::endl;
+	std::cout << "The total cost mp: " << totalCost_mp << std::endl;
+	std::cout << "The total cost mp in the test rollout: " << rolloutCost_mp << std::endl;
 
 	GSLQP<6,4,6,2>::eigen_scalar_array_t timeEigenTrajectory;
 	GSLQP<6,4,6,2>::state_vector_array_t stateTrajectory;

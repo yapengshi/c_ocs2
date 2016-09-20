@@ -197,8 +197,18 @@ target_link_libraries(integration_test ${Boost_LIBRARIES})
 catkin_add_gtest(system_dynamics_derivative_test test/SystemDynamicsDerivativeTest.cpp)
 
 catkin_add_gtest(ceres_test test/CeresTest.cpp)
-
 target_link_libraries(ceres_test
   ${catkin_LIBRARIES}
   ${CERES_LIBRARIES}
 )
+
+catkin_add_gtest(exp1_slqp_unittest test/exp1_slqp_test.cpp)
+
+catkin_add_gtest(exp1_gslqp_unittest test/exp1_gslqp_test.cpp)
+
+catkin_add_gtest(exp2_unittest test/exp2_test.cpp)
+target_link_libraries(exp2_unittest
+  ${catkin_LIBRARIES}
+  ${IPOPT_LIBRARIES}
+)
+

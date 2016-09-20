@@ -73,7 +73,7 @@ TEST(CeresTest, QuadraticCostFunction)
 	std::cout << "x : " << initial_x
 			<< " -> " << x << "\n";
 
-	ASSERT_EQ(true, summary.IsSolutionUsable());
+	ASSERT_TRUE(summary.IsSolutionUsable());
 }
 
 

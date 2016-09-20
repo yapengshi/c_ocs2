@@ -34,11 +34,6 @@ TEST(InterplationTest, Linear)
 	data[3] << 3.0, 0.0;
 	data[4] << 4.0, 0.0;
 
-//	for(size_t i=0; i<5; i++) {
-//		std::cout << "At time " <<timeStamp[i] << "\t data is " <<  data[i].transpose() << std::endl;
-//	}
-//	std::cout << std::endl;
-
 	LinearInterpolation<Eigen::Vector2d,Eigen::aligned_allocator<Eigen::Vector2d> > linInterpolation(&timeStamp, &data);
 
 

@@ -93,8 +93,8 @@ TEST(SystemDynamicsDerivativeTest, Test1)
 	if (numErrorsA == 0)  std::cout << "#### State derivative is correct." << std::endl;
 	if (numErrorsB == 0)  std::cout << "#### Input derivative is correct." << std::endl;
 
-	ASSERT_EQ(0, numErrorsA);
-	ASSERT_EQ(0, numErrorsB);
+	ASSERT_FALSE(numErrorsA);
+	ASSERT_FALSE(numErrorsB);
 }
 
 

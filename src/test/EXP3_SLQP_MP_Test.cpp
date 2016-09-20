@@ -1,7 +1,7 @@
 /*
  * EXP3_SLQP_MP_Test.cpp
  *
- *  Created on: July 17, 2016
+ *  Created on: Sept 20, 2016
  *      Author: markus
  */
 
@@ -45,8 +45,8 @@ int main (int argc, char* argv[])
 	Eigen::Vector2d initState(2.0, 3.0);
 
 	std::vector<double> switchingTimes {0, 0.2262, 1.0176, 3};
-//	if (argc>1)  switchingTimes[1] = std::atof(argv[1]);
-//	if (argc>2)  switchingTimes[2] = std::atof(argv[2]);
+	//	if (argc>1)  switchingTimes[1] = std::atof(argv[1]);
+	//	if (argc>2)  switchingTimes[2] = std::atof(argv[2]);
 
 	/******************************************************************************************************/
 	/******************************************************************************************************/
@@ -77,51 +77,46 @@ int main (int argc, char* argv[])
 	mpOptions.debugPrintMP_ = 0;
 	mpOptions.lsStepsizeGreedy_ = 1;
 
-	while(true)
-	{
 
-		// Single core SLQP
-//		SLQP<2,2,2,3> slqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, slqpOptions);
+	// Single core SLQP
+	SLQP<2,2,2,3> slqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, slqpOptions);
 
-		// SLQP_MP
-		SLQP_MP<2,2,2,3> slqp_mp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, slqpOptions, mpOptions);
+	// SLQP_MP
+	SLQP_MP<2,2,2,3> slqp_mp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, slqpOptions, mpOptions);
 
-		// run slqp for reference
-//		std::cout << " =========================== Starting single core SLQP ===============================" << std::endl;
-//		slqp.run(initState, switchingTimes);
-//		std::cout << " =========================== End of single core SLQP =================================" << std::endl;
+	// run single core slqp for reference
+	std::cout << " =========================== Starting single core SLQP ===============================" << std::endl;
+	slqp.run(initState, switchingTimes);
+	std::cout << " =========================== End of single core SLQP =================================" << std::endl;
 
-		std::cout << " =========================== Starting multi core SLQP ================================" << std::endl;
-		slqp_mp.run(initState, switchingTimes);
-		std::cout << " =========================== End of multi core SLQP ==================================" << std::endl;
+	std::cout << " =========================== Starting multi core SLQP ================================" << std::endl;
+	slqp_mp.run(initState, switchingTimes);
+	std::cout << " =========================== End of multi core SLQP ==================================" << std::endl;
 
-		// get controller
-		std::vector<GLQP<2,2,2,3>::controller_t> resultingControllersStock(3);
-		slqp_mp.getController(resultingControllersStock);
+	// get controller
+	std::vector<GLQP<2,2,2,3>::controller_t> resultingControllersStock(3), resultingControllersStock_mp(3);
+	slqp.getController(resultingControllersStock);
+	slqp_mp.getController(resultingControllersStock_mp);
 
-		// rollout
-		std::vector<SLQP_MP<2,2,2,3>::scalar_array_t> timeTrajectoriesStock;
-		std::vector<SLQP_MP<2,2,2,3>::state_vector_array_t> stateTrajectoriesStock;
-		std::vector<SLQP_MP<2,2,2,3>::control_vector_array_t> controlTrajectoriesStock;
-		slqp_mp.rollout(initState, resultingControllersStock, timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
+	// rollout
+	std::vector<SLQP_MP<2,2,2,3>::scalar_array_t> timeTrajectoriesStock, timeTrajectoriesStock_mp;
+	std::vector<SLQP_MP<2,2,2,3>::state_vector_array_t> stateTrajectoriesStock, stateTrajectoriesStock_mp;
+	std::vector<SLQP_MP<2,2,2,3>::control_vector_array_t> controlTrajectoriesStock, controlTrajectoriesStock_mp;
+	slqp.rollout(initState, resultingControllersStock, timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
+	slqp_mp.rollout(initState, resultingControllersStock_mp, timeTrajectoriesStock_mp, stateTrajectoriesStock_mp, controlTrajectoriesStock_mp);
 
-		// compute cost
-		double rolloutCost;
-		slqp_mp.calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
+	// compute cost
+	double rolloutCost, rolloutCost_mp;
+	slqp.calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
+	slqp_mp.calculateCostFunction(timeTrajectoriesStock_mp, stateTrajectoriesStock_mp, controlTrajectoriesStock_mp, rolloutCost_mp);
 
-		// value function
-		double totalCost;
-		slqp_mp.getValueFuntion(0.0, initState, totalCost);
+	// value function
+	double totalCost, totalCost_mp;
+	slqp.getValueFuntion(0.0, initState, totalCost);
+	slqp_mp.getValueFuntion(0.0, initState, totalCost_mp);
 
-
-		std::cout << "The total cost (mp version): " << totalCost << std::endl;
-		if(totalCost > 5.78863 + 0.001 || totalCost < 5.78863 - 0.001){
-			std::cout << "failure occured - wrong cost" << std::endl;
-			exit(0);
-		}
-
-	}
-//	std::cout << "The total cost in the test rollout: " << rolloutCost << std::endl;
-//	std::cout << "The total cost derivative: " << costFuntionDerivative.transpose() << std::endl;
-
+	std::cout << "The total cost (single core version): " << totalCost << std::endl;
+	std::cout << "The total cost (mp version): " << totalCost_mp << std::endl;
 }
+
+

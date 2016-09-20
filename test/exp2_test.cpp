@@ -1,12 +1,7 @@
-/*
- * EXP2TEST.cpp
- *
- *  Created on: Dec 27, 2015
- *      Author: farbod
- */
 
 #include <iostream>
 #include <cstdlib>
+#include <ctime>
 
 #include <fstream>
 #include <cereal/archives/xml.hpp>
@@ -15,14 +10,17 @@
 
 #include "test/EXP2.h"
 #include "GSLQ/GLQP.h"
+#include "GSLQ/SLQP.h"
+#include "GSLQ/SLQP_MP.h"
 
 #include "ocs2/OCS2Ipopt.h"
 #include "ocs2/OCS2Projected.h"
 
+#include <gtest/gtest.h>
 
 using namespace ocs2;
 
-int main (int argc, char* argv[])
+TEST(exp2_test, exp2_test)
 {
 	// subsystem dynamics
 	std::vector<std::shared_ptr<ControlledSystemBase<2,1> > > subsystemDynamicsPtr {std::make_shared<EXP2_Sys1>(), std::make_shared<EXP2_Sys2>()};
@@ -38,7 +36,6 @@ int main (int argc, char* argv[])
 	std::vector<size_t> systemStockIndex {0, 1};
 
 	std::vector<double> initSwitchingTimes {0, 1, 2};
-	if (argc>1)  initSwitchingTimes[1] = std::atof(argv[1]);
 
 	Eigen::Vector2d initState(0.0, 2.0);
 
@@ -83,7 +80,12 @@ int main (int argc, char* argv[])
 
 	std::cout << "resulting costs: " << cost << "  " << cost_mp << std::endl;
 
+	ASSERT_LT(fabs(cost - cost_mp), 1e-5);
 }
 
 
-
+int main(int argc, char** argv)
+{
+	testing::InitGoogleTest(&argc, argv);
+	return RUN_ALL_TESTS();
+}

@@ -1,12 +1,12 @@
 /*
- * IpoptCostFunntion.h
+ * IpoptCostFunction.h
  *
  *  Created on: Jan 12, 2016
  *      Author: farbod
  */
 
-#ifndef IPOPTCOSTFUNNTION_H_
-#define IPOPTCOSTFUNNTION_H_
+#ifndef IPOPTCOSTFUNCTION_H_
+#define IPOPTCOSTFUNCTION_H_
 
 #include <algorithm>
 #include <iterator>
@@ -21,7 +21,7 @@ namespace ocs2{
 using namespace Ipopt;
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_Subsystems>
-class IpoptCostFunntion : public TNLP
+class IpoptCostFunction : public TNLP
 {
 public:
 
@@ -52,7 +52,7 @@ public:
 	typedef typename DIMENSIONS::control_gain_matrix_t 		 control_gain_matrix_t;
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
 
-	IpoptCostFunntion(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDynamicsPtr,
+	IpoptCostFunction(const std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDynamicsPtr,
 			const std::vector<std::shared_ptr<DerivativesBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM> > >& subsystemDerivativesPtr,
 			const std::vector<std::shared_ptr<CostFunctionBaseOCS2<STATE_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
 			const state_vector_array_t&   stateOperatingPoints,
@@ -76,7 +76,7 @@ public:
 		  numFuntionCall_(0)
 	{}
 
-	virtual ~IpoptCostFunntion() {}
+	virtual ~IpoptCostFunction() {}
 
 	/**@name Overloaded from TNLP */
 	//@{

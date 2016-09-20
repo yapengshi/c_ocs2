@@ -71,8 +71,12 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	GSLQP<4,2,4,1>::Options_t gslqpOptions;
 	gslqpOptions.dispayGSLQP_ = 1;
-	gslqpOptions.lineSearchByMeritFuntion_ = false;
 	gslqpOptions.useMultiThreading_ = false;
+	gslqpOptions.minLearningRateGSLQP_ = 0.01;
+	gslqpOptions.minRelCostGSLQP_ = 1e-4;
+	gslqpOptions.stateConstraintPenaltyCoeff_ = 1.0;
+	gslqpOptions.stateConstraintPenaltyBase_ = 1.0;
+	gslqpOptions.lineSearchByMeritFuntion_ = false;
 
 	// GSLQ - single core version
 	GSLQP<4,2,4,1> gslqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
@@ -92,11 +96,15 @@ int main (int argc, char* argv[])
 	SLQP_MP<4,2,4,1> slqp_mp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions, mpOptions);
 
 
-	// run both the mp and the single core version
+	// run both the mp and the single core versions of slqp
 	slqp.run(initState, switchingTimes);
 	slqp_mp.run(initState, switchingTimes);
+
+	// try to run gslqp
+	gslqp.run(initState, switchingTimes);
 //	gslqp_mp.run(initState, switchingTimes_mp);
-//
+
+
 //	// get controller
 //	gslqp.getController(controllersStock);
 //	gslqp_mp.getController(controllersStock_mp);

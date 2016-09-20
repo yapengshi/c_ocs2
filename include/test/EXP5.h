@@ -34,9 +34,9 @@ public:
 
 	void computeDerivative(const double& t, const state_vector_t& x, const control_vector_t& u, state_vector_t& dxdt)  {
 		dxdt(0) = x(1);
-		dxdt(1) = u(1);
+		dxdt(1) = u(0);
 		dxdt(2) = x(3);
-		dxdt(3) = u(2);
+		dxdt(3) = u(1);
 	}
 
 	void computeConstriant2(const double& t, const state_vector_t& x, size_t& numConstraint1, control_vector_t& g1)  override {

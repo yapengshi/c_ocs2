@@ -72,7 +72,7 @@ add_executable(exp3_gslqp_test src/test/EXP3GSLQPTest.cpp)
 add_executable(exp4_gslqp_test src/test/EXP4GSLQPTest.cpp)
 
 ## Declare a cpp executable
-add_executable(exp5_gslqp_test src/test/EXP5GSLQPTest.cpp)
+add_executable(exp5_slqp_test src/test/EXP5SLQPTest.cpp)
 
 ## Declare a cpp executable
 add_executable(exp1_test src/test/EXP1Test.cpp)
@@ -128,7 +128,7 @@ target_link_libraries(exp4_gslqp_test
 )
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(exp5_gslqp_test
+target_link_libraries(exp5_slqp_test
   ${catkin_LIBRARIES}  
   ${Boost_LIBRARIES}
 )
@@ -180,12 +180,6 @@ target_link_libraries(integration_test ${Boost_LIBRARIES})
 
 catkin_add_gtest(system_dynamics_derivative_test test/SystemDynamicsDerivativeTest.cpp)
 
-#catkin_add_gtest(ceres_test test/CeresTest.cpp)
-#target_link_libraries(ceres_test
-#  ${catkin_LIBRARIES}
-#  ${CERES_LIBRARIES}
-#)
-
 catkin_add_gtest(exp1_slqp_unittest test/exp1_slqp_test.cpp)
 
 catkin_add_gtest(exp1_gslqp_unittest test/exp1_gslqp_test.cpp)
@@ -194,4 +188,9 @@ catkin_add_gtest(exp2_unittest test/exp2_test.cpp)
 target_link_libraries(exp2_unittest
   ${catkin_LIBRARIES}
 )
+
+catkin_add_gtest(exp5_unittest test/exp5_slqp_test.cpp)
+
+
+
 

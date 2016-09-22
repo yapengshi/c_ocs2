@@ -78,21 +78,18 @@ int main (int argc, char* argv[])
 	gslqpOptions.stateConstraintPenaltyBase_ = 2.0;
 	gslqpOptions.lineSearchByMeritFuntion_ = false;
 
-	// GSLQ - single core version
-	GSLQP<4,2,4,1> gslqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
-			controllersStock, systemStockIndex, gslqpOptions);
 
-	// GSLQ MP version
 	GSLQP<4,2,4,1>::Options_t gslqpOptions_mp = gslqpOptions;
 	gslqpOptions_mp.useMultiThreading_ = true;
 	GSLQP<4,2,4,1>::MP_Options_t mpOptions;
 	mpOptions.nThreads_ = 4;
 	mpOptions.debugPrintMP_ = 0;
 	mpOptions.lsStepsizeGreedy_ = 1;
-	GSLQP<4,2,4,1> gslqp_mp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
-			controllersStock_mp, systemStockIndex, gslqpOptions_mp, mpOptions);
 
+	// slqp single core
 	SLQP<4,2,4,1> slqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);
+
+	// slqp multi core
 	SLQP_MP<4,2,4,1> slqp_mp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions, mpOptions);
 
 
@@ -100,32 +97,27 @@ int main (int argc, char* argv[])
 	slqp.run(initState, switchingTimes);
 	slqp_mp.run(initState, switchingTimes);
 
-	// try to run gslqp
-	gslqp.run(initState, switchingTimes);
-	gslqp_mp.run(initState, switchingTimes_mp);
-
-
 	// get controller
-	gslqp.getController(controllersStock);
-	gslqp_mp.getController(controllersStock_mp);
+	slqp.getController(controllersStock);
+	slqp_mp.getController(controllersStock_mp);
 
 	// rollout both versions
 	std::vector<GSLQP<4,2,4,1>::scalar_array_t> timeTrajectoriesStock, timeTrajectoriesStock_mp;
 	std::vector<GSLQP<4,2,4,1>::state_vector_array_t> stateTrajectoriesStock, stateTrajectoriesStock_mp;
 	std::vector<GSLQP<4,2,4,1>::control_vector_array_t> controlTrajectoriesStock, controlTrajectoriesStock_mp;
-	gslqp.rollout(initState, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
-	gslqp_mp.rollout(initState, controllersStock_mp, timeTrajectoriesStock_mp, stateTrajectoriesStock_mp, controlTrajectoriesStock_mp);
+	slqp.rollout(initState, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
+	slqp_mp.rollout(initState, controllersStock_mp, timeTrajectoriesStock_mp, stateTrajectoriesStock_mp, controlTrajectoriesStock_mp);
 
 	// compute cost for both versions
 	double rolloutCost, rolloutCost_mp;
-	gslqp.calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
-	gslqp_mp.calculateCostFunction(timeTrajectoriesStock_mp, stateTrajectoriesStock_mp, controlTrajectoriesStock_mp, rolloutCost_mp);
+	slqp.calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock, rolloutCost);
+	slqp_mp.calculateCostFunction(timeTrajectoriesStock_mp, stateTrajectoriesStock_mp, controlTrajectoriesStock_mp, rolloutCost_mp);
 
 	// value function for both versions
 	double totalCost;
 	double totalCost_mp;
-	gslqp.getValueFuntion(0.0, initState, totalCost);
-	gslqp_mp.getValueFuntion(0.0, initState, totalCost_mp);
+	slqp.getValueFuntion(0.0, initState, totalCost);
+	slqp_mp.getValueFuntion(0.0, initState, totalCost_mp);
 
 
 	/******************************************************************************************************/

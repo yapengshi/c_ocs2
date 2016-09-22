@@ -125,7 +125,7 @@ int main (int argc, char* argv[])
 
 	std::cout << "The total cost: " << totalCost << std::endl;
 	std::cout << "The total cost in the test rollout: " << rolloutCost << std::endl;
-	std::cout << "The total cost derivative: " << costFuntionDerivative.transpose() << std::endl;
+	std::cout << "The total cost derivative: 		  " << costFuntionDerivative.transpose() << std::endl;
 
 	GSLQP<2,2,2,3>::eigen_scalar_array_t timeEigenTrajectory;
 	GSLQP<2,2,2,3>::state_vector_array_t stateTrajectory;

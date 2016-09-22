@@ -131,8 +131,7 @@ public:
 		slqIterationISE1 = slqIterationISE1_;
 	}
 
-	void getOCS2IterationsLog(eigen_scalar_array_t& iterationCost) const { /*iterationCost = iterationCost_; */ // ISSUE FIXME TODO
-	}
+	void getOCS2IterationsLog(eigen_scalar_array_t& iterationCost) const { iterationCost = iterationCost_;}
 
 	void rollout(const state_vector_t& initState,
 			const scalar_array_t& switchingTimes,

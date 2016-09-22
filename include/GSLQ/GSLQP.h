@@ -32,6 +32,8 @@
 #include "GSLQ/SLQP_MP.h"
 #include "GSLQ/SolveBVP.h"
 
+#include <omp.h>
+
 
 namespace ocs2{
 

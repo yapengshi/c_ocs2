@@ -993,6 +993,7 @@ void GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::runSweepingBVPMeth
 	calculateSensitivityControllerFeedback(nominalSensitivityControllersStock_);
 
 	// for each switching time solve BVP
+#pragma omp parallel for
 	for (int j=1; j<NUM_SUBSYSTEMS; j++)  {
 		std::vector<state_matrix_array_t>  MmTrajectoriesStock(NUM_SUBSYSTEMS);
 		std::vector<output_vector_array_t> SvTrajectoriesStock(NUM_SUBSYSTEMS);

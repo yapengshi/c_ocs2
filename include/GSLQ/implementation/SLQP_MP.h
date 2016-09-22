@@ -402,13 +402,13 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateCostFun
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateCostFunction(const std::vector<scalar_array_t>& timeTrajectoriesStock,
-			const std::vector<output_vector_array_t>& stateTrajectoriesStock,
-			const std::vector<control_vector_array_t>& inputTrajectoriesStock,
-			const std::vector<std::vector<size_t> >& nc2TrajectoriesStock,
-			const std::vector<constraint2_vector_array_t>& HvTrajectoryStock,
-			const std::vector<size_t>& nc2FinalStock,
-			const std::vector<constraint2_vector_t>& HvFinalStock,
-			scalar_t& totalCost){
+		const std::vector<output_vector_array_t>& stateTrajectoriesStock,
+		const std::vector<control_vector_array_t>& inputTrajectoriesStock,
+		const std::vector<std::vector<size_t> >& nc2TrajectoriesStock,
+		const std::vector<constraint2_vector_array_t>& HvTrajectoryStock,
+		const std::vector<size_t>& nc2FinalStock,
+		const std::vector<constraint2_vector_t>& HvFinalStock,
+		scalar_t& totalCost){
 
 	calculateCostFunction(timeTrajectoriesStock,
 			stateTrajectoriesStock,
@@ -1540,7 +1540,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 	size_t N =   BASE::nominalTimeTrajectoriesStock_[i].size();
 
 	// initialize subsystem i dynamics derivatives
-	for(size_t j = 0; j< mp_options_.nThreads_; j++)
+	for(size_t j = 0; j< mp_options_.nThreads_+1; j++)
 	{
 		assert( BASE::nominalTimeTrajectoriesStock_[i].size() == BASE::nominalStateTrajectoriesStock_[i].size());
 		linearizedSystems_[j][i]->initializeModel(BASE::switchingTimes_, BASE::nominalStateTrajectoriesStock_[i].front(), i, "GSLPQ");
@@ -1598,6 +1598,13 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 	// constrained type-2 final coefficients
 	if (BASE::nc2FinalStock_[i] > 0) {
 		size_t nc2 = BASE::nc2FinalStock_[i];
+
+		linearizedSystems_[mp_options_.nThreads_][i]->setCurrentStateAndControl(
+				BASE::nominalTimeTrajectoriesStock_[i].back(),
+				BASE::nominalStateTrajectoriesStock_[i].back(),
+				BASE::nominalInputTrajectoriesStock_[i].back(),
+				BASE::nominalOutputTrajectoriesStock_[i].back());
+
 		linearizedSystems_[mp_options_.nThreads_][i]->getFinalConstraint2DerivativesState(BASE::FmFinalStock_[i]);
 
 		double stateConstraintPenalty = options_.stateConstraintPenaltyCoeff_ * pow(options_.stateConstraintPenaltyBase_, BASE::iteration_);
@@ -1612,7 +1619,8 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 		if(mp_options_.debugPrintMP_)
 			printString("[MP]: Approximating terminal cost with single thread, subsystem  " + std::to_string(i));
 
-		costFunctions_[mp_options_.nThreads_][i]->setCurrentStateAndControl(BASE::nominalTimeTrajectoriesStock_[i].back(), BASE::nominalOutputTrajectoriesStock_[i].back(), BASE::nominalInputTrajectoriesStock_[i].back());
+		costFunctions_[mp_options_.nThreads_][i]->setCurrentStateAndControl(BASE::nominalTimeTrajectoriesStock_[i].back(),
+				BASE::nominalOutputTrajectoriesStock_[i].back(), BASE::nominalInputTrajectoriesStock_[i].back());
 
 		costFunctions_[mp_options_.nThreads_][i]->terminalCost(BASE::qFinalStock_[i](0));
 		costFunctions_[mp_options_.nThreads_][i]->terminalCostStateDerivative(BASE::QvFinalStock_[i]);

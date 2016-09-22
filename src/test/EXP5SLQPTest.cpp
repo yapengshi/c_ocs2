@@ -83,7 +83,7 @@ int main (int argc, char* argv[])
 	GSLQP<4,2,4,1>::Options_t gslqpOptions_mp = gslqpOptions;
 	gslqpOptions_mp.useMultiThreading_ = true;
 	GSLQP<4,2,4,1>::MP_Options_t mpOptions;
-	mpOptions.nThreads_ = 1;
+	mpOptions.nThreads_ = 4;
 	mpOptions.debugPrintMP_ = 0;
 	mpOptions.lsStepsizeGreedy_ = 1;
 

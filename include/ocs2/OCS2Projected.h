@@ -33,10 +33,14 @@ public:
 
 	enum {NumConstraints_=NUM_SUBSYSTEMS-2};
 
-	typedef SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>  slqp_t;
-	typedef GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> gslqp_t;
-	typedef typename slqp_t::Ptr  slqp_ptr_t;
-	typedef typename gslqp_t::Ptr gslqp_ptr_t;
+	typedef SLQP_BASE<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> slqp_base_t;
+	typedef SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>  	slqp_t;
+	typedef SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>  	slqp_mp_t;
+	typedef GSLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> 	gslqp_t;
+	typedef typename slqp_base_t::Ptr 	slqp_base_ptr_t;
+	typedef typename slqp_t::Ptr  		slqp_ptr_t;
+	typedef typename slqp_mp_t::Ptr  	slqp_mp_ptr_t;
+	typedef typename gslqp_t::Ptr 		gslqp_ptr_t;
 
 	typedef Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
@@ -205,7 +209,7 @@ private:
 	std::vector<std::vector<controller_t> > controllersStockBag_;
 
 	gslqp_ptr_t gslqpSolver_;
-	std::vector<slqp_ptr_t> slqpSolverPtrs_;
+	std::vector<slqp_base_ptr_t> slqpSolverPtrs_;
 
 	eigen_scalar_array_t slqIterationCost_;
 	eigen_scalar_array_t slqIterationISE1_;

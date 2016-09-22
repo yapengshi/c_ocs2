@@ -435,8 +435,13 @@ void OCS2Projected<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const 
 	// SLQP solvers
 	slqpSolverPtrs_.resize(numLineSearch_+1);
 	for (size_t i=0; i<slqpSolverPtrs_.size(); i++)
-		slqpSolverPtrs_[i] = slqp_ptr_t( new slqp_t(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
-				initControllersStock_, systemStockIndex_, options_) );
+		if (options_.useMultiThreading_==true)
+			slqpSolverPtrs_[i] = slqp_base_ptr_t( new slqp_mp_t(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
+					initControllersStock_, systemStockIndex_, options_) );
+		else
+			slqpSolverPtrs_[i] = slqp_base_ptr_t( new slqp_t(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
+					initControllersStock_, systemStockIndex_, options_) );
+
 	// GSLQP solvers
 	gslqpSolver_ = gslqp_ptr_t( new gslqp_t(subsystemDynamicsPtr_, subsystemDerivativesPtr_, subsystemCostFunctionsPtr_,
 			initControllersStock_, systemStockIndex_, options_) );

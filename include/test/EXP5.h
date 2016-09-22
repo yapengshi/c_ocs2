@@ -39,9 +39,14 @@ public:
 		dxdt(3) = u(1);
 	}
 
-	void computeConstriant2(const double& t, const state_vector_t& x, size_t& numConstraint1, control_vector_t& g1)  override {
-		numConstraint1 = 1;
-		g1(0) = x(2) - x(0) - d0;
+//	void computeConstriant2(const double& t, const state_vector_t& x, size_t& numConstraint1, control_vector_t& g1)  override {
+//		numConstraint1 = 1;
+//		g1(0) = x(2) - x(0) - d0;
+//	}
+
+	void computeFinalConstriant2(const double& t, const state_vector_t& x, size_t& numFinalConstraint2, control_vector_t& g2Final)  {
+		numFinalConstraint2 = 1;
+		g2Final(0) = x(2) - x(0) - d0;
 	}
 
 	std::shared_ptr<ControlledSystemBase<4, 2> > clone() const { return std::make_shared<EXP5_Sys1>(*this); }
@@ -72,9 +77,9 @@ public:
 		B(1,0) = 1.0;
 		B(3,1) = 1.0;
 	}
-	void getConstraint2DerivativesState(constraint2_state_matrix_t& C) {
-		C.topRows<1>() << -1.0, 0.0, 1.0, 0.0;
-	}
+//	void getConstraint2DerivativesState(constraint2_state_matrix_t& C) {
+//		C.topRows<1>() << -1.0, 0.0, 1.0, 0.0;
+//	}
 
 	void getFinalConstraint2DerivativesState(constraint2_state_matrix_t& F) {
 		F.topRows<1>() << -1.0, 0.0, 1.0, 0.0;

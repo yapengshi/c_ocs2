@@ -1595,25 +1595,6 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 	workerTask_ = IDLE;
 
 
-	// constrained type-2 final coefficients
-	if (BASE::nc2FinalStock_[i] > 0) {
-		size_t nc2 = BASE::nc2FinalStock_[i];
-
-		linearizedSystems_[mp_options_.nThreads_][i]->setCurrentStateAndControl(
-				BASE::nominalTimeTrajectoriesStock_[i].back(),
-				BASE::nominalStateTrajectoriesStock_[i].back(),
-				BASE::nominalInputTrajectoriesStock_[i].back(),
-				BASE::nominalOutputTrajectoriesStock_[i].back());
-
-		linearizedSystems_[mp_options_.nThreads_][i]->getFinalConstraint2DerivativesState(BASE::FmFinalStock_[i]);
-
-		double stateConstraintPenalty = options_.stateConstraintPenaltyCoeff_ * pow(options_.stateConstraintPenaltyBase_, BASE::iteration_);
-		BASE::qFinalStock_[i]  += 0.5 * stateConstraintPenalty * BASE::HvFinalStock_[i].head(nc2).transpose() * BASE::HvFinalStock_[i].head(nc2);
-		BASE::QvFinalStock_[i] += stateConstraintPenalty * BASE::FmFinalStock_[i].topRows(nc2).transpose() * BASE::HvFinalStock_[i].head(nc2);
-		BASE::QmFinalStock_[i] += stateConstraintPenalty * BASE::FmFinalStock_[i].topRows(nc2).transpose() * BASE::FmFinalStock_[i].topRows(nc2);
-	}
-
-
 	if (i==NUM_SUBSYSTEMS-1) // if last subsystem, set terminal cost
 	{
 		if(mp_options_.debugPrintMP_)
@@ -1633,6 +1614,25 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 		BASE::qFinalStock_[i].setZero();
 		BASE::QvFinalStock_[i].setZero();
 		BASE::QmFinalStock_[i].setZero();
+	}
+
+	// constrained type-2 final coefficients
+	if (BASE::nc2FinalStock_[i] > 0) {
+		size_t nc2 = BASE::nc2FinalStock_[i];
+
+		linearizedSystems_[mp_options_.nThreads_][i]->setCurrentStateAndControl(
+				BASE::nominalTimeTrajectoriesStock_[i].back(),
+				BASE::nominalStateTrajectoriesStock_[i].back(),
+				BASE::nominalInputTrajectoriesStock_[i].back(),
+				BASE::nominalOutputTrajectoriesStock_[i].back());
+
+		linearizedSystems_[mp_options_.nThreads_][i]->getFinalConstraint2DerivativesState(BASE::FmFinalStock_[i]);
+
+		double stateConstraintPenalty = options_.stateConstraintPenaltyCoeff_ * pow(options_.stateConstraintPenaltyBase_, BASE::iteration_);
+
+		BASE::qFinalStock_[i]  += 0.5 * stateConstraintPenalty * BASE::HvFinalStock_[i].head(nc2).transpose() * BASE::HvFinalStock_[i].head(nc2);
+		BASE::QvFinalStock_[i] += stateConstraintPenalty * BASE::FmFinalStock_[i].topRows(nc2).transpose() * BASE::HvFinalStock_[i].head(nc2);
+		BASE::QmFinalStock_[i] += stateConstraintPenalty * BASE::FmFinalStock_[i].topRows(nc2).transpose() * BASE::FmFinalStock_[i].topRows(nc2);
 	}
 
 }
@@ -1885,7 +1885,7 @@ size_t SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeApproxi
 	size_t nc2 = BASE::nc2TrajectoriesStock_[i][k];
 
 	if (nc2 > 0) {
-		//		subsystemDerivativesPtrStock_[i]->getConstraint2DerivativesState(FmTrajectoryStock_[i][k]);
+		//				subsystemDerivativesPtrStock_[i]->getConstraint2DerivativesState(FmTrajectoryStock_[i][k]);
 		BASE::qTrajectoryStock_[i][k]  += 0.5 * stateConstraintPenalty * BASE::HvTrajectoryStock_[i][k].head(nc2).transpose() * BASE::HvTrajectoryStock_[i][k].head(nc2);
 		BASE::QvTrajectoryStock_[i][k] += stateConstraintPenalty * BASE::FmTrajectoryStock_[i][k].topRows(nc2).transpose() * BASE::HvTrajectoryStock_[i][k].head(nc2);
 		BASE::QmTrajectoryStock_[i][k] += stateConstraintPenalty * BASE::FmTrajectoryStock_[i][k].topRows(nc2).transpose() * BASE::FmTrajectoryStock_[i][k].topRows(nc2);
@@ -2184,7 +2184,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 				BASE::nc2TrajectoriesStock_[i].swap(lsNc2TrajectoriesStock[i]);
 				BASE::HvTrajectoryStock_[i].swap(lsHvTrajectoryStock[i]);
 				BASE::nc2FinalStock_[i] = lsNc2FinalStock[i];
-				BASE::HvFinalStock_[i].swap(lsHvFinalStock[i]);
+				BASE::HvFinalStock_[i] = lsHvFinalStock[i];
 				BASE::lagrangeControllerStock_[i].swap(lsLagrangeControllersStock[i]);;
 				BASE::nominalLagrangeTrajectoriesStock_[i].swap(lsLagrangeTrajectoriesStock[i]);
 			}

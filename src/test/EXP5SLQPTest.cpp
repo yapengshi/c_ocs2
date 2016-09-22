@@ -77,12 +77,13 @@ int main (int argc, char* argv[])
 	gslqpOptions.stateConstraintPenaltyCoeff_ = 1.0;
 	gslqpOptions.stateConstraintPenaltyBase_ = 2.0;
 	gslqpOptions.lineSearchByMeritFuntion_ = false;
+	gslqpOptions.maxIterationGSLQP_ = 1;
 
 
 	GSLQP<4,2,4,1>::Options_t gslqpOptions_mp = gslqpOptions;
 	gslqpOptions_mp.useMultiThreading_ = true;
 	GSLQP<4,2,4,1>::MP_Options_t mpOptions;
-	mpOptions.nThreads_ = 4;
+	mpOptions.nThreads_ = 1;
 	mpOptions.debugPrintMP_ = 0;
 	mpOptions.lsStepsizeGreedy_ = 1;
 

@@ -584,9 +584,11 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimalC
 		// constrained type-2 final coefficients
 		if (BASE::nc2FinalStock_[i] > 0) {
 			size_t nc2 = BASE::nc2FinalStock_[i];
+
 			subsystemDerivativesPtrStock_[i]->getFinalConstraint2DerivativesState(BASE::FmFinalStock_[i]);
 
 			double stateConstraintPenalty = options_.stateConstraintPenaltyCoeff_ * pow(options_.stateConstraintPenaltyBase_, BASE::iteration_);
+
 			BASE::qFinalStock_[i]  += 0.5 * stateConstraintPenalty * BASE::HvFinalStock_[i].head(nc2).transpose() * BASE::HvFinalStock_[i].head(nc2);
 			BASE::QvFinalStock_[i] += stateConstraintPenalty * BASE::FmFinalStock_[i].topRows(nc2).transpose() * BASE::HvFinalStock_[i].head(nc2);
 			BASE::QmFinalStock_[i] += stateConstraintPenalty * BASE::FmFinalStock_[i].topRows(nc2).transpose() * BASE::FmFinalStock_[i].topRows(nc2);
@@ -1031,7 +1033,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 	// display
 	if (options_.dispayGSLQP_)  {
 		std::cerr << "\t learningRate 0.0 \t cost: " << BASE::nominalTotalCost_ << " \t merit: " << BASE::nominalTotalMerit_ <<
-		" \t constraint ISE: " << BASE::nominalConstraint1ISE_ << std::endl;
+				" \t constraint ISE: " << BASE::nominalConstraint1ISE_ << std::endl;
 		if (std::accumulate(BASE::nc2FinalStock_.begin(), BASE::nc2FinalStock_.end(), 0) > 0) {
 			std::cerr << "\t final constraint type-2:   ";
 			for(size_t i=0; i<NUM_SUBSYSTEMS; i++) std::cerr << "[" << i  << "]: " << BASE::HvFinalStock_[i].head(BASE::nc2FinalStock_[i]).transpose() << ",  ";
@@ -1463,10 +1465,10 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 
 	if (initialControllersStock.empty()==false) {
 		if (initialControllersStock.size() != NUM_SUBSYSTEMS)  throw std::runtime_error("initialControllersStock has less controllers than the number of subsystems");
-			nominalControllersStock_ = initialControllersStock;
+		nominalControllersStock_ = initialControllersStock;
 	} else
-	if (nominalControllersStock_.empty()==true)
-		throw std::runtime_error("initialControllersStock should be provided since nominalControllersStock is empty.");
+		if (nominalControllersStock_.empty()==true)
+			throw std::runtime_error("initialControllersStock should be provided since nominalControllersStock is empty.");
 
 
 	BASE::switchingTimes_ = switchingTimes;
@@ -1558,11 +1560,11 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_vec
 			std::cerr << "constraint type-1 MaxNorm: " << constraint1MaxNorm << std::endl;
 			std::cerr << "constraint type-2 ISE:     " << nominalConstraint2ISE << std::endl;
 			std::cerr << "constraint type-2 MaxNorm: " << constraint2MaxNorm << std::endl;
-//			if (std::accumulate(BASE::nc2FinalStock_.begin(), BASE::nc2FinalStock_.end(), 0) > 0) {
-				std::cerr << "final constraint type-2: 	 ";
-				for(size_t i=0; i<NUM_SUBSYSTEMS; i++) std::cerr << "[" << i  << "]: " << BASE::HvFinalStock_[i].head(BASE::nc2FinalStock_[i]).transpose() << ",  ";
-				std::cerr << std::endl;
-//			}
+			//			if (std::accumulate(BASE::nc2FinalStock_.begin(), BASE::nc2FinalStock_.end(), 0) > 0) {
+			std::cerr << "final constraint type-2: 	 ";
+			for(size_t i=0; i<NUM_SUBSYSTEMS; i++) std::cerr << "[" << i  << "]: " << BASE::HvFinalStock_[i].head(BASE::nc2FinalStock_[i]).transpose() << ",  ";
+			std::cerr << std::endl;
+			//			}
 		}
 		if(options_.displayShortSummary_){
 			std::cout << "#### Iter " << BASE::iteration_-1 << ".   opt. cost: " << BASE::nominalTotalCost_ << ".    constraint ISE: " << BASE::nominalConstraint1ISE_ <<

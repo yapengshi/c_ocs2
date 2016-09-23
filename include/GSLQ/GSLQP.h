@@ -134,7 +134,7 @@ public:
 		slqpPtr_ = NULL;
 
 		// select between single- and multithreading implementation
-		if (options_.useMultiThreading_){
+		if (options_.useMultiThreading_==true){
 			slqpPtrInternal_ = std::shared_ptr<SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>> (new SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>(
 					subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, initialControllersStock, systemStockIndex, options, mpOptions));
 		}

@@ -111,7 +111,9 @@ public:
 		convert2Matrix(allSs, Sm, Sv, s);
 
 		// numerical consideration
-		makePSD(Sm);
+//		makePSD(Sm);
+		Sm += state_matrix_t::Identity()*(1e-2);
+//		Sm = 0.5 * (Sm + Sm.transpose()).eval();
 
 		state_matrix_t Am;
 		AmFunc_.interpolate(t, Am);

@@ -80,7 +80,7 @@ public:
       nominalControllersStock_(initialControllersStock),
       options_(options)
 	{
-		Eigen::initParallel();
+//		Eigen::initParallel();
 
 		if (subsystemDynamicsPtr.size() != subsystemDerivativesPtr.size())
 			throw std::runtime_error("Number of subsystem derivatives is not equal to the number of subsystems.");

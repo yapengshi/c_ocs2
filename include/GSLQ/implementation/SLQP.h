@@ -1301,7 +1301,8 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRicc
 		allSsFinal += allCostFinal;
 
 		// set data for Riccati equations
-		std::shared_ptr<RiccatiEquations_t> riccatiEquationsPtr( new RiccatiEquations_t() );		riccatiEquationsPtr->setData(learningRate, i, BASE::switchingTimes_[i], BASE::switchingTimes_[i+1],
+		std::shared_ptr<RiccatiEquations_t> riccatiEquationsPtr( new RiccatiEquations_t() );
+		riccatiEquationsPtr->setData(learningRate, i, BASE::switchingTimes_[i], BASE::switchingTimes_[i+1],
 				&BASE::nominalTimeTrajectoriesStock_[i],
 				&BASE::AmConstrainedTrajectoryStock_[i], &BASE::BmTrajectoryStock_[i],
 				&BASE::qTrajectoryStock_[i], &BASE::QvConstrainedTrajectoryStock_[i], &BASE::QmConstrainedTrajectoryStock_[i],
@@ -1314,7 +1315,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRicc
 		std::vector<double> normalizedTimeTrajectory;
 		std::vector<typename RiccatiEquations_t::s_vector_t, Eigen::aligned_allocator<typename RiccatiEquations_t::s_vector_t> > allSsTrajectory;
 		ode45.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory,
-				1e-3, options_.AbsTolODE_, options_.RelTolODE_,  maxNumSteps);
+				1e-5, options_.AbsTolODE_, options_.RelTolODE_,  maxNumSteps);
 
 		// denormalizing time and constructing 'Sm', 'Sv', and 's'
 		int N = normalizedTimeTrajectory.size();
@@ -1422,28 +1423,28 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRicc
 /*
  * make the given square matrix psd
  */
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS> // TODO: move it to Base
 template <typename Derived>
 bool SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::makePSD(Eigen::MatrixBase<Derived>& squareMatrix) {
 
 	if (squareMatrix.rows() != squareMatrix.cols())  throw std::runtime_error("Not a square matrix: makePSD() method is for square matrix.");
 
-	Eigen::SelfAdjointEigenSolver<Derived> eig(squareMatrix);
+	Eigen::SelfAdjointEigenSolver<Derived> eig(squareMatrix, Eigen::EigenvaluesOnly);
 	Eigen::VectorXd lambda = eig.eigenvalues();
 
 	bool hasNegativeEigenValue = false;
 	for (size_t j=0; j<lambda.size() ; j++)
 		if (lambda(j) < 0.0) {
 			hasNegativeEigenValue = true;
-			lambda(j) = 0.0;
+			lambda(j) = 1e-6;
 		}
 
-	if (hasNegativeEigenValue)
+	if (hasNegativeEigenValue) {
+		eig.compute(squareMatrix, Eigen::ComputeEigenvectors);
 		squareMatrix = eig.eigenvectors() * lambda.asDiagonal() * eig.eigenvectors().inverse();
-	//	else
-	//		squareMatrix = 0.5*(squareMatrix+squareMatrix.transpose()).eval();
-
-	return hasNegativeEigenValue;
+	} else {
+		squareMatrix = 0.5*(squareMatrix+squareMatrix.transpose()).eval();
+	}
 }
 
 

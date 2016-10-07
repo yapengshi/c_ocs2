@@ -22,7 +22,7 @@ class IntegratorBase
 {
 public:
 	typedef std::vector<double> TimeTrajectory_T;
-	typedef Eigen::Matrix<double,STATE_DIM,1> State_T;
+	typedef Eigen::Matrix<double, STATE_DIM, 1> State_T;
 	typedef std::vector<State_T, Eigen::aligned_allocator<State_T> > StateTrajectory_T;
 
 	IntegratorBase(
@@ -40,15 +40,14 @@ public:
 	}
 
 	// Equidistant integration based on number of time steps and step length
-	// = integrate_n_steps
-	virtual bool integrate(
-		const State_T& initialState,
-		const double& startTime,
-		size_t numSteps,
-		double dt,
-		StateTrajectory_T& stateTrajectory,
-		TimeTrajectory_T& timeTrajectory
-	) = 0;
+//	virtual bool integrate_n_steps(
+//		const State_T& initialState,
+//		const double& startTime,
+//		size_t numSteps,
+//		double dt,
+//		StateTrajectory_T& stateTrajectory,
+//		TimeTrajectory_T& timeTrajectory
+//	) = 0;
 
 	// Equidistant integration based on initial and final time as well as step length
 	// = integrate_const
@@ -88,6 +87,7 @@ public:
 
 
 protected:
+
 	 void retrieveTrajectoriesFromObserver(StateTrajectory_T& stateTrajectory, TimeTrajectory_T& timeTrajectory)
 	 {
 		 stateTrajectory.swap(observer_.stateTrajectory_);

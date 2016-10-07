@@ -73,12 +73,12 @@ public:
 			const std::vector<size_t>& systemStockIndex,
 			const Options_t& options = Options_t::Options())
     :
+      SLQP_BASE<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> (options),
       subsystemDynamicsPtrStock_(NUM_SUBSYSTEMS),
       subsystemDerivativesPtrStock_(NUM_SUBSYSTEMS),
       subsystemCostFunctionsPtrStock_(NUM_SUBSYSTEMS),
       subsystemSimulatorsStockPtr_(NUM_SUBSYSTEMS),
-      nominalControllersStock_(initialControllersStock),
-      options_(options)
+      nominalControllersStock_(initialControllersStock)
 	{
 //		Eigen::initParallel();
 
@@ -191,12 +191,7 @@ public:
 			subsystemCostFunctionsPtrStock_[i]->updateReferenceState(newReference);
 	}
 
-	Options_t& options() override {return options_;}
-
-
 protected:
-	void solveSequentialRiccatiEquations(const scalar_t& learningRate);
-
 	void approximateOptimalControlProblem();
 
 	void calculateControllerAndLagrangian(std::vector<controller_t>& controllersStock,
@@ -230,8 +225,6 @@ private:
 	std::vector<std::shared_ptr<ODE45<STATE_DIM> > > subsystemSimulatorsStockPtr_;
 
 	std::vector<controller_t> nominalControllersStock_;
-
-	Options_t options_;
 
 public:
 	template <size_t GSLQP_STATE_DIM, size_t GSLQP_INPUT_DIM, size_t GSLQP_OUTPUT_DIM, size_t GSLQP_NUM_SUBSYSTEMS>

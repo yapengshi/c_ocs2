@@ -127,7 +127,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
 		x_local[i].clear();
 
 		// max number of steps of integration
-		size_t maxNumSteps = options_.maxNumStepsPerSecond_ * std::max( 1.0, BASE::switchingTimes_[i+1]-BASE::switchingTimes_[i]);
+		size_t maxNumSteps = BASE::options_.maxNumStepsPerSecond_ * std::max( 1.0, BASE::switchingTimes_[i+1]-BASE::switchingTimes_[i]);
 
 		// initialize subsystem i
 		dynamics_[threadId][i]->initializeModel(BASE::switchingTimes_, x0, i, "GSLPQ");
@@ -139,7 +139,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
 		integratorsODE45_[threadId][i]->integrate(
 				x0, BASE::switchingTimes_[i], BASE::switchingTimes_[i+1],
 				x_local[i], t_local[i],
-				1e-3, options_.AbsTolODE_, options_.RelTolODE_, maxNumSteps);
+				1e-3, BASE::options_.AbsTolODE_, BASE::options_.RelTolODE_, maxNumSteps);
 
 		if (x_local[i].back() != x_local[i].back())
 			throw std::runtime_error("System became unstable during the SLQP_MP rollout.");
@@ -193,7 +193,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
 		timeTrajectoriesStock[i].clear();
 		stateTrajectoriesStock[i].clear();
 
-		size_t maxNumSteps = options_.maxNumStepsPerSecond_*(BASE::switchingTimes_[i+1]-BASE::switchingTimes_[i]);
+		size_t maxNumSteps = BASE::options_.maxNumStepsPerSecond_*(BASE::switchingTimes_[i+1]-BASE::switchingTimes_[i]);
 		maxNumSteps = ((1000>maxNumSteps) ? 1000 : maxNumSteps);
 
 		// initialize subsystem i
@@ -216,7 +216,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
 		integratorsODE45_[mp_options_.nThreads_][i]->integrate(
 				x0, BASE::switchingTimes_[i], t_stop_thisSubsystem,
 				stateTrajectoriesStock[i], timeTrajectoriesStock[i],
-				1e-3, options_.AbsTolODE_, options_.RelTolODE_, maxNumSteps);
+				1e-3, BASE::options_.AbsTolODE_, BASE::options_.RelTolODE_, maxNumSteps);
 
 		if (stateTrajectoriesStock[i].back() != stateTrajectoriesStock[i].back())
 			throw std::runtime_error("System became unstable during the SLQP rollout.");
@@ -435,7 +435,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateCostFun
 		size_t threadId) {
 
 	calculateCostFunction(timeTrajectoriesStock, outputTrajectoriesStock, inputTrajectoriesStock, totalCost, threadId);
-	double stateConstraintPenalty = options_.stateConstraintPenaltyCoeff_ * pow(options_.stateConstraintPenaltyBase_, BASE::iteration_);
+	double stateConstraintPenalty = BASE::options_.stateConstraintPenaltyCoeff_ * pow(BASE::options_.stateConstraintPenaltyBase_, BASE::iteration_);
 
 	for (int i=0; i<NUM_SUBSYSTEMS; i++) {
 		// integrates constraint type 2
@@ -488,7 +488,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateMeritFu
 
 	// add the L2 penalty for constraint violation
 	calculateConstraintISE(timeTrajectoriesStock, nc1TrajectoriesStock, EvTrajectoryStock, constraintISE);
-	double pho = BASE::iteration_/(options_.maxIterationGSLQP_-1) * options_.meritFunctionRho_;
+	double pho = BASE::iteration_/(BASE::options_.maxIterationGSLQP_-1) * BASE::options_.meritFunctionRho_;
 	meritFuntionValue += 0.5*pho*constraintISE;
 
 	// add the the lagrangian term for the constraint
@@ -794,7 +794,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch() {
 	learningRateStar_ = 0.0;	// default learning rate as zero
 
 	// display
-	if (options_.dispayGSLQP_)
+	if (BASE::options_.dispayGSLQP_)
 	{
 		// less-equal operator for eigen vectors
 		auto eigenVectorLessEqual = [] (const control_vector_t& u1, const control_vector_t& u2){ return u1.norm() < u2.norm(); };
@@ -816,10 +816,10 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch() {
 
 	for (int i=0; i<NUM_SUBSYSTEMS; i++)
 		for (int k=0; k<controllers_[mp_options_.nThreads_][i].time_.size(); k++)
-			if (options_.lineSearchByMeritFuntion_==true)
+			if (BASE::options_.lineSearchByMeritFuntion_==true)
 				controllers_[mp_options_.nThreads_][i].deltaUff_[k] += feedForwardConstraintInputStock_[i][k];
 			else
-				controllers_[mp_options_.nThreads_][i].uff_[k] += options_.constraintStepSize_*feedForwardConstraintInputStock_[i][k];
+				controllers_[mp_options_.nThreads_][i].uff_[k] += BASE::options_.constraintStepSize_*feedForwardConstraintInputStock_[i][k];
 
 
 	// perform one rollout while the input correction for the type-1 constraint is considered.
@@ -833,7 +833,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch() {
 
 
 	// calculate the merit function
-	if (options_.lineSearchByMeritFuntion_==true)
+	if (BASE::options_.lineSearchByMeritFuntion_==true)
 	{
 		// calculate the lagrange multiplier with learningRate zero
 		calculateRolloutLagrangeMultiplier(BASE::nominalTimeTrajectoriesStock_, BASE::nominalOutputTrajectoriesStock_, BASE::lagrangeControllerStock_,
@@ -854,7 +854,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch() {
 
 
 	// display
-	if (options_.dispayGSLQP_)  {std::cerr << "\t learningRate 0.0 \t cost: " << BASE::nominalTotalCost_ << " \t merit: " << BASE::nominalTotalMerit_ <<
+	if (BASE::options_.dispayGSLQP_)  {std::cerr << "\t learningRate 0.0 \t cost: " << BASE::nominalTotalCost_ << " \t merit: " << BASE::nominalTotalMerit_ <<
 		" \t constraint ISE: " << BASE::nominalConstraint1ISE_ << std::endl;}
 
 
@@ -867,7 +867,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch() {
 	alphaBestFound_ = false;
 	lsWorkerCompleted_ = 0;
 
-	size_t maxNumOfLineSearches =  (int) (log(options_.minLearningRateGSLQP_/options_.maxLearningRateGSLQP_) / log(options_.lineSearchContractionRate_)) +1;
+	size_t maxNumOfLineSearches =  (int) (log(BASE::options_.minLearningRateGSLQP_/BASE::options_.maxLearningRateGSLQP_) / log(BASE::options_.lineSearchContractionRate_)) +1;
 	alphaExpMax_ = maxNumOfLineSearches;
 	alphaExpBest_ = maxNumOfLineSearches;
 	alphaProcessed_.resize(maxNumOfLineSearches, 0);
@@ -914,7 +914,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch() {
 	killIntegrationEventHandler_->resetEvent();	// reset all integrations
 
 	// display
-	if (options_.dispayGSLQP_)
+	if (BASE::options_.dispayGSLQP_)
 		printString("The chosen learningRate is: " + std::to_string(learningRateStar_));
 
 	BASE::nominalTotalMerit_ = lowestTotalMerit_;
@@ -1058,138 +1058,138 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getNominalTrajec
  * 			+ BASE::SveTrajectoryStock_: Sve vector
  * 			+ BASE::sTrajectoryStock_: s scalar
  */
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRiccatiEquations(const scalar_t& learningRate)  {
-
-	LinearInterpolation<state_matrix_t, Eigen::aligned_allocator<state_matrix_t> > SmFunc;
-
-	// final value for the last Riccati equations
-	typename RiccatiEquations_t::s_vector_t allSsFinal;
-	allSsFinal.setZero();
-	// final value for the last error equation
-	output_vector_t SveFinal = output_vector_t::Zero();
-
-	for (int i=NUM_SUBSYSTEMS-1; i>=0; i--) {
-
-		// final cost of the subsystem is added to the following subsystem solution
-		typename RiccatiEquations_t::s_vector_t allCostFinal;
-		RiccatiEquations_t::convert2Vector(BASE::QmFinalStock_[i], BASE::QvFinalStock_[i], BASE::qFinalStock_[i], allCostFinal);
-		allSsFinal += allCostFinal;
-
-		// set data for Riccati equations
-		std::shared_ptr<RiccatiEquations_t> riccatiEquationsPtr( new RiccatiEquations_t() );		riccatiEquationsPtr->setData(learningRate, i, BASE::switchingTimes_[i], BASE::switchingTimes_[i+1],
-				&BASE::nominalTimeTrajectoriesStock_[i],
-				&BASE::AmConstrainedTrajectoryStock_[i], &BASE::BmTrajectoryStock_[i],
-				&BASE::qTrajectoryStock_[i], &BASE::QvConstrainedTrajectoryStock_[i], &BASE::QmConstrainedTrajectoryStock_[i],
-				&BASE::RvTrajectoryStock_[i], &BASE::RmInverseTrajectoryStock_[i], &BASE::RmConstrainedTrajectoryStock_[i], &BASE::PmTrajectoryStock_[i]);
-
-		// max number of steps of integration
-		size_t maxNumSteps = options_.maxNumStepsPerSecond_ * std::max( 1.0, BASE::switchingTimes_[i+1]-BASE::switchingTimes_[i] );
-		// integrating the Riccati equations
-		ODE45<RiccatiEquations_t::S_DIM_> ode45(riccatiEquationsPtr);
-		std::vector<double> normalizedTimeTrajectory;
-		std::vector<typename RiccatiEquations_t::s_vector_t, Eigen::aligned_allocator<typename RiccatiEquations_t::s_vector_t> > allSsTrajectory;
-		ode45.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory,
-				1e-3, options_.AbsTolODE_, options_.RelTolODE_,  maxNumSteps);
-
-		// denormalizing time and constructing 'Sm', 'Sv', and 's'
-		int N = normalizedTimeTrajectory.size();
-		BASE::SsTimeTrajectoryStock_[i].resize(N);
-		BASE::SmTrajectoryStock_[i].resize(N);
-		BASE::SvTrajectoryStock_[i].resize(N);
-		BASE::sTrajectoryStock_[i].resize(N);
-		for (int k=0; k<N; k++) {
-			RiccatiEquations_t::convert2Matrix(allSsTrajectory[N-1-k], BASE::SmTrajectoryStock_[i][k], BASE::SvTrajectoryStock_[i][k], BASE::sTrajectoryStock_[i][k]);
-			BASE::SsTimeTrajectoryStock_[i][k] = (BASE::switchingTimes_[i]-BASE::switchingTimes_[i+1])*(normalizedTimeTrajectory[N-1-k]-i) + BASE::switchingTimes_[i+1];
-		}  // end of k loop
-
-		// testing the numerical stability of the Riccati equations
-		for (int k=N-1; k>=0; k--) {
-			try {
-				if (BASE::SmTrajectoryStock_[i][k] != BASE::SmTrajectoryStock_[i][k])  throw std::runtime_error("Sm is unstable.");
-				if (BASE::SvTrajectoryStock_[i][k] != BASE::SvTrajectoryStock_[i][k])  throw std::runtime_error("Sv is unstable.");
-				if (BASE::sTrajectoryStock_[i][k] != BASE::sTrajectoryStock_[i][k])    throw std::runtime_error("s is unstable.");
-			}
-			catch(const std::exception& error)
-			{
-				std::cerr << "what(): " << error.what() << " at time " << BASE::SsTimeTrajectoryStock_[i][k] << " [sec]." << std::endl;
-				for (int kp=k; kp<k+10; kp++)  {
-					if (kp >= N) continue;
-					std::cerr << "Sm[" << BASE::SsTimeTrajectoryStock_[i][kp] << "]:\n"<< BASE::SmTrajectoryStock_[i][kp].transpose() << std::endl;
-					std::cerr << "Sv[" << BASE::SsTimeTrajectoryStock_[i][kp] << "]:\t"<< BASE::SvTrajectoryStock_[i][kp].transpose() << std::endl;
-					std::cerr << "s[" << BASE::SsTimeTrajectoryStock_[i][kp] << "]: \t"<< BASE::sTrajectoryStock_[i][kp].transpose() << std::endl;
-				}
-				exit(1);
-			}
-
-		}  // end of k loop
-
-		// set the final value for next Riccati equation
-		allSsFinal = allSsTrajectory.back();
-
-		/*
-		 * Type_1 constraints error correction compensation
-		 */
-
-		// Skip calculation of the error correction term Sve if the constrained simulation is used for forward simulation
-		if (options_.simulationIsConstrained_) {
-			BASE::SveTrajectoryStock_[i].resize(N);
-			for (int k=0; k<N; k++)
-				BASE::SveTrajectoryStock_[i][k].setZero();
-			continue;
-		}
-
-		// Calculating the coefficients of the error equation
-		SmFunc.setTimeStamp( &(BASE::SsTimeTrajectoryStock_[i]) );
-		SmFunc.setData( &(BASE::SmTrajectoryStock_[i]) );
-
-		output_vector_array_t GvTrajectory(BASE::nominalTimeTrajectoriesStock_[i].size());
-		state_matrix_array_t  GmTrajectory(BASE::nominalTimeTrajectoriesStock_[i].size());
-
-		for (int k=0; k<BASE::nominalTimeTrajectoriesStock_[i].size(); k++) {
-			state_matrix_t Sm;
-			SmFunc.interpolate(BASE::nominalTimeTrajectoriesStock_[i][k], Sm);
-
-			control_feedback_t Lm = BASE::RmInverseTrajectoryStock_[i][k]*(BASE::PmTrajectoryStock_[i][k]+BASE::BmTrajectoryStock_[i][k].transpose()*Sm);
-
-			GmTrajectory[k] = BASE::AmConstrainedTrajectoryStock_[i][k] -
-					BASE::BmTrajectoryStock_[i][k]*BASE::RmInverseTrajectoryStock_[i][k]*BASE::RmConstrainedTrajectoryStock_[i][k]*Lm;
-
-			GvTrajectory[k] = (BASE::CmProjectedTrajectoryStock_[i][k]-Lm).transpose()*
-					BASE::RmTrajectoryStock_[i][k]*BASE::EvProjectedTrajectoryStock_[i][k];
-
-		}  // end of k loop
-
-		// set data for error equations
-		std::shared_ptr<ErrorEquation_t> errorEquationPtr( new ErrorEquation_t());
-		errorEquationPtr->setData(i, BASE::switchingTimes_[i], BASE::switchingTimes_[i+1],
-				&BASE::nominalTimeTrajectoriesStock_[i], &GvTrajectory, &GmTrajectory);
-
-		// integrating the Riccati equations
-		ODE45<OUTPUT_DIM> errorOde45(errorEquationPtr);
-		output_vector_array_t SveTrajectory;
-		errorOde45.integrate(SveFinal, normalizedTimeTrajectory, SveTrajectory, 1e-3, options_.AbsTolODE_, options_.RelTolODE_);
-
-		// reset the final value for next Riccati equation
-		SveFinal = SveTrajectory.back();
-
-		BASE::SveTrajectoryStock_[i].resize(N);
-		for (int k=0; k<N; k++) {
-			BASE::SveTrajectoryStock_[i][k] = SveTrajectory[N-1-k];
-
-			// testing the numerical stability of the Riccati error equation
-			try {
-				if (BASE::SveTrajectoryStock_[i][k] != BASE::SveTrajectoryStock_[i][k])  throw std::runtime_error("Sve is unstable");
-			}
-			catch(const std::exception& error) 	{
-				std::cerr << "what(): " << error.what() << " at time " << BASE::SsTimeTrajectoryStock_[i][k] << " [sec]." << std::endl;
-				for (int kp=k; kp<N; kp++)   std::cerr << "Sve[" << BASE::SsTimeTrajectoryStock_[i][kp] << "]:\t"<< BASE::SveTrajectoryStock_[i][kp].transpose() << std::endl;
-				exit(1);
-			}
-		}
-
-	}  // end of i loop
-}
+//template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
+//void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentialRiccatiEquations(const scalar_t& learningRate)  {
+//
+//	LinearInterpolation<state_matrix_t, Eigen::aligned_allocator<state_matrix_t> > SmFunc;
+//
+//	// final value for the last Riccati equations
+//	typename RiccatiEquations_t::s_vector_t allSsFinal;
+//	allSsFinal.setZero();
+//	// final value for the last error equation
+//	output_vector_t SveFinal = output_vector_t::Zero();
+//
+//	for (int i=NUM_SUBSYSTEMS-1; i>=0; i--) {
+//
+//		// final cost of the subsystem is added to the following subsystem solution
+//		typename RiccatiEquations_t::s_vector_t allCostFinal;
+//		RiccatiEquations_t::convert2Vector(BASE::QmFinalStock_[i], BASE::QvFinalStock_[i], BASE::qFinalStock_[i], allCostFinal);
+//		allSsFinal += allCostFinal;
+//
+//		// set data for Riccati equations
+//		std::shared_ptr<RiccatiEquations_t> riccatiEquationsPtr( new RiccatiEquations_t() );		riccatiEquationsPtr->setData(learningRate, i, BASE::switchingTimes_[i], BASE::switchingTimes_[i+1],
+//				&BASE::nominalTimeTrajectoriesStock_[i],
+//				&BASE::AmConstrainedTrajectoryStock_[i], &BASE::BmTrajectoryStock_[i],
+//				&BASE::qTrajectoryStock_[i], &BASE::QvConstrainedTrajectoryStock_[i], &BASE::QmConstrainedTrajectoryStock_[i],
+//				&BASE::RvTrajectoryStock_[i], &BASE::RmInverseTrajectoryStock_[i], &BASE::RmConstrainedTrajectoryStock_[i], &BASE::PmTrajectoryStock_[i]);
+//
+//		// max number of steps of integration
+//		size_t maxNumSteps = BASE::options_.maxNumStepsPerSecond_ * std::max( 1.0, BASE::switchingTimes_[i+1]-BASE::switchingTimes_[i] );
+//		// integrating the Riccati equations
+//		ODE45<RiccatiEquations_t::S_DIM_> ode45(riccatiEquationsPtr);
+//		std::vector<double> normalizedTimeTrajectory;
+//		std::vector<typename RiccatiEquations_t::s_vector_t, Eigen::aligned_allocator<typename RiccatiEquations_t::s_vector_t> > allSsTrajectory;
+//		ode45.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory,
+//				1e-3, BASE::options_.AbsTolODE_, BASE::options_.RelTolODE_,  maxNumSteps);
+//
+//		// denormalizing time and constructing 'Sm', 'Sv', and 's'
+//		int N = normalizedTimeTrajectory.size();
+//		BASE::SsTimeTrajectoryStock_[i].resize(N);
+//		BASE::SmTrajectoryStock_[i].resize(N);
+//		BASE::SvTrajectoryStock_[i].resize(N);
+//		BASE::sTrajectoryStock_[i].resize(N);
+//		for (int k=0; k<N; k++) {
+//			RiccatiEquations_t::convert2Matrix(allSsTrajectory[N-1-k], BASE::SmTrajectoryStock_[i][k], BASE::SvTrajectoryStock_[i][k], BASE::sTrajectoryStock_[i][k]);
+//			BASE::SsTimeTrajectoryStock_[i][k] = (BASE::switchingTimes_[i]-BASE::switchingTimes_[i+1])*(normalizedTimeTrajectory[N-1-k]-i) + BASE::switchingTimes_[i+1];
+//		}  // end of k loop
+//
+//		// testing the numerical stability of the Riccati equations
+//		for (int k=N-1; k>=0; k--) {
+//			try {
+//				if (BASE::SmTrajectoryStock_[i][k] != BASE::SmTrajectoryStock_[i][k])  throw std::runtime_error("Sm is unstable.");
+//				if (BASE::SvTrajectoryStock_[i][k] != BASE::SvTrajectoryStock_[i][k])  throw std::runtime_error("Sv is unstable.");
+//				if (BASE::sTrajectoryStock_[i][k] != BASE::sTrajectoryStock_[i][k])    throw std::runtime_error("s is unstable.");
+//			}
+//			catch(const std::exception& error)
+//			{
+//				std::cerr << "what(): " << error.what() << " at time " << BASE::SsTimeTrajectoryStock_[i][k] << " [sec]." << std::endl;
+//				for (int kp=k; kp<k+10; kp++)  {
+//					if (kp >= N) continue;
+//					std::cerr << "Sm[" << BASE::SsTimeTrajectoryStock_[i][kp] << "]:\n"<< BASE::SmTrajectoryStock_[i][kp].transpose() << std::endl;
+//					std::cerr << "Sv[" << BASE::SsTimeTrajectoryStock_[i][kp] << "]:\t"<< BASE::SvTrajectoryStock_[i][kp].transpose() << std::endl;
+//					std::cerr << "s[" << BASE::SsTimeTrajectoryStock_[i][kp] << "]: \t"<< BASE::sTrajectoryStock_[i][kp].transpose() << std::endl;
+//				}
+//				exit(1);
+//			}
+//
+//		}  // end of k loop
+//
+//		// set the final value for next Riccati equation
+//		allSsFinal = allSsTrajectory.back();
+//
+//		/*
+//		 * Type_1 constraints error correction compensation
+//		 */
+//
+//		// Skip calculation of the error correction term Sve if the constrained simulation is used for forward simulation
+//		if (BASE::options_.simulationIsConstrained_) {
+//			BASE::SveTrajectoryStock_[i].resize(N);
+//			for (int k=0; k<N; k++)
+//				BASE::SveTrajectoryStock_[i][k].setZero();
+//			continue;
+//		}
+//
+//		// Calculating the coefficients of the error equation
+//		SmFunc.setTimeStamp( &(BASE::SsTimeTrajectoryStock_[i]) );
+//		SmFunc.setData( &(BASE::SmTrajectoryStock_[i]) );
+//
+//		output_vector_array_t GvTrajectory(BASE::nominalTimeTrajectoriesStock_[i].size());
+//		state_matrix_array_t  GmTrajectory(BASE::nominalTimeTrajectoriesStock_[i].size());
+//
+//		for (int k=0; k<BASE::nominalTimeTrajectoriesStock_[i].size(); k++) {
+//			state_matrix_t Sm;
+//			SmFunc.interpolate(BASE::nominalTimeTrajectoriesStock_[i][k], Sm);
+//
+//			control_feedback_t Lm = BASE::RmInverseTrajectoryStock_[i][k]*(BASE::PmTrajectoryStock_[i][k]+BASE::BmTrajectoryStock_[i][k].transpose()*Sm);
+//
+//			GmTrajectory[k] = BASE::AmConstrainedTrajectoryStock_[i][k] -
+//					BASE::BmTrajectoryStock_[i][k]*BASE::RmInverseTrajectoryStock_[i][k]*BASE::RmConstrainedTrajectoryStock_[i][k]*Lm;
+//
+//			GvTrajectory[k] = (BASE::CmProjectedTrajectoryStock_[i][k]-Lm).transpose()*
+//					BASE::RmTrajectoryStock_[i][k]*BASE::EvProjectedTrajectoryStock_[i][k];
+//
+//		}  // end of k loop
+//
+//		// set data for error equations
+//		std::shared_ptr<ErrorEquation_t> errorEquationPtr( new ErrorEquation_t());
+//		errorEquationPtr->setData(i, BASE::switchingTimes_[i], BASE::switchingTimes_[i+1],
+//				&BASE::nominalTimeTrajectoriesStock_[i], &GvTrajectory, &GmTrajectory);
+//
+//		// integrating the Riccati equations
+//		ODE45<OUTPUT_DIM> errorOde45(errorEquationPtr);
+//		output_vector_array_t SveTrajectory;
+//		errorOde45.integrate(SveFinal, normalizedTimeTrajectory, SveTrajectory, 1e-3, BASE::options_.AbsTolODE_, BASE::options_.RelTolODE_);
+//
+//		// reset the final value for next Riccati equation
+//		SveFinal = SveTrajectory.back();
+//
+//		BASE::SveTrajectoryStock_[i].resize(N);
+//		for (int k=0; k<N; k++) {
+//			BASE::SveTrajectoryStock_[i][k] = SveTrajectory[N-1-k];
+//
+//			// testing the numerical stability of the Riccati error equation
+//			try {
+//				if (BASE::SveTrajectoryStock_[i][k] != BASE::SveTrajectoryStock_[i][k])  throw std::runtime_error("Sve is unstable");
+//			}
+//			catch(const std::exception& error) 	{
+//				std::cerr << "what(): " << error.what() << " at time " << BASE::SsTimeTrajectoryStock_[i][k] << " [sec]." << std::endl;
+//				for (int kp=k; kp<N; kp++)   std::cerr << "Sve[" << BASE::SsTimeTrajectoryStock_[i][kp] << "]:\t"<< BASE::SveTrajectoryStock_[i][kp].transpose() << std::endl;
+//				exit(1);
+//			}
+//		}
+//
+//	}  // end of i loop
+//}
 
 
 /******************************************************************************************************/
@@ -1256,7 +1256,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 	BASE::initState_ = initState;
 
 	// display
-	if (options_.dispayGSLQP_)
+	if (BASE::options_.dispayGSLQP_)
 	{
 		std::cerr << "\n#### SLQP solver starts with switching times [" << switchingTimes[0];
 		for (size_t i=1; i<=NUM_SUBSYSTEMS; i++)   std::cerr << ", " << switchingTimes[i];
@@ -1291,19 +1291,19 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 	calculateConstraintISE(BASE::nominalTimeTrajectoriesStock_, BASE::nc1TrajectoriesStock_, BASE::EvTrajectoryStock_, BASE::nominalConstraint1ISE_);
 
 	// display
-	if (options_.dispayGSLQP_)  std::cerr << "\n#### Initial controller: \n cost: " << BASE::nominalTotalCost_ << " \t constraint ISE: " << BASE::nominalConstraint1ISE_ << std::endl;
+	if (BASE::options_.dispayGSLQP_)  std::cerr << "\n#### Initial controller: \n cost: " << BASE::nominalTotalCost_ << " \t constraint ISE: " << BASE::nominalConstraint1ISE_ << std::endl;
 
 	BASE::iterationCost_.push_back( (Eigen::VectorXd(1) << BASE::nominalTotalCost_).finished() );
 	BASE::iterationISE1_.push_back( (Eigen::VectorXd(1) << BASE::nominalConstraint1ISE_).finished() );
 
 	// SLQP main loop
-	while (BASE::iteration_<options_.maxIterationGSLQP_ && isOptimizationConverged==false)  {
+	while (BASE::iteration_<BASE::options_.maxIterationGSLQP_ && isOptimizationConverged==false)  {
 
 		double costCashed = BASE::nominalTotalCost_;
 		double constraint1ISECashed = BASE::nominalConstraint1ISE_;
 
 		// display
-		if (options_.dispayGSLQP_)  std::cerr << "\n#### Iteration " <<  BASE::iteration_+1 << std::endl;
+		if (BASE::options_.dispayGSLQP_)  std::cerr << "\n#### Iteration " <<  BASE::iteration_+1 << std::endl;
 
 		// linearizing the dynamics and quadratizing the cost function along nominal trajectories
 		auto start = std::chrono::high_resolution_clock::now();
@@ -1323,7 +1323,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 		// solve Riccati equations
 		auto start2 = std::chrono::high_resolution_clock::now();
 
-		solveSequentialRiccatiEquations(1.0 /*nominal learningRate*/);
+		this->solveSequentialRiccatiEquations(1.0 /*nominal learningRate*/);
 
 		auto end2 = std::chrono::high_resolution_clock::now();
 		if(mp_options_.debugPrintMP_){
@@ -1371,12 +1371,12 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 		BASE::iteration_++;
 		relCost = fabs(BASE::nominalTotalCost_-costCashed);
 		relConstraint1ISE = fabs(BASE::nominalConstraint1ISE_-constraint1ISECashed);
-		isConstraint1Satisfied  = BASE::nominalConstraint1ISE_<=options_.minAbsConstraint1ISE_ || relConstraint1ISE<=options_.minRelConstraint1ISE_;
-		isCostFunctionConverged = learningRateStar_==0 || relCost<=options_.minRelCostGSLQP_;
+		isConstraint1Satisfied  = BASE::nominalConstraint1ISE_<=BASE::options_.minAbsConstraint1ISE_ || relConstraint1ISE<=BASE::options_.minRelConstraint1ISE_;
+		isCostFunctionConverged = learningRateStar_==0 || relCost<=BASE::options_.minRelCostGSLQP_;
 		isOptimizationConverged = isCostFunctionConverged==true && isConstraint1Satisfied==true;
 
 		// display
-		if (options_.dispayGSLQP_)  {
+		if (BASE::options_.dispayGSLQP_)  {
 			std::cerr << "optimization cost:         " << BASE::nominalTotalCost_ << std::endl;
 			std::cerr << "constraint type-1 ISE:     " << BASE::nominalConstraint1ISE_ << std::endl;
 			std::cerr << "constraint type-1 MaxNorm: " << constraint1MaxNorm << std::endl;
@@ -1388,7 +1388,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 				std::cerr << std::endl;
 			}
 		}
-		if(options_.displayShortSummary_){
+		if(BASE::options_.displayShortSummary_){
 			printString("#### Iter " + std::to_string(BASE::iteration_-1) + ".   opt. cost: " + std::to_string(BASE::nominalTotalCost_)+ ".    constraint ISE: "
 					+std::to_string(BASE::nominalConstraint1ISE_) +".   constr MaxNorm: " + std::to_string(constraint1MaxNorm));
 		}
@@ -1398,13 +1398,13 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 	approximateOptimalControlProblem();
 
 	// solve Riccati equations with learningRate zero
-	solveSequentialRiccatiEquations(0.0 /*learningRate*/);
+	this->solveSequentialRiccatiEquations(0.0 /*learningRate*/);
 
 	// calculate the nominal co-state
 	calculateRolloutCostate(BASE::nominalTimeTrajectoriesStock_, BASE::nominalOutputTrajectoriesStock_, BASE::nominalcostateTrajectoriesStock_);
 
 	// display
-	if (options_.dispayGSLQP_)  {
+	if (BASE::options_.dispayGSLQP_)  {
 		std::cout << "\n+++++++++++++++++++++++++++++++++++" << std::endl;
 		std::cout <<   "++++++ SLQP solver has ended ++++++" << std::endl;
 		std::cout <<   "+++++++++++++++++++++++++++++++++++" << std::endl;
@@ -1414,7 +1414,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 			else
 				printString("SLQP successfully terminates as cost relative change (relCost=" + std::to_string(relCost) + ") reached to the minimum value.");
 
-			if (BASE::nominalConstraint1ISE_<=options_.minAbsConstraint1ISE_)
+			if (BASE::nominalConstraint1ISE_<=BASE::options_.minAbsConstraint1ISE_)
 				printString("Type-1 constraint absolute ISE (absConstraint1ISE=" + std::to_string(BASE::nominalConstraint1ISE_) + ") reached to the minimum value.");
 			else
 				printString("Type-1 constraint relative ISE (relConstraint1ISE=" + std::to_string(relConstraint1ISE) + ") reached to the minimum value.");
@@ -1628,7 +1628,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 
 		linearizedSystems_[mp_options_.nThreads_][i]->getFinalConstraint2DerivativesState(BASE::FmFinalStock_[i]);
 
-		double stateConstraintPenalty = options_.stateConstraintPenaltyCoeff_ * pow(options_.stateConstraintPenaltyBase_, BASE::iteration_);
+		double stateConstraintPenalty = BASE::options_.stateConstraintPenaltyCoeff_ * pow(BASE::options_.stateConstraintPenaltyBase_, BASE::iteration_);
 
 		BASE::qFinalStock_[i]  += 0.5 * stateConstraintPenalty * BASE::HvFinalStock_[i].head(nc2).transpose() * BASE::HvFinalStock_[i].head(nc2);
 		BASE::QvFinalStock_[i] += stateConstraintPenalty * BASE::FmFinalStock_[i].topRows(nc2).transpose() * BASE::HvFinalStock_[i].head(nc2);
@@ -1881,7 +1881,7 @@ size_t SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeApproxi
 
 
 	// constraint type 2 coefficients
-	double stateConstraintPenalty = options_.stateConstraintPenaltyCoeff_ * pow(options_.stateConstraintPenaltyBase_, BASE::iteration_);
+	double stateConstraintPenalty = BASE::options_.stateConstraintPenaltyCoeff_ * pow(BASE::options_.stateConstraintPenaltyBase_, BASE::iteration_);
 	size_t nc2 = BASE::nc2TrajectoriesStock_[i][k];
 
 	if (nc2 > 0) {
@@ -2008,7 +2008,7 @@ size_t SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeCalcula
 	BASE::lagrangeControllerStock_[i].uff_[k] = -BASE::lagrangeControllerStock_[i].k_[k]*nominalOutput;
 	Eigen::VectorXd localVff = DmDagerTransRm * (EvProjected-Lv-Lve);
 
-	if (nominalLagrangeMultiplierUpdated_ == false || options_.lineSearchByMeritFuntion_==false)
+	if (nominalLagrangeMultiplierUpdated_ == false || BASE::options_.lineSearchByMeritFuntion_==false)
 	{
 		BASE::lagrangeControllerStock_[i].uff_[k] += localVff;
 		BASE::lagrangeControllerStock_[i].deltaUff_[k] = Eigen::VectorXd::Zero(nc1);
@@ -2069,17 +2069,17 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 	{
 		size_t alphaExp = alphaTaken_++;
 
-		scalar_t learningRate  = options_.maxLearningRateGSLQP_ * std::pow(options_.lineSearchContractionRate_, alphaExp);
+		scalar_t learningRate  = BASE::options_.maxLearningRateGSLQP_ * std::pow(BASE::options_.lineSearchContractionRate_, alphaExp);
 
 
-		if (learningRate < options_.minLearningRateGSLQP_ || alphaBestFound_.load() == true)
+		if (learningRate < BASE::options_.minLearningRateGSLQP_ || alphaBestFound_.load() == true)
 		{
 			if(mp_options_.debugPrintMP_)
 			{
 				if (alphaBestFound_.load() == true)
 					printString("[Thread " + std::to_string(threadId) + "]: Leaving lineSearchWorker because best alpha is found OR no improvement for any alpha");
 				else
-					printString("[Thread "+ std::to_string(threadId) +"]: Leaving lineSearchWorker because learningRate < options_.minLearningRateGSLQP_");
+					printString("[Thread "+ std::to_string(threadId) +"]: Leaving lineSearchWorker because learningRate < BASE::options_.minLearningRateGSLQP_");
 			}
 
 			break;
@@ -2206,7 +2206,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 		{
 			alphaBestFound_ = true;
 			killIntegrationEventHandler_->setEvent();	// kill all integrators
-			if (options_.dispayGSLQP_) {
+			if (BASE::options_.dispayGSLQP_) {
 				printString("\t LS: terminate other rollouts with different alphas. alpha_best found or terminating without improvement. ");
 			}
 		}
@@ -2278,7 +2278,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeLineSearc
 				lsNc2TrajectoriesStock, lsHvTrajectoryStock, lsNc2FinalStock, lsHvFinalStock, lsTotalCost, threadId);
 
 		// calculate the merit function
-		if (options_.lineSearchByMeritFuntion_==true)
+		if (BASE::options_.lineSearchByMeritFuntion_==true)
 		{
 			// calculate the lagrange multiplier
 			calculateRolloutLagrangeMultiplier(lsTimeTrajectoriesStock, lsOutputTrajectoriesStock, lsLagrangeControllersStock, lsLagrangeTrajectoriesStock);
@@ -2291,7 +2291,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeLineSearc
 		}
 
 		// display
-		if (options_.dispayGSLQP_){
+		if (BASE::options_.dispayGSLQP_){
 			printString("\t [Thread" + std::to_string(threadId) + "] - learningRate " + std::to_string(learningRate) + " \t cost: " + std::to_string(lsTotalCost) +" \t merit: " + std::to_string(lsTotalMerit) +
 					" \t constraint ISE: " + std::to_string(lsConstraint1ISE));
 			if (std::accumulate(lsNc2FinalStock.begin(), lsNc2FinalStock.end(), 0) > 0) {

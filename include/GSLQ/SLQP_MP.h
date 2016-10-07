@@ -93,8 +93,8 @@ public:
 			const MP_Options_t& mp_options = MP_Options_t())
 
 	:
+		SLQP_BASE<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>(options),
 		feedForwardConstraintInputStock_(NUM_SUBSYSTEMS),
-		options_(options),
 		mp_options_(mp_options),
 		workerTask_(IDLE),
 		subsystemProcessed_(0),
@@ -317,12 +317,8 @@ public:
 	// allows to externally update the cost functions reference states
 	void setNewCostReferenceState(const output_vector_t& newReference);
 
-	Options_t& options() override {return options_;}
-
 
 protected:
-	void solveSequentialRiccatiEquations(const scalar_t& learningRate);
-
 	void approximateOptimalControlProblem();
 
 	void calculateControllerAndLagrangian(std::vector<controller_t>& controllersStock,
@@ -407,7 +403,6 @@ private:
 
 	std::vector<control_vector_array_t> feedForwardConstraintInputStock_;
 
-	Options_t options_;
 	MP_Options_t mp_options_;
 
 

@@ -57,107 +57,107 @@ include_directories(
 # ) 
 
 # Declare a cpp executable
-add_executable(exp1_slqp_mp_test src/test/EXP1_SLQP_MP_Test.cpp)
-
+#add_executable(exp1_slqp_mp_test src/test/EXP1_SLQP_MP_Test.cpp)
+#
 # Declare a cpp executable
-add_executable(exp3_slqp_mp_test src/test/EXP3_SLQP_MP_Test.cpp)
-
+#add_executable(exp3_slqp_mp_test src/test/EXP3_SLQP_MP_Test.cpp)
+#
 # Declare a cpp executable
-add_executable(exp1_gslqp_test src/test/EXP1GSLQPTest.cpp)
-
+#add_executable(exp1_gslqp_test src/test/EXP1GSLQPTest.cpp)
+#
 # Declare a cpp executable
-add_executable(exp3_gslqp_test src/test/EXP3GSLQPTest.cpp)
-
+#add_executable(exp3_gslqp_test src/test/EXP3GSLQPTest.cpp)
+#
 # Declare a cpp executable
-add_executable(exp4_gslqp_test src/test/EXP4GSLQPTest.cpp)
-
+#add_executable(exp4_gslqp_test src/test/EXP4GSLQPTest.cpp)
+#
 # Declare a cpp executable
-add_executable(exp5_slqp_test src/test/EXP5SLQPTest.cpp)
-
+#add_executable(exp5_slqp_test src/test/EXP5SLQPTest.cpp)
+#
 # Declare a cpp executable
-add_executable(exp1_test src/test/EXP1Test.cpp)
-
+#add_executable(exp1_test src/test/EXP1Test.cpp)
+#
 # Declare a cpp executable
-add_executable(exp2_gslqp_test src/test/EXP2GSLQPTest.cpp)
-
+#add_executable(exp2_gslqp_test src/test/EXP2GSLQPTest.cpp)
+#
 # Declare a cpp executable
-add_executable(exp2_test src/test/EXP2Test.cpp)
-
+#add_executable(exp2_test src/test/EXP2Test.cpp)
+#
 # Declare a cpp executable 
-add_executable(exp1_cost_derivative_test src/test/EXP1DerivativesCheck.cpp)
-
+#add_executable(exp1_cost_derivative_test src/test/EXP1DerivativesCheck.cpp)
+#
 # Declare a cpp executable 
-add_executable(exp3_numerical_derivative_test src/test/EXP3SystemDynamicsDerivativeTest.cpp)
+#add_executable(exp3_numerical_derivative_test src/test/EXP3SystemDynamicsDerivativeTest.cpp)
 
 
 # Specify libraries to link a library or executable target against
-target_link_libraries(exp1_slqp_mp_test
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-  pthread
-)
-
+#target_link_libraries(exp1_slqp_mp_test
+#  ${catkin_LIBRARIES}
+#  ${Boost_LIBRARIES}
+#  pthread
+#)
+#
 # Specify libraries to link a library or executable target against
-target_link_libraries(exp3_slqp_mp_test
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-  pthread
-)
-
+#target_link_libraries(exp3_slqp_mp_test
+#  ${catkin_LIBRARIES}
+#  ${Boost_LIBRARIES}
+#  pthread
+#)
+#
 # Specify libraries to link a library or executable target against
-target_link_libraries(exp1_gslqp_test
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-)
-
+#target_link_libraries(exp1_gslqp_test
+#  ${catkin_LIBRARIES}
+#  ${Boost_LIBRARIES}
+#)
+#
 # Specify libraries to link a library or executable target against
-target_link_libraries(exp3_gslqp_test
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-)
-
+#target_link_libraries(exp3_gslqp_test
+#  ${catkin_LIBRARIES}
+#  ${Boost_LIBRARIES}
+#)
+#
 # Specify libraries to link a library or executable target against
-target_link_libraries(exp4_gslqp_test
-  ${catkin_LIBRARIES}  
-  ${Boost_LIBRARIES}
-)
-
+#target_link_libraries(exp4_gslqp_test
+#  ${catkin_LIBRARIES}  
+#  ${Boost_LIBRARIES}
+#)
+#
 ## Specify libraries to link a library or executable target against
-target_link_libraries(exp5_slqp_test
-  ${catkin_LIBRARIES}  
-  ${Boost_LIBRARIES}
-)
-
+#target_link_libraries(exp5_slqp_test
+#  ${catkin_LIBRARIES}  
+#  ${Boost_LIBRARIES}
+#)
+#
 # Specify libraries to link a library or executable target against
-target_link_libraries(exp1_test
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-)
-
+#target_link_libraries(exp1_test
+#  ${catkin_LIBRARIES}
+#  ${Boost_LIBRARIES}
+#)
+#
 # Specify libraries to link a library or executable target against
-target_link_libraries(exp2_gslqp_test
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-)
-
+#target_link_libraries(exp2_gslqp_test
+#  ${catkin_LIBRARIES}
+#  ${Boost_LIBRARIES}
+#)
+#
 # Specify libraries to link a library or executable target against
-target_link_libraries(exp2_test
-  ${catkin_LIBRARIES}
-  ${IPOPT_LIBS}
-  ${Boost_LIBRARIES}
-)
-
+#target_link_libraries(exp2_test
+#  ${catkin_LIBRARIES}
+#  ${IPOPT_LIBS}
+#  ${Boost_LIBRARIES}
+#)
+#
 # Specify libraries to link a library or executable target against
-target_link_libraries(exp1_cost_derivative_test
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-)
-
+#target_link_libraries(exp1_cost_derivative_test
+#  ${catkin_LIBRARIES}
+#  ${Boost_LIBRARIES}
+#)
+#
 # Specify libraries to link a library or executable target against
-target_link_libraries(exp3_numerical_derivative_test
-  ${catkin_LIBRARIES}  
-  ${Boost_LIBRARIES}
-)
+#target_link_libraries(exp3_numerical_derivative_test
+#  ${catkin_LIBRARIES}  
+#  ${Boost_LIBRARIES}
+#)
 
 #############
 ## Testing ##
@@ -168,23 +168,23 @@ target_link_libraries(exp3_numerical_derivative_test
 ## $ catkin run_tests --no-deps --this
 
 ## unit tests
-catkin_add_gtest(interpolation_test test/InterpolationTest.cpp)
-
-catkin_add_gtest(integration_test test/IntegrationTest.cpp)
-target_link_libraries(integration_test ${Boost_LIBRARIES})
-
-catkin_add_gtest(system_dynamics_derivative_test test/SystemDynamicsDerivativeTest.cpp)
-
-catkin_add_gtest(exp1_slqp_unittest test/exp1_slqp_test.cpp)
-
-catkin_add_gtest(exp1_gslqp_unittest test/exp1_gslqp_test.cpp)
-
-catkin_add_gtest(exp2_unittest test/exp2_test.cpp)
-target_link_libraries(exp2_unittest
-  ${catkin_LIBRARIES}
-)
-
-catkin_add_gtest(exp5_unittest test/exp5_slqp_test.cpp)
+#catkin_add_gtest(interpolation_test test/InterpolationTest.cpp)
+#
+#catkin_add_gtest(integration_test test/IntegrationTest.cpp)
+#target_link_libraries(integration_test ${Boost_LIBRARIES})
+#
+#catkin_add_gtest(system_dynamics_derivative_test test/SystemDynamicsDerivativeTest.cpp)
+#
+#catkin_add_gtest(exp1_slqp_unittest test/exp1_slqp_test.cpp)
+#
+#catkin_add_gtest(exp1_gslqp_unittest test/exp1_gslqp_test.cpp)
+#
+#catkin_add_gtest(exp2_unittest test/exp2_test.cpp)
+#target_link_libraries(exp2_unittest
+#  ${catkin_LIBRARIES}
+#)
+#
+#catkin_add_gtest(exp5_unittest test/exp5_slqp_test.cpp)
 
 
 

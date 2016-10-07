@@ -111,7 +111,8 @@ public:
 		convert2Matrix(allSs, Sm, Sv, s);
 
 		// numerical consideration
-		makePSD(Sm);
+		bool hasNegativeEigenValue = makePSD(Sm);
+//		Sm += state_matrix_t::Identity()*(1e-2);
 
 		state_matrix_t Am;
 		AmFunc_.interpolate(t, Am);
@@ -159,7 +160,7 @@ protected:
 
 		if (squareMatrix.rows() != squareMatrix.cols())  throw std::runtime_error("Not a square matrix: makePSD() method is for square matrix.");
 
-		Eigen::SelfAdjointEigenSolver<Derived> eig(squareMatrix);
+		Eigen::SelfAdjointEigenSolver<Derived> eig(squareMatrix, Eigen::EigenvaluesOnly);
 		Eigen::VectorXd lambda = eig.eigenvalues();
 
 		bool hasNegativeEigenValue = false;
@@ -169,10 +170,19 @@ protected:
 				lambda(j) = 1e-6;
 			}
 
-		if (hasNegativeEigenValue)
+		if (hasNegativeEigenValue) {
+			eig.compute(squareMatrix, Eigen::ComputeEigenvectors);
 			squareMatrix = eig.eigenvectors() * lambda.asDiagonal() * eig.eigenvectors().inverse();
-		else
+		} else {
 			squareMatrix = 0.5*(squareMatrix+squareMatrix.transpose()).eval();
+		}
+
+//		Eigen::LDLT<Derived> ldlt(squareMatrix);
+//		Derived squareMatrixNew = ldlt.matrixLDLT();
+//		if (squareMatrix.isApprox(squareMatrixNew,1e-4))
+//			std::cout << ">>>>>>>>>>>>>>> Cholesky is wrong" << std::endl;
+//		if (hasNegativeEigenValue)
+//			std::cout << "lambda: " << eig.eigenvalues().head(5).transpose() << std::endl;
 
 		return hasNegativeEigenValue;
 	}

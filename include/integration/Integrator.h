@@ -215,6 +215,20 @@ using ODE45 = Integrator<
 				>
 			>;
 
+
+template <size_t STATE_DIM, size_t ORDER>
+using IntegratorAdamsBashforth = Integrator <
+		STATE_DIM,
+		boost::numeric::odeint::adams_bashforth<
+			ORDER,
+			Eigen::Matrix<double, STATE_DIM, 1>,	// state
+			double,	// typename value
+			Eigen::Matrix<double, STATE_DIM, 1>,	// derivative
+			double, 	// typename time
+			boost::numeric::odeint::vector_space_algebra
+		>
+>;
+
 } // namespace ocs2
 
 #endif /* OCS2INTEGRATOR_H_ */

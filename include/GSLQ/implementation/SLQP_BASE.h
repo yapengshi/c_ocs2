@@ -38,18 +38,34 @@ void SLQP_BASE<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentia
 		// max number of steps of integration
 		size_t maxNumSteps = options_.maxNumStepsPerSecond_ * std::max( 1.0, switchingTimes_[i+1]-switchingTimes_[i] );
 
-		// integrating the Riccati equations
-//		ODE45<RiccatiEquations_t::S_DIM_> riccati_integrator(riccatiEquationsPtr);
-		const size_t adams_integrator_order = 4;
-		IntegratorAdamsBashforth<RiccatiEquations_t::S_DIM_, adams_integrator_order> riccati_integrator(riccatiEquationsPtr);
 
 		std::vector<double> normalizedTimeTrajectory;
 		std::vector<typename RiccatiEquations_t::s_vector_t, Eigen::aligned_allocator<typename RiccatiEquations_t::s_vector_t> > allSsTrajectory;
 
-//		riccati_integrator.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory, 1e-5, options_.AbsTolODE_, options_.RelTolODE_, maxNumSteps);
 
-		const double dt = 0.001;
-		riccati_integrator.integrate(allSsFinal, i,	i+1, dt, allSsTrajectory, normalizedTimeTrajectory);
+		switch(options_.RiccatiIntegratorType_){
+
+		case DIMENSIONS::RICCATI_INTEGRATOR_TYPE::ODE45 : {
+
+			ODE45<RiccatiEquations_t::S_DIM_> riccati_integrator (riccatiEquationsPtr);
+			riccati_integrator.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory, 1e-5, options_.AbsTolODE_, options_.RelTolODE_, maxNumSteps);
+			break;
+		}
+		case DIMENSIONS::RICCATI_INTEGRATOR_TYPE::ADAMS_BASHFORTH : {
+			const size_t order = 5;
+			IntegratorAdamsBashforth<RiccatiEquations_t::S_DIM_,order> riccati_integrator(riccatiEquationsPtr);
+			riccati_integrator.integrate(allSsFinal, i,	i+1, options_.adams_integrator_dt_, allSsTrajectory, normalizedTimeTrajectory);
+			break;
+		}
+		case DIMENSIONS::RICCATI_INTEGRATOR_TYPE::ADAMS_BASHFORTH_MOULTON : {
+			const size_t order = 5;
+			IntegratorAdamsBashforthMoulton<RiccatiEquations_t::S_DIM_, order> riccati_integrator(riccatiEquationsPtr);
+			riccati_integrator.integrate(allSsFinal, i,	i+1, options_.adams_integrator_dt_, allSsTrajectory, normalizedTimeTrajectory);
+			break;
+		}
+		default:
+			throw (std::runtime_error("Riccati equation integrator type specified wrongly in solveSequentialRiccatiEquations()"));
+		}
 
 
 		// denormalizing time and constructing 'Sm', 'Sv', and 's'

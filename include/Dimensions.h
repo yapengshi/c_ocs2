@@ -100,6 +100,12 @@ public:
 	};
 	typedef LinearFunction_t<INPUT_DIM> controller_t;
 
+	enum RICCATI_INTEGRATOR_TYPE{
+		ODE45 = 1,
+		ADAMS_BASHFORTH = 2,
+		ADAMS_BASHFORTH_MOULTON = 3
+	};
+
 	struct Options {
 	public:
 		Options() :
@@ -135,7 +141,10 @@ public:
 			minLearningRateNLP_(0.05),
 		    maxLearningRateNLP_(1.0),
 		    useAscendingLineSearchNLP_(true),
-			minAcceptedSwitchingTimeDifference_(0.0)
+			minAcceptedSwitchingTimeDifference_(0.0),
+
+			RiccatiIntegratorType_(ODE45),
+			adams_integrator_dt_(0.001)
 		{}
 
 		void print()
@@ -202,6 +211,10 @@ public:
 		double maxLearningRateNLP_;
 		bool useAscendingLineSearchNLP_;
 		double minAcceptedSwitchingTimeDifference_;
+
+		size_t RiccatiIntegratorType_;
+		size_t adams_integrator_order_;
+		double adams_integrator_dt_;
 	};
 
 	struct MP_Options{

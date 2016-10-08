@@ -53,7 +53,7 @@ private:
 
 
 
-TEST(IntegrationTest, SecondOrderSystem)
+TEST(IntegrationTest, SecondOrderSystem_ODE45)
 {
 	std::cout << "INTEGRATION TEST"  << std::endl;
 	std::cout << "========================================" << std::endl;
@@ -85,6 +85,115 @@ TEST(IntegrationTest, SecondOrderSystem)
 	x0.setZero();
 
 	ode45.integrate(x0, 0.0, 10.0, stateTrajectory, timeTrajectory);
+
+	timeEigenTrajectory.resize(timeTrajectory.size());
+	for (size_t i=0; i<timeTrajectory.size(); i++)
+	{
+		std::cout << "At time " <<  timeTrajectory[i] << "\t state is: " << stateTrajectory[i].transpose() << std::endl;
+		timeEigenTrajectory[i](0) = timeTrajectory[i];
+	}
+
+	bool resultsGood = true;
+	if(fabs(timeTrajectory.back() - 10.0) > 1e-6)
+		resultsGood = false;
+
+	if(fabs(stateTrajectory.back()[1] - 1.0) > 1e-3)
+		resultsGood = false;
+
+
+	ASSERT_TRUE(resultsGood);
+}
+
+
+TEST(IntegrationTest, SecondOrderSystem_AdamsBashfort)
+{
+	std::cout << "INTEGRATION TEST"  << std::endl;
+	std::cout << "========================================" << std::endl;
+	std::cout << "========================================" << std::endl;
+
+	std::shared_ptr<SecondOrderSystem> sys = std::make_shared<SecondOrderSystem>();
+
+	SecondOrderSystem::scalar_array_t cntTimeStamp {0, 10};
+	SecondOrderSystem::control_vector_array_t uff(2, Eigen::Matrix<double,1,1>::Ones());
+	SecondOrderSystem::control_feedback_array_t k(2, Eigen::Matrix<double,1,2>::Zero());
+
+	SecondOrderSystem::controller_t controller;
+	controller.time_ = cntTimeStamp;
+	controller.uff_ = uff;
+	controller.k_ = k;
+
+	sys->setController(controller);
+
+	std::shared_ptr<ControlledSystemBase<2, 1> > sysClone1 = sys->clone();
+	std::cout << "The cloned pointer is unique: " << std::boolalpha << sysClone1.unique() << std::noboolalpha << std::endl << std::endl;
+
+	const size_t order = 5;
+	IntegratorAdamsBashforth<2, order> integrator(sys);
+
+	std::vector<double> timeTrajectory;
+	std::vector<Eigen::Matrix<double,2,1>, Eigen::aligned_allocator<Eigen::Matrix<double,2,1>> > stateTrajectory;
+	std::vector<Eigen::Matrix<double,1,1>, Eigen::aligned_allocator<Eigen::Matrix<double,1,1>> > timeEigenTrajectory;
+
+	Eigen::Matrix<double,2,1> x0;
+	x0.setZero();
+
+	integrator.integrate(x0, 0.0, 10.0, 0.02, stateTrajectory, timeTrajectory);
+
+
+	timeEigenTrajectory.resize(timeTrajectory.size());
+	for (size_t i=0; i<timeTrajectory.size(); i++)
+	{
+		std::cout << "At time " <<  timeTrajectory[i] << "\t state is: " << stateTrajectory[i].transpose() << std::endl;
+		timeEigenTrajectory[i](0) = timeTrajectory[i];
+	}
+
+	bool resultsGood = true;
+	if(fabs(timeTrajectory.back() - 10.0) > 1e-6)
+		resultsGood = false;
+
+	if(fabs(stateTrajectory.back()[1] - 1.0) > 1e-3)
+		resultsGood = false;
+
+
+	ASSERT_TRUE(resultsGood);
+}
+
+
+
+TEST(IntegrationTest, SecondOrderSystem_AdamsBashfortMoulton)
+{
+	std::cout << "INTEGRATION TEST"  << std::endl;
+	std::cout << "========================================" << std::endl;
+	std::cout << "========================================" << std::endl;
+
+	std::shared_ptr<SecondOrderSystem> sys = std::make_shared<SecondOrderSystem>();
+
+	SecondOrderSystem::scalar_array_t cntTimeStamp {0, 10};
+	SecondOrderSystem::control_vector_array_t uff(2, Eigen::Matrix<double,1,1>::Ones());
+	SecondOrderSystem::control_feedback_array_t k(2, Eigen::Matrix<double,1,2>::Zero());
+
+	SecondOrderSystem::controller_t controller;
+	controller.time_ = cntTimeStamp;
+	controller.uff_ = uff;
+	controller.k_ = k;
+
+	sys->setController(controller);
+
+	std::shared_ptr<ControlledSystemBase<2, 1> > sysClone1 = sys->clone();
+	std::cout << "The cloned pointer is unique: " << std::boolalpha << sysClone1.unique() << std::noboolalpha << std::endl << std::endl;
+
+	const size_t order = 5;
+	IntegratorAdamsBashforthMoulton<2, order> integrator(sys);
+
+	std::vector<double> timeTrajectory;
+	std::vector<Eigen::Matrix<double,2,1>, Eigen::aligned_allocator<Eigen::Matrix<double,2,1>> > stateTrajectory;
+	std::vector<Eigen::Matrix<double,1,1>, Eigen::aligned_allocator<Eigen::Matrix<double,1,1>> > timeEigenTrajectory;
+
+	Eigen::Matrix<double,2,1> x0;
+	x0.setZero();
+
+	integrator.integrate(x0, 0.0, 10.0, 0.02, stateTrajectory, timeTrajectory);
+
 
 	timeEigenTrajectory.resize(timeTrajectory.size());
 	for (size_t i=0; i<timeTrajectory.size(); i++)

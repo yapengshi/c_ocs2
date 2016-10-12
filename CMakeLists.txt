@@ -57,7 +57,7 @@ include_directories(
 # ) 
 
 # Declare a cpp executable
-add_executable(exp1_slqp_mp_test src/test/EXP1_SLQP_MP_Test.cpp)
+#add_executable(exp1_slqp_mp_test src/test/EXP1_SLQP_MP_Test.cpp)
 #
 # Declare a cpp executable
 #add_executable(exp3_slqp_mp_test src/test/EXP3_SLQP_MP_Test.cpp)
@@ -75,7 +75,7 @@ add_executable(exp1_slqp_mp_test src/test/EXP1_SLQP_MP_Test.cpp)
 #add_executable(exp5_slqp_test src/test/EXP5SLQPTest.cpp)
 #
 # Declare a cpp executable
-#add_executable(exp1_test src/test/EXP1Test.cpp)
+add_executable(exp1_test src/test/EXP1Test.cpp)
 #
 # Declare a cpp executable
 #add_executable(exp2_gslqp_test src/test/EXP2GSLQPTest.cpp)
@@ -91,11 +91,11 @@ add_executable(exp1_slqp_mp_test src/test/EXP1_SLQP_MP_Test.cpp)
 
 
 # Specify libraries to link a library or executable target against
-target_link_libraries(exp1_slqp_mp_test
-  ${catkin_LIBRARIES}
-  ${Boost_LIBRARIES}
-  pthread
-)
+#target_link_libraries(exp1_slqp_mp_test
+#  ${catkin_LIBRARIES}
+#  ${Boost_LIBRARIES}
+#  pthread
+#)
 
 # Specify libraries to link a library or executable target against
 #target_link_libraries(exp3_slqp_mp_test
@@ -129,11 +129,11 @@ target_link_libraries(exp1_slqp_mp_test
 #)
 #
 # Specify libraries to link a library or executable target against
-#target_link_libraries(exp1_test
-#  ${catkin_LIBRARIES}
-#  ${Boost_LIBRARIES}
-#)
-#
+target_link_libraries(exp1_test
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+
 # Specify libraries to link a library or executable target against
 #target_link_libraries(exp2_gslqp_test
 #  ${catkin_LIBRARIES}
@@ -173,18 +173,18 @@ catkin_add_gtest(interpolation_test test/InterpolationTest.cpp)
 catkin_add_gtest(integration_test test/IntegrationTest.cpp)
 target_link_libraries(integration_test ${Boost_LIBRARIES})
 
-catkin_add_gtest(system_dynamics_derivative_test test/SystemDynamicsDerivativeTest.cpp)
+#catkin_add_gtest(system_dynamics_derivative_test test/SystemDynamicsDerivativeTest.cpp)
 
-catkin_add_gtest(exp1_slqp_unittest test/exp1_slqp_test.cpp)
+#catkin_add_gtest(exp1_slqp_unittest test/exp1_slqp_test.cpp)
 
-catkin_add_gtest(exp1_gslqp_unittest test/exp1_gslqp_test.cpp)
+#catkin_add_gtest(exp1_gslqp_unittest test/exp1_gslqp_test.cpp)
 
-catkin_add_gtest(exp2_unittest test/exp2_test.cpp)
-target_link_libraries(exp2_unittest
-  ${catkin_LIBRARIES}
-)
+#catkin_add_gtest(exp2_unittest test/exp2_test.cpp)
+#target_link_libraries(exp2_unittest
+#  ${catkin_LIBRARIES}
+#)
 
-catkin_add_gtest(exp5_unittest test/exp5_slqp_test.cpp)
+#catkin_add_gtest(exp5_unittest test/exp5_slqp_test.cpp)
 
 
 

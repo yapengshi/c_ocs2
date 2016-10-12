@@ -38,10 +38,8 @@ void SLQP_BASE<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentia
 		// max number of steps of integration
 		size_t maxNumSteps = options_.maxNumStepsPerSecond_ * std::max( 1.0, switchingTimes_[i+1]-switchingTimes_[i] );
 
-
 		std::vector<double> normalizedTimeTrajectory;
 		std::vector<typename RiccatiEquations_t::s_vector_t, Eigen::aligned_allocator<typename RiccatiEquations_t::s_vector_t> > allSsTrajectory;
-
 
 		switch(options_.RiccatiIntegratorType_){
 
@@ -51,22 +49,31 @@ void SLQP_BASE<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentia
 			riccati_integrator.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory, 1e-5, options_.AbsTolODE_, options_.RelTolODE_, maxNumSteps);
 			break;
 		}
-		case DIMENSIONS::RICCATI_INTEGRATOR_TYPE::ADAMS_BASHFORTH : {
-			const size_t order = 5;
-			IntegratorAdamsBashforth<RiccatiEquations_t::S_DIM_,order> riccati_integrator(riccatiEquationsPtr);
-			riccati_integrator.integrate(allSsFinal, i,	i+1, options_.adams_integrator_dt_, allSsTrajectory, normalizedTimeTrajectory);
-			break;
-		}
-		case DIMENSIONS::RICCATI_INTEGRATOR_TYPE::ADAMS_BASHFORTH_MOULTON : {
-			const size_t order = 5;
-			IntegratorAdamsBashforthMoulton<RiccatiEquations_t::S_DIM_, order> riccati_integrator(riccatiEquationsPtr);
-			riccati_integrator.integrate(allSsFinal, i,	i+1, options_.adams_integrator_dt_, allSsTrajectory, normalizedTimeTrajectory);
+/*note: this case is not yet working. It would most likely work if we had an adaptive time adams-bashforth integrator */
+//		case DIMENSIONS::RICCATI_INTEGRATOR_TYPE::ADAMS_BASHFORTH : {
+//			const size_t order = 4;
+//			//			IntegratorAdamsBashforth<RiccatiEquations_t::S_DIM_,order> riccati_integrator (riccatiEquationsPtr);
+//			//			IntegratorModifiedMidpoint<RiccatiEquations_t::S_DIM_> riccati_integrator (riccatiEquationsPtr);
+//			ODE45<RiccatiEquations_t::S_DIM_> riccati_integrator (riccatiEquationsPtr);
+//
+//			typename RiccatiEquations_t::s_vector_t start = allSsFinal;
+//
+//			riccati_integrator.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory, 1e-2, options_.AbsTolODE_, options_.RelTolODE_, maxNumSteps);
+//
+//			start = allSsFinal;
+//
+//			riccati_integrator.integrate(start, i,	i+1, options_.adams_integrator_dt_, allSsTrajectory2, normalizedTimeTrajectory2); // fixed time step
+//
+//			break;
+//		}
+		case DIMENSIONS::RICCATI_INTEGRATOR_TYPE::BULIRSCH_STOER : {
+			IntegratorBulirschStoer<RiccatiEquations_t::S_DIM_> riccati_integrator (riccatiEquationsPtr);
+			riccati_integrator.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory, 1e-5, options_.AbsTolODE_, options_.RelTolODE_, maxNumSteps);
 			break;
 		}
 		default:
 			throw (std::runtime_error("Riccati equation integrator type specified wrongly in solveSequentialRiccatiEquations()"));
 		}
-
 
 		// denormalizing time and constructing 'Sm', 'Sv', and 's'
 		int N = normalizedTimeTrajectory.size();
@@ -79,25 +86,25 @@ void SLQP_BASE<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentia
 			SsTimeTrajectoryStock_[i][k] = (switchingTimes_[i]-switchingTimes_[i+1])*(normalizedTimeTrajectory[N-1-k]-i) + switchingTimes_[i+1];
 		}  // end of k loop
 
+
 		// testing the numerical stability of the Riccati equations
 		for (int k=N-1; k>=0; k--) {
 			try {
-				if (SmTrajectoryStock_[i][k] != SmTrajectoryStock_[i][k])  throw std::runtime_error("Sm is unstable.");
-				if (SvTrajectoryStock_[i][k] != SvTrajectoryStock_[i][k])  throw std::runtime_error("Sv is unstable.");
-				if (sTrajectoryStock_[i][k] != sTrajectoryStock_[i][k])    throw std::runtime_error("s is unstable.");
+				if (SmTrajectoryStock_[i][k].hasNaN())  throw std::runtime_error("Sm is unstable.");
+				if (SvTrajectoryStock_[i][k].hasNaN())  throw std::runtime_error("Sv is unstable.");
+				if (sTrajectoryStock_[i][k].hasNaN())   throw std::runtime_error("s is unstable.");
 			}
 			catch(const std::exception& error)
 			{
 				std::cerr << "what(): " << error.what() << " at time " << SsTimeTrajectoryStock_[i][k] << " [sec]." << std::endl;
 				for (int kp=k; kp<k+10; kp++)  {
 					if (kp >= N) continue;
-					std::cerr << "Sm[" << SsTimeTrajectoryStock_[i][kp] << "]:\n"<< SmTrajectoryStock_[i][kp].transpose() << std::endl;
-					std::cerr << "Sv[" << SsTimeTrajectoryStock_[i][kp] << "]:\t"<< SvTrajectoryStock_[i][kp].transpose() << std::endl;
-					std::cerr << "s[" << SsTimeTrajectoryStock_[i][kp] << "]: \t"<< sTrajectoryStock_[i][kp].transpose() << std::endl;
+					std::cerr << "Sm[" << SsTimeTrajectoryStock_[i][kp] << "]:\n"<< SmTrajectoryStock_[i][kp].norm() << std::endl;
+					std::cerr << "Sv[" << SsTimeTrajectoryStock_[i][kp] << "]:\t"<< SvTrajectoryStock_[i][kp].transpose().norm() << std::endl;
+					std::cerr << "s["  << SsTimeTrajectoryStock_[i][kp] << "]: \t"<< sTrajectoryStock_[i][kp].transpose().norm() << std::endl;
 				}
-				exit(1);
+				exit(0);
 			}
-
 		}  // end of k loop
 
 		// set the final value for next Riccati equation
@@ -122,7 +129,8 @@ void SLQP_BASE<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentia
 		output_vector_array_t GvTrajectory(nominalTimeTrajectoriesStock_[i].size());
 		state_matrix_array_t  GmTrajectory(nominalTimeTrajectoriesStock_[i].size());
 
-		for (int k=0; k<nominalTimeTrajectoriesStock_[i].size(); k++) {
+		for (int k=nominalTimeTrajectoriesStock_[i].size()-1; k>=0; k--) {
+
 			state_matrix_t Sm;
 			SmFunc.interpolate(nominalTimeTrajectoriesStock_[i][k], Sm);
 
@@ -138,8 +146,7 @@ void SLQP_BASE<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentia
 
 		// set data for error equations
 		std::shared_ptr<ErrorEquation_t> errorEquationPtr( new ErrorEquation_t() );
-		errorEquationPtr->setData(i, switchingTimes_[i], switchingTimes_[i+1],
-				&nominalTimeTrajectoriesStock_[i], &GvTrajectory, &GmTrajectory);
+		errorEquationPtr->setData(i, switchingTimes_[i], switchingTimes_[i+1],&nominalTimeTrajectoriesStock_[i], &GvTrajectory, &GmTrajectory);
 
 		// integrating the Riccati equations
 		ODE45<OUTPUT_DIM> errorOde45(errorEquationPtr);
@@ -149,18 +156,28 @@ void SLQP_BASE<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentia
 		// reset the final value for next Riccati equation
 		SveFinal = SveTrajectory.back();
 
+		if(SveTrajectory.size() != N)
+			throw std::runtime_error("sve traj size not equal to N");
+
 		SveTrajectoryStock_[i].resize(N);
 		for (int k=0; k<N; k++) {
 			SveTrajectoryStock_[i][k] = SveTrajectory[N-1-k];
 
 			// testing the numerical stability of the Riccati error equation
 			try {
-				if (SveTrajectoryStock_[i][k] != SveTrajectoryStock_[i][k])  throw std::runtime_error("Sve is unstable");
+				if (SveTrajectoryStock_[i][k].hasNaN())  throw std::runtime_error("Sve is unstable");
 			}
 			catch(const std::exception& error) 	{
 				std::cerr << "what(): " << error.what() << " at time " << SsTimeTrajectoryStock_[i][k] << " [sec]." << std::endl;
-				for (int kp=k; kp<N; kp++)   std::cerr << "Sve[" << SsTimeTrajectoryStock_[i][kp] << "]:\t"<< SveTrajectoryStock_[i][kp].transpose() << std::endl;
-				exit(1);
+				for (int kp=k; kp<N; kp++){
+					std::cerr << "Sve[" << SsTimeTrajectoryStock_[i][kp] << "]:\t"<< SveTrajectoryStock_[i][kp].transpose().norm() << std::endl;
+				}
+				for(size_t kp = 0; kp<nominalTimeTrajectoriesStock_[i].size()-1; kp++){
+					std::cerr << "Gm[" << SsTimeTrajectoryStock_[i][kp] << "]:\t"<< GmTrajectory[kp].transpose().norm() << std::endl;
+					std::cerr << "Gv[" << SsTimeTrajectoryStock_[i][kp] << "]:\t"<< GvTrajectory[kp].transpose().norm() << std::endl;
+				}
+
+				exit(0);
 			}
 		}
 

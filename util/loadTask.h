@@ -285,6 +285,21 @@ void loadOptions(const std::string& filename, typename Dimensions<STATE_DIM, INP
 		if (verbose)  std::cout << " #### Option loader : option 'minAcceptedSwitchingTimeDifference'  " << opt.minAcceptedSwitchingTimeDifference_ << " (default)" << std::endl;
 	}
 
+	try	{
+		opt.RiccatiIntegratorType_ = pt.get<double>("ocs2.RiccatiIntegratorType");
+		if (verbose)  std::cout << " #### Option loader : option 'RiccatiIntegratorType'  " << opt.RiccatiIntegratorType_ << std::endl;
+	}
+	catch (const std::exception& e){
+		if (verbose)  std::cout << " #### Option loader : option 'RiccatiIntegratorType_'  " << opt.RiccatiIntegratorType_ << " (default)" << std::endl;
+	}
+
+	try	{
+		opt.adams_integrator_dt_ = pt.get<double>("ocs2.adams_integrator_dt");
+		if (verbose)  std::cout << " #### Option loader : option 'adams_integrator_dt'  " << opt.adams_integrator_dt_ << std::endl;
+	}
+	catch (const std::exception& e){
+		if (verbose)  std::cout << " #### Option loader : option 'adams_integrator_dt'  " << opt.adams_integrator_dt_ << " (default)" << std::endl;
+	}
 	if(verbose)
 		std::cerr <<" #### ================================================================ ####" << std::endl;
 }

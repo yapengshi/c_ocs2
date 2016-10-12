@@ -268,8 +268,9 @@ void OCS2Projected<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateI
 			double scale = (switchingTimes[i+1]-switchingTimes[i]) / (warmStartControllersStock[i].time_.back()-warmStartControllersStock[i].time_.front());
 			for (size_t k=0; k<warmStartControllersStock[i].time_.size(); k++) {
 				warmStartControllersStock[i].time_[k] = switchingTimes[i] + scale*(warmStartControllersStock[i].time_[k]-warmStartControllersStock[i].time_.front());
-				warmStartControllersStock[i].uff_[k].head(12) += warmStartControllersStock[i].deltaUff_[k].head(12);
-				warmStartControllersStock[i].uff_[k].tail(12) += warmStartControllersStock[i].deltaUff_[k].tail(12) / scale;
+				/*previously used by farbod to scale velocities with switching times: */
+				//				warmStartControllersStock[i].uff_[k].head(12) += warmStartControllersStock[i].deltaUff_[k].head(12);
+				//				warmStartControllersStock[i].uff_[k].tail(12) += warmStartControllersStock[i].deltaUff_[k].tail(12) / scale;
 			} // end of k loop
 		}  // end of i loop
 
@@ -292,7 +293,7 @@ void OCS2Projected<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateI
 		controllersStock.swap(warmStartControllersStock);
 		std::cerr << "\t     Warm start!" << std::endl;
 		if (nlpOptions_.displayGradientDescent_)  std::cerr << "\t     IndexFromBack: " << static_cast<int>(warmStartIndex-(parameterBag_.size()-1))
-				<< "\t#parameters: " << parameterBag_[warmStartIndex].transpose().format(CleanFmtDisplay_) << std::endl;
+						<< "\t#parameters: " << parameterBag_[warmStartIndex].transpose().format(CleanFmtDisplay_) << std::endl;
 	} else {
 		controllersStock.swap(coldStartControllersStock);
 		std::cerr << "\t     Cold start!" << std::endl;
@@ -327,8 +328,8 @@ void OCS2Projected<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(co
 		timeTrajectoriesStock[i].clear();
 		stateTrajectoriesStock[i].clear();
 
-//		size_t maxNumSteps = options_.maxNumStepsPerSecond_*(switchingTimes_[i+1]-switchingTimes_[i]);
-//		maxNumSteps = ((1000>maxNumSteps) ? 1000 : maxNumSteps);
+		//		size_t maxNumSteps = options_.maxNumStepsPerSecond_*(switchingTimes_[i+1]-switchingTimes_[i]);
+		//		maxNumSteps = ((1000>maxNumSteps) ? 1000 : maxNumSteps);
 		size_t maxNumSteps = options_.maxNumStepsPerSecond_ * std::max( 1.0, switchingTimes[i+1]-switchingTimes[i] );
 
 		// initialize subsystem i
@@ -341,7 +342,7 @@ void OCS2Projected<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(co
 				1e-3, options_.AbsTolODE_, options_.RelTolODE_, maxNumSteps);
 
 		if (stateTrajectoriesStock[i].back() != stateTrajectoriesStock[i].back())
-				throw std::runtime_error("System became unstable during the SLQP rollout.");
+			throw std::runtime_error("System became unstable during the SLQP rollout.");
 
 		// compute control trajectory for subsystem i
 		inputTrajectoriesStock[i].resize(timeTrajectoriesStock[i].size());

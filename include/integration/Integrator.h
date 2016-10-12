@@ -35,6 +35,14 @@ using euler_t = boost::numeric::odeint::euler<
 		boost::numeric::odeint::vector_space_algebra >;
 
 template <size_t STATE_DIM>
+using modified_midpoint_t = boost::numeric::odeint::modified_midpoint<
+		Eigen::Matrix<double, STATE_DIM, 1>,
+		double,
+		Eigen::Matrix<double, STATE_DIM, 1>,
+		double,
+		boost::numeric::odeint::vector_space_algebra >;
+
+template <size_t STATE_DIM>
 using runge_kutta_4_t = boost::numeric::odeint::runge_kutta4<
 		Eigen::Matrix<double, STATE_DIM, 1>,
 		double,
@@ -54,6 +62,14 @@ template <size_t STATE_DIM>
 using dense_runge_kutta5_t = boost::numeric::odeint::dense_output_runge_kutta <
 		boost::numeric::odeint::controlled_runge_kutta <runge_kutta_dopri5_t<STATE_DIM>> >;
 
+template <size_t STATE_DIM>
+using bulirsch_stoer_t = boost::numeric::odeint::bulirsch_stoer <
+		Eigen::Matrix<double, STATE_DIM, 1>,
+		double,
+		Eigen::Matrix<double, STATE_DIM, 1>,
+		double,
+		boost::numeric::odeint::vector_space_algebra>;
+
 template <size_t STATE_DIM, size_t STEPS>
 using adams_bashforth_uncontrolled_t =
 		boost::numeric::odeint::adams_bashforth<
@@ -64,15 +80,16 @@ using adams_bashforth_uncontrolled_t =
 		double, 								// typename time
 		boost::numeric::odeint::vector_space_algebra> ;
 
-template <size_t STATE_DIM, size_t STEPS>
-using adams_bashforth_moulton_uncontrolled_t =
-		boost::numeric::odeint::adams_bashforth_moulton<
-		STEPS,
-		Eigen::Matrix<double, STATE_DIM, 1>,	// state
-		double,									// typename value
-		Eigen::Matrix<double, STATE_DIM, 1>,	// derivative
-		double, 								// typename time
-		boost::numeric::odeint::vector_space_algebra> ;
+// works only for boost 1.56 or higher
+//template <size_t STATE_DIM, size_t STEPS>
+//using adams_bashforth_moulton_uncontrolled_t =
+//		boost::numeric::odeint::adams_bashforth_moulton<
+//		STEPS,
+//		Eigen::Matrix<double, STATE_DIM, 1>,	// state
+//		double,									// typename value
+//		Eigen::Matrix<double, STATE_DIM, 1>,	// derivative
+//		double, 								// typename time
+//		boost::numeric::odeint::vector_space_algebra> ;
 
 
 /**
@@ -114,10 +131,16 @@ public:
 			typename Base::TimeTrajectory_T& timeTrajectory) override{
 
 		typename Base::State_T initialStateInternal = initialState;
+
+		/* use a temporary state for initialization, the state returned by initialize is different from the real init state (already forward integrated) */
+		typename Base::State_T initialStateInternal_init_temp = initialState;
+
 		double startTime_temp = startTime;
 
-		initialize(initialStateInternal, startTime_temp, dt);
-		boost::numeric::odeint::integrate_const(stepper_, systemFunction_, initialStateInternal, startTime, finalTime, dt, Base::observer_.observeWrap);
+		initialize(initialStateInternal_init_temp, startTime_temp, dt);
+
+		boost::numeric::odeint::integrate_const(stepper_, systemFunction_, initialStateInternal, startTime, finalTime+0.1*dt, dt, Base::observer_.observeWrap);
+
 		Base::retrieveTrajectoriesFromObserver(stateTrajectory, timeTrajectory);
 		return true;
 	}
@@ -191,7 +214,7 @@ private:
 
 	void initialize(typename Base::State_T& initialState, double& t, double dt)
 	{
-		initializeStepper(initialState, t, dt);
+//		initializeStepper(initialState, t, dt);	// fixme
 		Base::observer_.reset();
 	}
 
@@ -219,6 +242,7 @@ private:
 		}
 
 		boost::numeric::odeint::integrate_adaptive(boost::numeric::odeint::make_controlled<S>(AbsTol, RelTol), systemFunction_, initialStateInternal, startTime, finalTime, dtInitial, Base::observer_.observeWrap);
+
 	}
 
 
@@ -245,11 +269,12 @@ private:
 		}
 
 		boost::numeric::odeint::integrate_adaptive(stepper_, systemFunction_, initialStateInternal, startTime, finalTime, dtInitial, Base::observer_.observeWrap);
+
 	}
 
 
 	template <typename S = Stepper>
-	typename std::enable_if< std::is_same<S, runge_kutta_dopri5_t<STATE_DIM>>::value, void>::type
+	typename std::enable_if<std::is_same<S, runge_kutta_dopri5_t<STATE_DIM>>::value, void>::type
 	integrate_times_specialized(
 			const typename Base::State_T& initialState,
 			const typename Base::TimeTrajectory_T& timeTrajectory,
@@ -267,6 +292,7 @@ private:
 				systemFunction_, initialStateInternal, &timeTrajectory.front(), &timeTrajectory.back()+1, dtInitial, Base::observer_.observeWrap);
 
 		Base::retrieveStateTrajectoryFromObserver(stateTrajectory);
+
 	}
 
 
@@ -288,6 +314,7 @@ private:
 		boost::numeric::odeint::integrate_times(stepper_, systemFunction_, initialStateInternal, &timeTrajectory.front(), &timeTrajectory.back()+1, dtInitial, Base::observer_.observeWrap);
 
 		Base::retrieveStateTrajectoryFromObserver(stateTrajectory);
+
 	}
 
 
@@ -306,9 +333,9 @@ private:
 	 */
 	template <typename S = Stepper>
 	typename std::enable_if<!(std::is_same<S, runge_kutta_dopri5_t<STATE_DIM>>::value), void>::type
-	initializeStepper(typename Base::State_T& initialState, double& t, double dt) {
-
-		stepper_.initialize(systemFunction_, initialState, t, dt);
+	initializeStepper(typename Base::State_T& initialState, double& t, double dt)
+	{
+		stepper_.initialize(runge_kutta_dopri5_t<STATE_DIM>(), systemFunction_, initialState, t, dt);
 	}
 
 
@@ -325,6 +352,9 @@ template <size_t STATE_DIM>
 using IntegratorEuler = Integrator<STATE_DIM, euler_t<STATE_DIM>>;
 
 template <size_t STATE_DIM>
+using IntegratorModifiedMidpoint = Integrator<STATE_DIM, modified_midpoint_t<STATE_DIM>>;
+
+template <size_t STATE_DIM>
 using IntegratorRK4 = Integrator<STATE_DIM, runge_kutta_4_t<STATE_DIM>>;
 
 template <size_t STATE_DIM>
@@ -336,8 +366,13 @@ using ODE45 = Integrator<STATE_DIM, runge_kutta_dopri5_t<STATE_DIM>>;
 template <size_t STATE_DIM, size_t STEPS>
 using IntegratorAdamsBashforth = Integrator < STATE_DIM, adams_bashforth_uncontrolled_t<STATE_DIM, STEPS>>;
 
-template <size_t STATE_DIM, size_t STEPS>
-using IntegratorAdamsBashforthMoulton = Integrator < STATE_DIM, adams_bashforth_moulton_uncontrolled_t<STATE_DIM, STEPS>>;
+template <size_t STATE_DIM>
+using IntegratorBulirschStoer = Integrator < STATE_DIM, bulirsch_stoer_t<STATE_DIM>>;
+
+
+//// works only after boost 1.56
+//template <size_t STATE_DIM, size_t STEPS>
+//using IntegratorAdamsBashforthMoulton = Integrator < STATE_DIM, adams_bashforth_moulton_uncontrolled_t<STATE_DIM, STEPS>>;
 
 } // namespace ocs2
 

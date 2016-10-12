@@ -103,7 +103,7 @@ public:
 	enum RICCATI_INTEGRATOR_TYPE{
 		ODE45 = 1,
 		ADAMS_BASHFORTH = 2,
-		ADAMS_BASHFORTH_MOULTON = 3
+		BULIRSCH_STOER = 3
 	};
 
 	struct Options {
@@ -174,6 +174,9 @@ public:
 			std::cout << "acceptableTolGradientDescent_      " << acceptableTolGradientDescent_       << std::endl;
 			std::cout << "maxIterationGradientDescent_       " << maxIterationGradientDescent_        << std::endl;
 			std::cout << "minAcceptedSwitchingTimeDifference_" << minAcceptedSwitchingTimeDifference_ << std::endl;
+            std::cout << "                                   " << ""                                  << std::endl;
+			std::cout << "RiccatiIntegratorType_             " << RiccatiIntegratorType_              << std::endl;
+			std::cout << "adams_integrator_dt_               " << adams_integrator_dt_                << std::endl;
 			std::cout << " #### ============================ end ============================== ####" << std::endl;
 			std::cout << std::endl;
 		}
@@ -213,7 +216,6 @@ public:
 		double minAcceptedSwitchingTimeDifference_;
 
 		size_t RiccatiIntegratorType_;
-		size_t adams_integrator_order_;
 		double adams_integrator_dt_;
 	};
 

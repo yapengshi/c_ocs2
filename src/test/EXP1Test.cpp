@@ -54,6 +54,8 @@ int main (int argc, char* argv[])
 	gslqpOptions.acceptableTolGradientDescent_ = 1e-3;
 	gslqpOptions.useAscendingLineSearchNLP_ = true;
 	gslqpOptions.minAcceptedSwitchingTimeDifference_ = 0.01;
+	gslqpOptions.RiccatiIntegratorType_ = Dimensions<2,1,2>::BULIRSCH_STOER;
+	gslqpOptions.adams_integrator_dt_ = 0.01;
 	gslqpOptions.print();
 
 

@@ -159,6 +159,7 @@ target_link_libraries(exp1_test
 #  ${Boost_LIBRARIES}
 #)
 
+
 #############
 ## Testing ##
 #############
@@ -169,6 +170,8 @@ target_link_libraries(exp1_test
 
 ## unit tests
 catkin_add_gtest(interpolation_test test/InterpolationTest.cpp)
+
+catkin_add_gtest(vector_matrix_conversion_test test/VectorMatrixConversionTest.cpp)
 
 catkin_add_gtest(integration_test test/IntegrationTest.cpp)
 target_link_libraries(integration_test ${Boost_LIBRARIES})

@@ -94,19 +94,19 @@ TEST(IntegrationTest, SecondOrderSystem_ODE45)
 	timeEigenTrajectory.resize(timeTrajectory.size());
 	timeEigenTrajectory2.resize(timeTrajectory2.size());
 
-	std::cout << "adaptive integration" << std::endl;
-	for (size_t i=0; i<timeTrajectory.size(); i++)
-	{
-		std::cout << "At time " <<  timeTrajectory[i] << "\t state is: " << stateTrajectory[i].transpose() << std::endl;
-		timeEigenTrajectory[i](0) = timeTrajectory[i];
-	}
+//	std::cout << "adaptive integration" << std::endl;
+//	for (size_t i=0; i<timeTrajectory.size(); i++)
+//	{
+//		std::cout << "At time " <<  timeTrajectory[i] << "\t state is: " << stateTrajectory[i].transpose() << std::endl;
+//		timeEigenTrajectory[i](0) = timeTrajectory[i];
+//	}
 
-	std::cout << "const integration" << std::endl;
-	for (size_t i=0; i<timeTrajectory2.size(); i++)
-	{
-		std::cout << "At time " <<  timeTrajectory2[i] << "\t state is: " << stateTrajectory2[i].transpose() << std::endl;
-		timeEigenTrajectory2[i](0) = timeTrajectory2[i];
-	}
+//	std::cout << "const integration" << std::endl;
+//	for (size_t i=0; i<timeTrajectory2.size(); i++)
+//	{
+//		std::cout << "At time " <<  timeTrajectory2[i] << "\t state is: " << stateTrajectory2[i].transpose() << std::endl;
+//		timeEigenTrajectory2[i](0) = timeTrajectory2[i];
+//	}
 
 	bool resultsGood = true;
 	if(fabs(timeTrajectory.back() - 10.0) > 1e-6)
@@ -161,12 +161,12 @@ TEST(IntegrationTest, SecondOrderSystem_AdamsBashfort)
 	integrator.integrate(x0, 0.0, 10.0, 0.02, stateTrajectory, timeTrajectory);
 
 
-	timeEigenTrajectory.resize(timeTrajectory.size());
-	for (size_t i=0; i<timeTrajectory.size(); i++)
-	{
-		std::cout << "At time " <<  timeTrajectory[i] << "\t state is: " << stateTrajectory[i].transpose() << std::endl;
-		timeEigenTrajectory[i](0) = timeTrajectory[i];
-	}
+//	timeEigenTrajectory.resize(timeTrajectory.size());
+//	for (size_t i=0; i<timeTrajectory.size(); i++)
+//	{
+//		std::cout << "At time " <<  timeTrajectory[i] << "\t state is: " << stateTrajectory[i].transpose() << std::endl;
+//		timeEigenTrajectory[i](0) = timeTrajectory[i];
+//	}
 
 	bool resultsGood = true;
 	if(fabs(timeTrajectory.back() - 10.0) > 1e-6)

@@ -134,96 +134,69 @@ public:
 		// denormalized time
 		scalar_t t = switchingTimeFinal_ - (switchingTimeFinal_-switchingTimeStart_)*z;
 
-		nabla_Sm_t nabla_Sm;
-		nabla_Sv_t nabla_Sv;
-		nabla_s_t  nabla_s;
-		convert2Matrix(allSs, nabla_Sm, nabla_Sv, nabla_s);
+		convert2Matrix(allSs, __nabla_Sm, __nabla_Sv, __nabla_s);
 
 		size_t greatestLessTimeStampIndex;
 
-		state_vector_t Sv;
-		SvFunc_.interpolate(t, Sv);
+		SvFunc_.interpolate(t, __Sv);
 		greatestLessTimeStampIndex = SvFunc_.getGreatestLessTimeStampIndex();
-		state_matrix_t Sm;
-		SmFunc_.interpolate(t, Sm, greatestLessTimeStampIndex);
-
-		state_matrix_t Am;
-		AmFunc_.interpolate(t, Am);
+		SmFunc_.interpolate(t, __Sm, greatestLessTimeStampIndex);
+		AmFunc_.interpolate(t, __Am);
 		greatestLessTimeStampIndex = AmFunc_.getGreatestLessTimeStampIndex();
-		control_gain_matrix_t Bm;
-		BmFunc_.interpolate(t, Bm, greatestLessTimeStampIndex);
-
-		eigen_scalar_t q;
-		qFunc_.interpolate(t, q);
+		BmFunc_.interpolate(t, __Bm, greatestLessTimeStampIndex);
+		qFunc_.interpolate(t, __q);
 		greatestLessTimeStampIndex = qFunc_.getGreatestLessTimeStampIndex();
-		state_vector_t Qv;
-		QvFunc_.interpolate(t, Qv, greatestLessTimeStampIndex);
-		state_matrix_t Qm;
-		QmFunc_.interpolate(t, Qm, greatestLessTimeStampIndex);
-		control_vector_t Rv;
-		RvFunc_.interpolate(t, Rv, greatestLessTimeStampIndex);
-		control_matrix_t inverseRm;
-		RmInverseFunc_.interpolate(t, inverseRm, greatestLessTimeStampIndex);
-		control_matrix_t Rm;
-		RmFunc_.interpolate(t, Rm, greatestLessTimeStampIndex);
-		control_feedback_t Pm;
-		PmFunc_.interpolate(t, Pm, greatestLessTimeStampIndex);
+		QvFunc_.interpolate(t, __Qv, greatestLessTimeStampIndex);
+		QmFunc_.interpolate(t, __Qm, greatestLessTimeStampIndex);
+		RvFunc_.interpolate(t, __Rv, greatestLessTimeStampIndex);
+		RmInverseFunc_.interpolate(t, __invRm, greatestLessTimeStampIndex);
+		RmFunc_.interpolate(t, __Rm, greatestLessTimeStampIndex);
+		PmFunc_.interpolate(t, __Pm, greatestLessTimeStampIndex);
 
-		nabla_scalar_rowvector_t nablaq;
-		nablaqFunc_.interpolate(t, nablaq);
+		nablaqFunc_.interpolate(t, __nablaq);
 		greatestLessTimeStampIndex = nablaqFunc_.getGreatestLessTimeStampIndex();
-		nabla_state_matrix_t nablaQv;
-		nablaQvFunc_.interpolate(t, nablaQv, greatestLessTimeStampIndex);
-		nabla_input_matrix_t nablaRv;
-		nablaRvFunc_.interpolate(t, nablaRv, greatestLessTimeStampIndex);
+		nablaQvFunc_.interpolate(t, __nablaQv, greatestLessTimeStampIndex);
+		nablaRvFunc_.interpolate(t, __nablaRv, greatestLessTimeStampIndex);
 
 		// Riccati equations for the original system
-		control_feedback_t Lm = inverseRm*(Pm+Bm.transpose()*Sm);
-		control_vector_t   Lv = inverseRm*(Rv+Bm.transpose()*Sv);
-		state_matrix_t dSmdt = Qm + Am.transpose()*Sm + Sm.transpose()*Am - Lm.transpose()*Rm*Lm;
-		dSmdt = 0.5*(dSmdt+dSmdt.transpose()).eval();
-		state_vector_t dSvdt = Qv + Am.transpose()*Sv - Lm.transpose()*Rm*Lv;
-		eigen_scalar_t dsdt  = q - 0.5*alpha_*(2.0-alpha_)*Lv.transpose()*Rm*Lv;
+		__Lm = __invRm*(__Pm+__Bm.transpose()*__Sm);
+		__Lv = __invRm*(__Rv+__Bm.transpose()*__Sv);
+		__dSmdt = __Qm + __Am.transpose()*__Sm + __Sm.transpose()*__Am - __Lm.transpose()*__Rm*__Lm;
+		__dSmdt = 0.5*(__dSmdt+__dSmdt.transpose()).eval();
+		__dSvdt = __Qv + __Am.transpose()*__Sv - __Lm.transpose()*__Rm*__Lv;
+		__dsdt  = __q - 0.5*alpha_*(2.0-alpha_)*__Lv.transpose()*__Rm*__Lv;
 
 		// derivatives of Riccati equations
-		nabla_Sm_t nabla_dSmdz;
-		nabla_Sv_t nabla_dSvdz;
-		nabla_s_t nabla_dsdz;
-
 		for (size_t j=0; j<NUM_SUBSYSTEMS-1; j++) {
 
 			// switching time gradient for the original system
-			state_matrix_t nabla_dSmdt;
-			state_vector_t nabla_dSvdt;
-			eigen_scalar_t nabla_dsdt;
-
-			nabla_dSmdt = Am.transpose()*nabla_Sm[j] + nabla_Sm[j].transpose()*Am - nabla_Sm[j].transpose()*Bm*inverseRm*Rm*Lm
-					- Lm.transpose()*Rm*inverseRm*Bm.transpose()*nabla_Sm[j];
-			nabla_dSmdt = 0.5*(nabla_dSmdt+nabla_dSmdt.transpose()).eval();
-			nabla_dSvdt = nablaQv.col(j) + Am.transpose()*nabla_Sv[j] - nabla_Sm[j].transpose()*Bm*inverseRm*Rm*Lv
-					- Lm.transpose()*Rm*inverseRm*(nablaRv.col(j) + Bm.transpose()*nabla_Sv[j]);
-			nabla_dsdt  = nablaq.col(j) - 0.5*alpha_*(2-alpha_)*(nablaRv.col(j) + Bm.transpose()*nabla_Sv[j]).transpose()*inverseRm*Rm*Lv
-					- 0.5*alpha_*(2-alpha_)*Lv.transpose()*Rm*inverseRm*(nablaRv.col(j) + Bm.transpose()*nabla_Sv[j]);
+			__nabla_dSmdt = __Am.transpose()*__nabla_Sm[j] + __nabla_Sm[j].transpose()*__Am - __nabla_Sm[j].transpose()*__Bm*__invRm*__Rm*__Lm
+					- __Lm.transpose()*__Rm*__invRm*__Bm.transpose()*__nabla_Sm[j];
+			__nabla_dSmdt = 0.5*(__nabla_dSmdt+__nabla_dSmdt.transpose()).eval();
+			__nabla_dSvdt = __nablaQv.col(j) + __Am.transpose()*__nabla_Sv[j] - __nabla_Sm[j].transpose()*__Bm*__invRm*__Rm*__Lv
+					- __Lm.transpose()*__Rm*__invRm*(__nablaRv.col(j) + __Bm.transpose()*__nabla_Sv[j]);
+			__nabla_dsdt  = __nablaq.col(j) - 0.5*alpha_*(2-alpha_)*(__nablaRv.col(j) + __Bm.transpose()*__nabla_Sv[j]).transpose()*__invRm*__Rm*__Lv
+					- 0.5*alpha_*(2-alpha_)*__Lv.transpose()*__Rm*__invRm*(__nablaRv.col(j) + __Bm.transpose()*__nabla_Sv[j]);
 
 			// switching time gradient for the equivalent system
-			nabla_dSmdz[j] = (switchingTimeFinal_-switchingTimeStart_)*nabla_dSmdt;
-			nabla_dSvdz[j] = (switchingTimeFinal_-switchingTimeStart_)*nabla_dSvdt;
-			nabla_dsdz[j]  = (switchingTimeFinal_-switchingTimeStart_)*nabla_dsdt;
+			__nabla_dSmdz[j] = (switchingTimeFinal_-switchingTimeStart_)*__nabla_dSmdt;
+			__nabla_dSvdz[j] = (switchingTimeFinal_-switchingTimeStart_)*__nabla_dSvdt;
+			__nabla_dsdz[j]  = (switchingTimeFinal_-switchingTimeStart_)*__nabla_dsdt;
 
 			if (j==activeSubsystem_)  {
-				nabla_dSmdz[j] += dSmdt;
-				nabla_dSvdz[j] += dSvdt;
-				nabla_dsdz[j]  += dsdt;
+				__nabla_dSmdz[j] += __dSmdt;
+				__nabla_dSvdz[j] += __dSvdt;
+				__nabla_dsdz[j]  += __dsdt;
 			}
 			if (j==activeSubsystem_-1) {
-				nabla_dSmdz[j] -= dSmdt;
-				nabla_dSvdz[j] -= dSvdt;
-				nabla_dsdz[j]  -= dsdt;
+				__nabla_dSmdz[j] -= __dSmdt;
+				__nabla_dSvdz[j] -= __dSvdt;
+				__nabla_dsdz[j]  -= __dsdt;
 			}
 
 		}  // end of j loop
 
-		convert2Vector(nabla_dSmdz, nabla_dSvdz, nabla_dsdz, derivatives);
+		convert2Vector(__nabla_dSmdz, __nabla_dSvdz, __nabla_dsdz, derivatives);
 	}
 
 
@@ -251,6 +224,41 @@ private:
 	LinearInterpolation<nabla_scalar_rowvector_t,Eigen::aligned_allocator<nabla_scalar_rowvector_t> > nablaqFunc_;
 	LinearInterpolation<nabla_state_matrix_t,Eigen::aligned_allocator<nabla_state_matrix_t> > nablaQvFunc_;
 	LinearInterpolation<nabla_input_matrix_t,Eigen::aligned_allocator<nabla_input_matrix_t> > nablaRvFunc_;
+
+
+	// members only used in computeDerivative()
+	nabla_Sm_t __nabla_Sm;
+	nabla_Sv_t __nabla_Sv;
+	nabla_s_t  __nabla_s;
+	state_vector_t __Sv;
+	state_matrix_t __Sm;
+	state_matrix_t __Am;
+	control_gain_matrix_t __Bm;
+	eigen_scalar_t __q;
+	state_vector_t __Qv;
+	state_matrix_t __Qm;
+	control_vector_t __Rv;
+	control_matrix_t __invRm;
+	control_matrix_t __Rm;
+	control_feedback_t __Pm;
+	nabla_scalar_rowvector_t __nablaq;
+	nabla_state_matrix_t __nablaQv;
+	nabla_input_matrix_t __nablaRv;
+	control_feedback_t __Lm;
+	control_vector_t __Lv;
+	state_matrix_t __dSmdt;
+	state_vector_t __dSvdt;
+	eigen_scalar_t __dsdt;
+
+	// derivatives of Riccati equations
+	nabla_Sm_t 	__nabla_dSmdz;
+	nabla_Sv_t 	__nabla_dSvdz;
+	nabla_s_t 	__nabla_dsdz;
+
+	// switching time gradient for the original system
+	state_matrix_t __nabla_dSmdt;
+	state_vector_t __nabla_dSvdt;
+	eigen_scalar_t __nabla_dsdt;
 
 };
 

@@ -1,8 +1,8 @@
 /*
  * SequentialRiccatiEquations.h
  *
- *  Created on: Jan 7, 2016
- *      Author: farbod
+ *  Created on: October 19, 2016
+ *      Author: farbod, mgiftthaler
  */
 
 #ifndef SEQUENTIALRICCATIEQUATIONS_OCS2_H_
@@ -13,17 +13,22 @@
 #include "dynamics/SystemBase.h"
 
 #include "misc/LinearInterpolation.h"
-
+#include <Eigen/Core>
 
 namespace ocs2{
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
-class SequentialRiccatiEquations : public SystemBase<OUTPUT_DIM*OUTPUT_DIM+OUTPUT_DIM+1>
+class SequentialRiccatiEquations : public SystemBase<OUTPUT_DIM*(OUTPUT_DIM+1)/2+OUTPUT_DIM+1>
 {
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-	enum { S_DIM_ = OUTPUT_DIM*OUTPUT_DIM+OUTPUT_DIM+1 };
+	/* OUPUT_DIM = n
+	 * Then: n(n+1)/2 entries from triangular matrix Sm, n entries from vector Sv and +1 one from a scalar */
+	enum {
+		S_DIM_ = OUTPUT_DIM*(OUTPUT_DIM+1)/2 + OUTPUT_DIM + 1
+	};
+
 	typedef Eigen::Matrix<double,S_DIM_,1> s_vector_t;
 	typedef Dimensions<OUTPUT_DIM, INPUT_DIM> DIMENSIONS;
 	typedef typename DIMENSIONS::controller_t controller_t;
@@ -44,20 +49,73 @@ public:
 	typedef typename DIMENSIONS::control_gain_matrix_t 		 control_gain_matrix_t;
 	typedef typename DIMENSIONS::control_gain_matrix_array_t control_gain_matrix_array_t;
 
-	SequentialRiccatiEquations() {}
+	SequentialRiccatiEquations():
+		__Sm(state_matrix_t::Zero()),
+		__Sv(state_vector_t::Zero()),
+		__s (eigen_scalar_t::Zero()),
+		__Am(state_matrix_t::Zero()),
+		__Bm(control_gain_matrix_t::Zero()),
+		__q (eigen_scalar_t::Zero()),
+		__Qv(state_vector_t::Zero()),
+		__Qm(state_matrix_t::Zero()),
+		__Rv(control_vector_t::Zero()),
+		__RmInv(control_matrix_t::Zero()),
+		__Rm(control_matrix_t::Zero()),
+		__Pm(control_feedback_t::Zero()),
+		__dSmdt(state_matrix_t::Zero()),
+		__dSmdz(state_matrix_t::Zero()),
+		__dSvdt(state_vector_t::Zero()),
+		__dSvdz(state_vector_t::Zero()),
+		__dsdt(eigen_scalar_t::Zero()),
+		__dsdz(eigen_scalar_t::Zero()),
+		__Lm(control_feedback_t::Zero()),
+		__Lv(control_vector_t::Zero())
+		{}
+
 	~SequentialRiccatiEquations() {}
 
+	/**
+	 * transcribe symmetric matrix Sm, vector Sv and scalar s into a single vector
+	 * */
 	static void convert2Vector(const state_matrix_t& Sm, const state_vector_t& Sv, const eigen_scalar_t& s, s_vector_t& allSs)  {
 
-		allSs << Eigen::Map<const Eigen::VectorXd>(Sm.data(),OUTPUT_DIM*OUTPUT_DIM),
-				Eigen::Map<const Eigen::VectorXd>(Sv.data(),OUTPUT_DIM),
-				s;
+		/*Sm is symmetric. Here, we only extract the upper triangular part and transcribe it in column-wise fashion into allSs*/
+		size_t count = 0;	// count the total number of scalar entries covered
+		size_t nRows = 0;
+		for(size_t nCols=0; nCols < OUTPUT_DIM; nCols++)
+		{
+			nRows = nCols+1;
+			allSs.template segment(count, nRows) << Eigen::Map<const Eigen::VectorXd>(Sm.data() + nCols*OUTPUT_DIM, nRows);
+			count += nRows;
+		}
+
+		/* add data from Sv on top*/
+		allSs.template segment<OUTPUT_DIM>((OUTPUT_DIM*(OUTPUT_DIM+1))/2) <<  Eigen::Map<const Eigen::VectorXd>(Sv.data(), OUTPUT_DIM);
+
+		/* add s as last element*/
+		allSs.template tail<1> () << s;
 	}
 
+	/**
+	 * transcribe the stacked vector allSs into a symmetric matrix, a state vector sized Sv and a single scalar
+	 */
 	static void convert2Matrix(const s_vector_t& allSs, state_matrix_t& Sm, state_vector_t& Sv, eigen_scalar_t& s)  {
 
-		Sm = Eigen::Map<const Eigen::MatrixXd>(allSs.data(),OUTPUT_DIM,OUTPUT_DIM);
-		Sv = Eigen::Map<const Eigen::VectorXd>(allSs.data()+OUTPUT_DIM*OUTPUT_DIM, OUTPUT_DIM);
+		/*Sm is symmetric. Here, we map the first entries from allSs onto the respective elements in the symmetric matrix*/
+		size_t count = 0;
+		size_t nCols = 0;
+		for(size_t rows=0; rows < OUTPUT_DIM; rows++)
+		{
+			nCols = rows+1;
+			Sm.template block(rows, 0, 1, nCols)  << Eigen::Map<const Eigen::VectorXd>(allSs.data()+count, nCols).transpose();
+			Sm.template block(0, rows, nCols-1, 1)  << Eigen::Map<const Eigen::VectorXd>(allSs.data()+count, nCols-1); // "nCols-1" because diagonal elements have already been covered
+			count += nCols;
+		}
+
+		/*extract the vector Sv*/
+		Sv = Eigen::Map<const Eigen::VectorXd>(allSs.data()+(OUTPUT_DIM*(OUTPUT_DIM+1))/2, OUTPUT_DIM);
+
+		/*extract s as the last element */
 		s  = allSs.template tail<1>();
 	}
 
@@ -69,7 +127,7 @@ public:
 			const control_vector_array_t* RvPtr, const control_matrix_array_t* RmInversePtr, const control_matrix_array_t* RmPtr,
 			const control_feedback_array_t* PmPtr)  {
 
-		SystemBase<OUTPUT_DIM*OUTPUT_DIM+OUTPUT_DIM+1>::numFunctionCalls_ = 0;
+		SystemBase<OUTPUT_DIM*(OUTPUT_DIM+1)/2+OUTPUT_DIM+1>::numFunctionCalls_ = 0;
 
 		alpha_ = learningRate;
 
@@ -98,60 +156,52 @@ public:
 		PmFunc_.setData(PmPtr);
 	}
 
+
+	/*
+	 * mgiftthaler: moved all dynamically allocated variables, are now members (higher efficiency)
+	 * */
 	void computeDerivative(const scalar_t& z, const s_vector_t& allSs, s_vector_t& derivatives) {
 
-		SystemBase<OUTPUT_DIM*OUTPUT_DIM+OUTPUT_DIM+1>::numFunctionCalls_++;
+		SystemBase<OUTPUT_DIM*(OUTPUT_DIM+1)/2+OUTPUT_DIM+1>::numFunctionCalls_++;
 
 		// denormalized time
 		scalar_t t = switchingTimeFinal_ - (switchingTimeFinal_-switchingTimeStart_)*(z-activeSubsystem_);
 
-		state_matrix_t Sm;
-		state_vector_t Sv;
-		eigen_scalar_t s;
-		convert2Matrix(allSs, Sm, Sv, s);
+		convert2Matrix(allSs, __Sm, __Sv, __s);
 
 		// numerical consideration
-		bool hasNegativeEigenValue = makePSD(Sm);
-//		Sm += state_matrix_t::Identity()*(1e-2);
+		bool hasNegativeEigenValue = makePSD(__Sm);
+		//		__Sm += state_matrix_t::Identity()*(1e-2);
 
-		state_matrix_t Am;
-		AmFunc_.interpolate(t, Am);
+		AmFunc_.interpolate(t, __Am);
 		size_t greatestLessTimeStampIndex = AmFunc_.getGreatestLessTimeStampIndex();
-		control_gain_matrix_t Bm;
-		BmFunc_.interpolate(t, Bm, greatestLessTimeStampIndex);
+		BmFunc_.interpolate(t, __Bm, greatestLessTimeStampIndex);
+		qFunc_.interpolate(t, __q, greatestLessTimeStampIndex);
+		QvFunc_.interpolate(t, __Qv, greatestLessTimeStampIndex);
+		QmFunc_.interpolate(t, __Qm, greatestLessTimeStampIndex);
+		RvFunc_.interpolate(t, __Rv, greatestLessTimeStampIndex);
+		RmInverseFunc_.interpolate(t, __RmInv, greatestLessTimeStampIndex);
+		RmFunc_.interpolate(t, __Rm, greatestLessTimeStampIndex);
+		PmFunc_.interpolate(t, __Pm, greatestLessTimeStampIndex);
 
-		eigen_scalar_t q;
-		qFunc_.interpolate(t, q, greatestLessTimeStampIndex);
-		state_vector_t Qv;
-		QvFunc_.interpolate(t, Qv, greatestLessTimeStampIndex);
-		state_matrix_t Qm;
-		QmFunc_.interpolate(t, Qm, greatestLessTimeStampIndex);
-		control_vector_t Rv;
-		RvFunc_.interpolate(t, Rv, greatestLessTimeStampIndex);
-		control_matrix_t RmInverse;
-		RmInverseFunc_.interpolate(t, RmInverse, greatestLessTimeStampIndex);
-		control_matrix_t Rm;
-		RmFunc_.interpolate(t, Rm, greatestLessTimeStampIndex);
-		control_feedback_t Pm;
-		PmFunc_.interpolate(t, Pm, greatestLessTimeStampIndex);
-
-		state_matrix_t dSmdt, dSmdz;
-		state_vector_t dSvdt, dSvdz;
-		eigen_scalar_t dsdt, dsdz;
 
 		// Riccati equations for the original system
-		control_feedback_t Lm = RmInverse*(Pm+Bm.transpose()*Sm);
-		control_vector_t   Lv = RmInverse*(Rv+Bm.transpose()*Sv);
-		dSmdt = Qm + Am.transpose()*Sm + Sm.transpose()*Am - Lm.transpose()*Rm*Lm;
-		dSvdt = Qv + Am.transpose()*Sv - Lm.transpose()*Rm*Lv;
-		dsdt  = q - 0.5*alpha_*(2.0-alpha_)*Lv.transpose()*Rm*Lv;
+		__Lm 	= __RmInv*(__Pm+__Bm.transpose()*__Sm);
+		__Lv 	= __RmInv*(__Rv+__Bm.transpose()*__Sv);
+
+		/*note: according to some discussions on stackoverflow, it does not buy computation time if multiplications
+		 * with symmetric matrices are executed using selfadjointView(). Doing the full multiplication seems to be faster
+		 * because of vectorization */
+		__dSmdt = __Qm	+ __Am.transpose()*__Sm + __Sm*__Am - __Lm.transpose()*__Rm*__Lm;
+		__dSvdt = __Qv  + __Am.transpose()*__Sv - __Lm.transpose()*__Rm*__Lv;
+		__dsdt  = __q   - 0.5*alpha_*(2.0-alpha_)*__Lv.transpose()*__Rm*__Lv;
 
 		// Riccati equations for the equivalent system
-		dSmdz = (switchingTimeFinal_-switchingTimeStart_)*dSmdt;
-		dSvdz = (switchingTimeFinal_-switchingTimeStart_)*dSvdt;
-		dsdz  = (switchingTimeFinal_-switchingTimeStart_)*dsdt;
+		__dSmdz = (switchingTimeFinal_-switchingTimeStart_)*__dSmdt;
+		__dSvdz = (switchingTimeFinal_-switchingTimeStart_)*__dSvdt;
+		__dsdz  = (switchingTimeFinal_-switchingTimeStart_)*__dsdt;
 
-		convert2Vector(dSmdz, dSvdz, dsdz, derivatives);
+		convert2Vector(__dSmdz, __dSvdz, __dsdz, derivatives);
 	}
 
 protected:
@@ -177,12 +227,12 @@ protected:
 			squareMatrix = 0.5*(squareMatrix+squareMatrix.transpose()).eval();
 		}
 
-//		Eigen::LDLT<Derived> ldlt(squareMatrix);
-//		Derived squareMatrixNew = ldlt.matrixLDLT();
-//		if (squareMatrix.isApprox(squareMatrixNew,1e-4))
-//			std::cout << ">>>>>>>>>>>>>>> Cholesky is wrong" << std::endl;
-//		if (hasNegativeEigenValue)
-//			std::cout << "lambda: " << eig.eigenvalues().head(5).transpose() << std::endl;
+		//		Eigen::LDLT<Derived> ldlt(squareMatrix);
+		//		Derived squareMatrixNew = ldlt.matrixLDLT();
+		//		if (squareMatrix.isApprox(squareMatrixNew,1e-4))
+		//			std::cout << ">>>>>>>>>>>>>>> Cholesky is wrong" << std::endl;
+		//		if (hasNegativeEigenValue)
+		//			std::cout << "lambda: " << eig.eigenvalues().head(5).transpose() << std::endl;
 
 		return hasNegativeEigenValue;
 	}
@@ -206,6 +256,28 @@ private:
 	LinearInterpolation<control_matrix_t,Eigen::aligned_allocator<control_matrix_t> > RmFunc_;
 	LinearInterpolation<control_feedback_t,Eigen::aligned_allocator<control_feedback_t> > PmFunc_;
 
+
+	// members required only in computeDerivative()
+	state_matrix_t __Sm;
+	state_vector_t __Sv;
+	eigen_scalar_t __s;
+	state_matrix_t __Am;
+	control_gain_matrix_t __Bm;
+	eigen_scalar_t __q;
+	state_vector_t __Qv;
+	state_matrix_t __Qm;
+	control_vector_t __Rv;
+	control_matrix_t __RmInv;
+	control_matrix_t __Rm;
+	control_feedback_t __Pm;
+	state_matrix_t __dSmdt;
+	state_matrix_t __dSmdz;
+	state_vector_t __dSvdt;
+	state_vector_t __dSvdz;
+	eigen_scalar_t __dsdt;
+	eigen_scalar_t __dsdz;
+	control_feedback_t __Lm;
+	control_vector_t __Lv;
 };
 
 }

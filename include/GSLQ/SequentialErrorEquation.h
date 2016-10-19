@@ -52,14 +52,12 @@ public:
 		// denormalized time
 		scalar_t t = switchingTimeFinal_ - (switchingTimeFinal_-switchingTimeStart_)*(z-activeSubsystem_);
 
-		state_vector_t Gv;
-		GvFunc_.interpolate(t, Gv);
+		GvFunc_.interpolate(t, __Gv);
 		size_t greatestLessTimeStampIndex = GvFunc_.getGreatestLessTimeStampIndex();
-		state_matrix_t Gm;
-		GmFunc_.interpolate(t, Gm, greatestLessTimeStampIndex);
+		GmFunc_.interpolate(t, __Gm, greatestLessTimeStampIndex);
 
 		// Error equation for the equivalent system
-		derivatives = (switchingTimeFinal_-switchingTimeStart_)*(Gm.transpose()*Sve+Gv);
+		derivatives = (switchingTimeFinal_-switchingTimeStart_)*(__Gm.transpose()*Sve+__Gv);
 	}
 
 
@@ -71,6 +69,9 @@ private:
 	LinearInterpolation<state_vector_t,Eigen::aligned_allocator<state_vector_t> > GvFunc_;
 	LinearInterpolation<state_matrix_t,Eigen::aligned_allocator<state_matrix_t> > GmFunc_;
 
+	// members required in computeDerivative
+	state_vector_t __Gv;
+	state_matrix_t __Gm;
 };
 
 } // namespace ocs2

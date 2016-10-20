@@ -43,7 +43,6 @@ public:
 
 	typedef typename DIMENSIONS::controller_t controller_t;
 	typedef typename DIMENSIONS::Options Options_t;
-	typedef typename DIMENSIONS::MP_Options MP_Options_t;
 	typedef typename DIMENSIONS::scalar_t scalar_t;
 	typedef typename DIMENSIONS::scalar_array_t scalar_array_t;
 	typedef typename DIMENSIONS::eigen_scalar_t eigen_scalar_t;
@@ -89,13 +88,11 @@ public:
 			const std::vector<std::shared_ptr<CostFunctionBaseOCS2<OUTPUT_DIM, INPUT_DIM> > >& subsystemCostFunctionsPtr,
 			const std::vector<controller_t>& initialControllersStock,
 			const std::vector<size_t>& systemStockIndex,
-			const Options_t& options = Options_t(),
-			const MP_Options_t& mp_options = MP_Options_t())
+			const Options_t& options = Options_t())
 
 	:
 		SLQP_BASE<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>(options),
 		feedForwardConstraintInputStock_(NUM_SUBSYSTEMS),
-		mp_options_(mp_options),
 		workerTask_(IDLE),
 		subsystemProcessed_(0),
 		learningRateStar_(1.0),
@@ -110,17 +107,17 @@ public:
 		std::cout << "initialized Eigen Parallel with " << Eigen::nbThreads( ) << " threads. " << std::endl;
 
 		// resize instances to correct number of threads + 1
-		dynamics_.resize(mp_options_.nThreads_+1);
-		linearizedSystems_.resize(mp_options_.nThreads_+1);
-		costFunctions_.resize(mp_options_.nThreads_+1);
-		integratorsODE45_.resize(mp_options_.nThreads_+1);
-		killIntegrationEventHandlers_.resize(mp_options_.nThreads_+1);
-		controllers_.resize(mp_options_.nThreads_+1);
+		dynamics_.resize(options.nThreads_+1);
+		linearizedSystems_.resize(options.nThreads_+1);
+		costFunctions_.resize(options.nThreads_+1);
+		integratorsODE45_.resize(options.nThreads_+1);
+		killIntegrationEventHandlers_.resize(options.nThreads_+1);
+		controllers_.resize(options.nThreads_+1);
 
 		killIntegrationEventHandler_ = std::make_shared<KillIntegrationEventHandler<STATE_DIM>> ();
 
 		// for all threads + 1
-		for (size_t i=0; i<mp_options_.nThreads_+1; i++)
+		for (size_t i=0; i<options.nThreads_+1; i++)
 		{
 			// .. initialize all subsystems, etc.
 			for(size_t j = 0; j<NUM_SUBSYSTEMS; j++)
@@ -156,18 +153,18 @@ public:
 			throw std::runtime_error("systemStockIndex has less elements then the number of subsystems");
 
 		// for controller design
-		nominalOutputFunc_.resize(mp_options_.nThreads_+1);
-		nominalInputFunc_.resize(mp_options_.nThreads_+1);
-		BmFunc_.resize(mp_options_.nThreads_+1);
-		PmFunc_.resize(mp_options_.nThreads_+1);
-		RmInverseFunc_.resize(mp_options_.nThreads_+1);
-		RvFunc_.resize(mp_options_.nThreads_+1);
-		EvProjectedFunc_.resize(mp_options_.nThreads_+1);
-		CmProjectedFunc_.resize(mp_options_.nThreads_+1);
-		DmProjectedFunc_.resize(mp_options_.nThreads_+1);
-		nominalLagrangeMultiplierFunc_.resize(mp_options_.nThreads_+1);
-		DmDagerFunc_.resize(mp_options_.nThreads_+1);
-		RmFunc_.resize(mp_options_.nThreads_+1);
+		nominalOutputFunc_.resize(options.nThreads_+1);
+		nominalInputFunc_.resize(options.nThreads_+1);
+		BmFunc_.resize(options.nThreads_+1);
+		PmFunc_.resize(options.nThreads_+1);
+		RmInverseFunc_.resize(options.nThreads_+1);
+		RvFunc_.resize(options.nThreads_+1);
+		EvProjectedFunc_.resize(options.nThreads_+1);
+		CmProjectedFunc_.resize(options.nThreads_+1);
+		DmProjectedFunc_.resize(options.nThreads_+1);
+		nominalLagrangeMultiplierFunc_.resize(options.nThreads_+1);
+		DmDagerFunc_.resize(options.nThreads_+1);
+		RmFunc_.resize(options.nThreads_+1);
 
 		// initialize threads
 		launchWorkerThreads();
@@ -310,7 +307,7 @@ public:
 
 	// get subsystem dynamics on main thread
 	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM>>>& getSubsystemDynamicsPtrStock() override {
-		return dynamics_[mp_options_.nThreads_];
+		return dynamics_[BASE::options_.nThreads_];
 	}
 
 
@@ -402,8 +399,6 @@ private:
 	std::vector<std::vector<controller_t> > controllers_;
 
 	std::vector<control_vector_array_t> feedForwardConstraintInputStock_;
-
-	MP_Options_t mp_options_;
 
 
 	// multithreading helper variables

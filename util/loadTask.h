@@ -300,47 +300,29 @@ void loadOptions(const std::string& filename, typename Dimensions<STATE_DIM, INP
 	catch (const std::exception& e){
 		if (verbose)  std::cout << " #### Option loader : option 'adams_integrator_dt'  " << opt.adams_integrator_dt_ << " (default)" << std::endl;
 	}
-	if(verbose)
-		std::cerr <<" #### ================================================================ ####" << std::endl;
-}
-
-
-
-
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM=STATE_DIM>
-void loadMPOptions(const std::string& filename, typename Dimensions<STATE_DIM, INPUT_DIM, OUTPUT_DIM>::MP_Options& mp_opt, bool verbose = true)
-{
-	boost::property_tree::ptree pt;
-	boost::property_tree::read_info(filename, pt);
-
-	if(verbose){
-		std::cerr <<" #### OCS2 multi-threading Options: " << std::endl;
-		std::cerr <<" #### =====================================================================" << std::endl;
-	}
-
 
 	try	{
-		mp_opt.nThreads_ = pt.get<int>("mp.nThreads");
-		if (verbose)  std::cout << " #### MP Option loader : option 'nThreads'          " << mp_opt.nThreads_ << std::endl;
+		opt.nThreads_ = pt.get<int>("ocs2.nThreads");
+		if (verbose)  std::cout << " #### Option loader : option 'nThreads'          " << opt.nThreads_ << std::endl;
 	}
 	catch (const std::exception& e){
-		if (verbose)  std::cout << " #### MP Option loader : option 'nThreads'          " << mp_opt.nThreads_ << "\t(default)" << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'nThreads'          " << opt.nThreads_ << "\t(default)" << std::endl;
 	}
 
 	try	{
-		mp_opt.debugPrintMP_ = pt.get<bool>("mp.debugPrintMP");
-		if (verbose)  std::cout << " #### MP Option loader : option 'debugPrintMP'  " << mp_opt.debugPrintMP_ << std::endl;
+		opt.debugPrintMP_ = pt.get<bool>("ocs2.debugPrintMP");
+		if (verbose)  std::cout << " #### Option loader : option 'debugPrintMP'  " << opt.debugPrintMP_ << std::endl;
 	}
 	catch (const std::exception& e){
-		if (verbose)  std::cout << " #### MP Option loader : option 'debugPrintMP'  " << mp_opt.debugPrintMP_ << "\t(default)" << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'debugPrintMP'  " << opt.debugPrintMP_ << "\t(default)" << std::endl;
 	}
 
 	try	{
-		mp_opt.lsStepsizeGreedy_ = pt.get<bool>("mp.lsStepsizeGreedy");
-		if (verbose)  std::cout << " #### MP Option loader : option 'lsStepsizeGreedy'  " << mp_opt.lsStepsizeGreedy_ << std::endl;
+		opt.lsStepsizeGreedy_ = pt.get<bool>("ocs2.lsStepsizeGreedy");
+		if (verbose)  std::cout << " #### Option loader : option 'lsStepsizeGreedy'  " << opt.lsStepsizeGreedy_ << std::endl;
 	}
 	catch (const std::exception& e){
-		if (verbose)  std::cout << " #### MP Option loader : option 'lsStepsizeGreedy'  " << mp_opt.lsStepsizeGreedy_ << "\t(default)" << std::endl;
+		if (verbose)  std::cout << " #### Option loader : option 'lsStepsizeGreedy'  " << opt.lsStepsizeGreedy_ << "\t(default)" << std::endl;
 	}
 
 	if(verbose)

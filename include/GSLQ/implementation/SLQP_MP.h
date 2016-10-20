@@ -17,7 +17,7 @@ SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::~SLQP_MP()
 
 	workerWakeUpCondition_.notify_all();
 
-	if(mp_options_.debugPrintMP_)
+	if(BASE::options_.debugPrintMP_)
 	{
 		printString("Shutting down workers");
 	}
@@ -27,7 +27,7 @@ SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::~SLQP_MP()
 		workerThreads_[i].join();
 	}
 
-	if(mp_options_.debugPrintMP_)
+	if(BASE::options_.debugPrintMP_)
 	{
 		printString("All workers shut down");
 	}
@@ -49,7 +49,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
 		std::vector<size_t>& nc2FinalStock,
 		std::vector<constraint2_vector_t>& HvFinalStock){
 
-	rollout(mp_options_.nThreads_, initState,
+	rollout(BASE::options_.nThreads_, initState,
 			controllersStock, timeTrajectoriesStock, stateTrajectoriesStock,
 			inputTrajectoriesStock, outputTrajectoriesStock,
 			nc1TrajectoriesStock, EvTrajectoryStock,
@@ -65,7 +65,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
 		std::vector<control_vector_array_t>& inputTrajectoriesStock,
 		std::vector<output_vector_array_t>& outputTrajectoriesStock){
 
-	rollout(mp_options_.nThreads_, initState,
+	rollout(BASE::options_.nThreads_, initState,
 			controllersStock, timeTrajectoriesStock, stateTrajectoriesStock,
 			inputTrajectoriesStock, outputTrajectoriesStock);
 }
@@ -78,7 +78,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
 		std::vector<state_vector_array_t>& stateTrajectoriesStock,
 		std::vector<control_vector_array_t>& inputTrajectoriesStock){
 
-	rollout(mp_options_.nThreads_, initState,
+	rollout(BASE::options_.nThreads_, initState,
 			controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock);
 }
 
@@ -197,10 +197,10 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
 		maxNumSteps = ((1000>maxNumSteps) ? 1000 : maxNumSteps);
 
 		// initialize subsystem i
-		dynamics_[mp_options_.nThreads_][i]->initializeModel(BASE::switchingTimes_, x0, i, "GSLPQ");
+		dynamics_[BASE::options_.nThreads_][i]->initializeModel(BASE::switchingTimes_, x0, i, "GSLPQ");
 
 		// set controller for subsystem i
-		dynamics_[mp_options_.nThreads_][i]->setController(controllersStock[i]);
+		dynamics_[BASE::options_.nThreads_][i]->setController(controllersStock[i]);
 
 		// determine correct stopping time for this subsystem
 		double t_stop_thisSubsystem;
@@ -213,7 +213,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
 		}
 
 		// integrate subsystem i
-		integratorsODE45_[mp_options_.nThreads_][i]->integrate(
+		integratorsODE45_[BASE::options_.nThreads_][i]->integrate(
 				x0, BASE::switchingTimes_[i], t_stop_thisSubsystem,
 				stateTrajectoriesStock[i], timeTrajectoriesStock[i],
 				1e-3, BASE::options_.AbsTolODE_, BASE::options_.RelTolODE_, maxNumSteps);
@@ -224,8 +224,8 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::rollout(
 		if(stopAfterThisSubsystem == true){
 			numSubsystemWhereStopped = i;
 			stateVectorWhereStopped = stateTrajectoriesStock[i].back();
-			dynamics_[mp_options_.nThreads_][i]->computeOutput(timeTrajectoriesStock[i].back(), stateVectorWhereStopped, outputWhereStopped);
-			dynamics_[mp_options_.nThreads_][i]->computeInput(timeTrajectoriesStock[i].back(), outputWhereStopped, controlInputWhereStopped);
+			dynamics_[BASE::options_.nThreads_][i]->computeOutput(timeTrajectoriesStock[i].back(), stateVectorWhereStopped, outputWhereStopped);
+			dynamics_[BASE::options_.nThreads_][i]->computeInput(timeTrajectoriesStock[i].back(), outputWhereStopped, controlInputWhereStopped);
 			break;
 		}
 
@@ -337,7 +337,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateCostFun
 		const std::vector<control_vector_array_t>& inputTrajectoriesStock,
 		scalar_t& totalCost) {
 
-	calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock, totalCost, mp_options_.nThreads_);
+	calculateCostFunction(timeTrajectoriesStock, stateTrajectoriesStock, inputTrajectoriesStock, totalCost, BASE::options_.nThreads_);
 }
 
 /******************************************************************************************************/
@@ -418,7 +418,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateCostFun
 			nc2FinalStock,
 			HvFinalStock,
 			totalCost,
-			mp_options_.nThreads_);
+			BASE::options_.nThreads_);
 }
 
 /*****************************************************************************************************/
@@ -618,12 +618,12 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptim
 	{
 		subsystemProcessed_ = i;
 
-		if(mp_options_.debugPrintMP_)
+		if(BASE::options_.debugPrintMP_)
 			printString("[MP] Starting approximation of subsystem " + std::to_string(i) + " out of " + std::to_string( (size_t) NUM_SUBSYSTEMS-1));
 
 		approximateSubsystemLQ(i);
 
-		if(mp_options_.debugPrintMP_)
+		if(BASE::options_.debugPrintMP_)
 			printString("[MP] ended approximation of subsystem " + std::to_string(i));
 
 
@@ -803,7 +803,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch() {
 		std::vector<control_vector_t> maxDeltaUffeStock(NUM_SUBSYSTEMS);
 		for (size_t i=0; i<NUM_SUBSYSTEMS; i++)
 		{
-			maxDeltaUffStock[i]  = *std::max_element(controllers_[mp_options_.nThreads_][i].deltaUff_.begin(), controllers_[mp_options_.nThreads_][i].deltaUff_.template end(), eigenVectorLessEqual);
+			maxDeltaUffStock[i]  = *std::max_element(controllers_[BASE::options_.nThreads_][i].deltaUff_.begin(), controllers_[BASE::options_.nThreads_][i].deltaUff_.template end(), eigenVectorLessEqual);
 			maxDeltaUffeStock[i] = *std::max_element(feedForwardConstraintInputStock_[i].begin(), feedForwardConstraintInputStock_[i].end(), eigenVectorLessEqual);
 		}
 		control_vector_t maxDeltaUff  = *std::max_element(maxDeltaUffStock.begin(), maxDeltaUffStock.end(), eigenVectorLessEqual);
@@ -815,21 +815,21 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch() {
 
 
 	for (int i=0; i<NUM_SUBSYSTEMS; i++)
-		for (int k=0; k<controllers_[mp_options_.nThreads_][i].time_.size(); k++)
+		for (int k=0; k<controllers_[BASE::options_.nThreads_][i].time_.size(); k++)
 			if (BASE::options_.lineSearchByMeritFuntion_==true)
-				controllers_[mp_options_.nThreads_][i].deltaUff_[k] += feedForwardConstraintInputStock_[i][k];
+				controllers_[BASE::options_.nThreads_][i].deltaUff_[k] += feedForwardConstraintInputStock_[i][k];
 			else
-				controllers_[mp_options_.nThreads_][i].uff_[k] += BASE::options_.constraintStepSize_*feedForwardConstraintInputStock_[i][k];
+				controllers_[BASE::options_.nThreads_][i].uff_[k] += BASE::options_.constraintStepSize_*feedForwardConstraintInputStock_[i][k];
 
 
 	// perform one rollout while the input correction for the type-1 constraint is considered.
-	rollout(mp_options_.nThreads_, BASE::initState_, controllers_[mp_options_.nThreads_], BASE::nominalTimeTrajectoriesStock_,
+	rollout(BASE::options_.nThreads_, BASE::initState_, controllers_[BASE::options_.nThreads_], BASE::nominalTimeTrajectoriesStock_,
 			BASE::nominalStateTrajectoriesStock_, BASE::nominalInputTrajectoriesStock_, BASE::nominalOutputTrajectoriesStock_,
 			BASE::nc1TrajectoriesStock_, BASE::EvTrajectoryStock_,BASE::nc2TrajectoriesStock_,
 			BASE::HvTrajectoryStock_, BASE::nc2FinalStock_, BASE::HvFinalStock_);
 
 	calculateCostFunction( BASE::nominalTimeTrajectoriesStock_, BASE::nominalOutputTrajectoriesStock_, BASE::nominalInputTrajectoriesStock_,
-			BASE::nc2TrajectoriesStock_, BASE::HvTrajectoryStock_, BASE::nc2FinalStock_, BASE::HvFinalStock_, BASE::nominalTotalCost_, mp_options_.nThreads_);
+			BASE::nc2TrajectoriesStock_, BASE::HvTrajectoryStock_, BASE::nc2FinalStock_, BASE::HvFinalStock_, BASE::nominalTotalCost_, BASE::options_.nThreads_);
 
 
 	// calculate the merit function
@@ -858,7 +858,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch() {
 		" \t constraint ISE: " << BASE::nominalConstraint1ISE_ << std::endl;}
 
 
-	initLScontrollersStock_ = controllers_[mp_options_.nThreads_];		// this will serve to init the workers
+	initLScontrollersStock_ = controllers_[BASE::options_.nThreads_];		// this will serve to init the workers
 	initLSlagrangeMultiplierFunctionsStock_ = BASE::lagrangeControllerStock_;
 
 	subsystemProcessed_ = 0; // not required for linesearch, but assign to not let it dangle around
@@ -872,10 +872,10 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch() {
 	alphaExpBest_ = maxNumOfLineSearches;
 	alphaProcessed_.resize(maxNumOfLineSearches, 0);
 
-	if(mp_options_.debugPrintMP_)
+	if(BASE::options_.debugPrintMP_)
 		printString("[MP]: calculated maximum number of line searches " + std::to_string(alphaExpMax_));
 
-	if(mp_options_.debugPrintMP_)
+	if(BASE::options_.debugPrintMP_)
 		printString("[MP] Waking up workers for line search ");
 
 	workerTask_ = LINE_SEARCH;
@@ -884,28 +884,28 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch() {
 	workerWakeUpCondition_.notify_all();
 	lock.unlock();
 
-	if(mp_options_.debugPrintMP_)
+	if(BASE::options_.debugPrintMP_)
 		printString("[MP] Will sleep now until we have results ");
 
 
 	std::unique_lock<std::mutex> waitLock(alphaBestFoundMutex_);
-	while(lsWorkerCompleted_.load() < mp_options_.nThreads_)
+	while(lsWorkerCompleted_.load() < BASE::options_.nThreads_)
 		alphaBestFoundCondition_.wait(waitLock);
 
 	waitLock.unlock();
 
 	workerTask_ = IDLE;
 
-	if(mp_options_.debugPrintMP_)
+	if(BASE::options_.debugPrintMP_)
 		printString("[MP]: Woke up again, should have results now.");
 
 
 
 	// clear the feedforward increments
-	for (int j=0; j<mp_options_.nThreads_+1; j++){
+	for (int j=0; j<BASE::options_.nThreads_+1; j++){
 		for (size_t i=0; i<NUM_SUBSYSTEMS; i++)
 		{
-			controllers_[mp_options_.nThreads_][i].deltaUff_.clear();
+			controllers_[BASE::options_.nThreads_][i].deltaUff_.clear();
 			BASE::lagrangeControllerStock_[i].deltaUff_.clear();
 		}
 	}
@@ -933,13 +933,13 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch() {
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getController(std::vector<controller_t>& controllersStock) {
 
-	controllersStock = controllers_[mp_options_.nThreads_];
+	controllersStock = controllers_[BASE::options_.nThreads_];
 }
 
 
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::setController(const std::vector<controller_t>& controllersStock){
-	controllers_[mp_options_.nThreads_] = controllersStock;
+	controllers_[BASE::options_.nThreads_] = controllersStock;
 }
 
 /******************************************************************************************************/
@@ -1244,11 +1244,11 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 	if (initialControllersStock.empty()==false) {
 		if (initialControllersStock.size() != NUM_SUBSYSTEMS)
 			throw std::runtime_error("initialControllersStock has less controllers than the number of subsystems");
-		for(size_t i = 0; i<mp_options_.nThreads_+1; i++)
+		for(size_t i = 0; i<BASE::options_.nThreads_+1; i++)
 			controllers_[i] = initialControllersStock;
 	}
 	else
-		if (controllers_[mp_options_.nThreads_].empty()==true)
+		if (controllers_[BASE::options_.nThreads_].empty()==true)
 			throw std::runtime_error("initialControllersStock should be provided since nominalControllersStock is empty.");
 
 
@@ -1272,9 +1272,9 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 	nominalLagrangeMultiplierUpdated_ = false;
 
 	// initial controller rollout
-	rollout(mp_options_.nThreads_,
+	rollout(BASE::options_.nThreads_,
 			BASE::initState_,
-			controllers_[mp_options_.nThreads_],
+			controllers_[BASE::options_.nThreads_],
 			BASE::nominalTimeTrajectoriesStock_, BASE::nominalStateTrajectoriesStock_, BASE::nominalInputTrajectoriesStock_, BASE::nominalOutputTrajectoriesStock_,
 			BASE::nc1TrajectoriesStock_, BASE::EvTrajectoryStock_,
 			BASE::nc2TrajectoriesStock_, BASE::HvTrajectoryStock_, BASE::nc2FinalStock_, BASE::HvFinalStock_);
@@ -1282,7 +1282,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 	// initial controller cost
 	calculateCostFunction(BASE::nominalTimeTrajectoriesStock_, BASE::nominalOutputTrajectoriesStock_, BASE::nominalInputTrajectoriesStock_,
 			BASE::nc2TrajectoriesStock_, BASE::HvTrajectoryStock_, BASE::nc2FinalStock_, BASE::HvFinalStock_,
-			BASE::nominalTotalCost_, mp_options_.nThreads_);
+			BASE::nominalTotalCost_, BASE::options_.nThreads_);
 
 	// initial controller merit
 	BASE::nominalTotalMerit_ = BASE::nominalTotalCost_;
@@ -1315,7 +1315,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 		Eigen::setNbThreads(0); // restore default Eigen thread number
 
 		auto end = std::chrono::high_resolution_clock::now();
-		if(mp_options_.debugPrintMP_){
+		if(BASE::options_.debugPrintMP_){
 			std::chrono::duration<double, std::milli> diff = end - start;
 			printString("iteration " + std::to_string(BASE::iteration_) + ": mp LQ approximation took " + std::to_string(diff.count()) + "ms");
 		}
@@ -1326,7 +1326,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 		this->solveSequentialRiccatiEquations(1.0 /*nominal learningRate*/);
 
 		auto end2 = std::chrono::high_resolution_clock::now();
-		if(mp_options_.debugPrintMP_){
+		if(BASE::options_.debugPrintMP_){
 			std::chrono::duration<double, std::milli> diff2 = end2 - start2;
 			printString("iteration " + std::to_string(BASE::iteration_) + ": mp solve riccati took " + std::to_string(diff2.count()) + "ms");
 		}
@@ -1339,7 +1339,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 		Eigen::setNbThreads(0); // restore default Eigen thread number
 		auto end3 = std::chrono::high_resolution_clock::now();
 
-		if(mp_options_.debugPrintMP_){
+		if(BASE::options_.debugPrintMP_){
 			std::chrono::duration<double, std::milli> diff3 = end3 - start3;
 			printString("iteration " + std::to_string(BASE::iteration_) + ": mp calc controller and lagrangian took " + std::to_string(diff3.count()) + "ms");
 		}
@@ -1355,7 +1355,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 		Eigen::setNbThreads(0); // restore default Eigen thread number
 		auto end4 = std::chrono::high_resolution_clock::now();
 
-		if(mp_options_.debugPrintMP_){
+		if(BASE::options_.debugPrintMP_){
 			std::chrono::duration<double, std::milli> diff4 = end4 - start4;
 			printString("iteration " + std::to_string(BASE::iteration_) + ": mp line search took " + std::to_string(diff4.count()) + "ms");
 		}
@@ -1431,7 +1431,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::launchWorkerThre
 	workersActive_ = true;
 	workerTask_ = IDLE;
 
-	for (size_t i=0; i < mp_options_.nThreads_; i++)
+	for (size_t i=0; i < BASE::options_.nThreads_; i++)
 	{
 		workerThreads_.push_back(std::thread(&SLQP_MP::threadWork, this, i));
 	}
@@ -1441,7 +1441,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::launchWorkerThre
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_t threadId)
 {
-	if(mp_options_.debugPrintMP_)
+	if(BASE::options_.debugPrintMP_)
 		printString("[Thread " + std::to_string(threadId) + "]: launched");
 
 	// local variables
@@ -1457,7 +1457,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 		iteration_local = BASE::iteration_;
 
 		// display
-		if(mp_options_.debugPrintMP_){
+		if(BASE::options_.debugPrintMP_){
 			printString("[Thread " + std::to_string(threadId) + "]: previous procId: " + std::to_string(uniqueProcessID) +
 					", current procId: " +std::to_string(generateUniqueProcessID(iteration_local, (int) workerTask_local, (int) subsystemProcessed_local)));
 		}
@@ -1468,7 +1468,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 		 * */
 		if ( workerTask_local == IDLE || uniqueProcessID == generateUniqueProcessID(iteration_local, (int) workerTask_local, (int) subsystemProcessed_local))
 		{
-			if(mp_options_.debugPrintMP_)
+			if(BASE::options_.debugPrintMP_)
 				printString("[Thread " + std::to_string(threadId) + "]: going to sleep !");
 
 			// sleep until the state is not IDLE any more and we have a different process ID than before
@@ -1482,7 +1482,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 			workerTask_local = workerTask_.load();
 			iteration_local = BASE::iteration_;
 
-			if(mp_options_.debugPrintMP_)
+			if(BASE::options_.debugPrintMP_)
 				printString("[Thread " + std::to_string(threadId) + "]: woke up !");
 		}
 
@@ -1493,7 +1493,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 		{
 		case APPROXIMATE_LQ:
 		{
-			if(mp_options_.debugPrintMP_)
+			if(BASE::options_.debugPrintMP_)
 				printString("[Thread " + std::to_string(threadId) + "]: now busy with APPROXIMATE_LQ on subsystem " + std::to_string(subsystemProcessed_local));
 
 			approximateSubsystemLQWorker(threadId, subsystemProcessed_local);
@@ -1503,7 +1503,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 		}
 		case CALCULATE_CONTROLLER_AND_LAGRANGIAN:
 		{
-			if(mp_options_.debugPrintMP_)
+			if(BASE::options_.debugPrintMP_)
 				printString("[Thread " + std::to_string(threadId) + "]: now busy with CALCULATE_CONTROLLER_AND_LAGRANGIAN !");
 
 			calculateControllerAndLagrangianWorker(threadId, subsystemProcessed_local);
@@ -1513,7 +1513,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 		}
 		case LINE_SEARCH:
 		{
-			if(mp_options_.debugPrintMP_)
+			if(BASE::options_.debugPrintMP_)
 				printString("[Thread " + std::to_string(threadId) + "]: now busy with LINE_SEARCH !");
 
 			lineSearchWorker(threadId);
@@ -1522,13 +1522,13 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::threadWork(size_
 		}
 		case SHUTDOWN:
 		{
-			if(mp_options_.debugPrintMP_)
+			if(BASE::options_.debugPrintMP_)
 				printString("[Thread "+ std::to_string(threadId) +"]: now shutting down!");
 			return;
 		}
 		}
 
-		if(mp_options_.debugPrintMP_)
+		if(BASE::options_.debugPrintMP_)
 			printString("[Thread " + std::to_string(threadId) +"]: done with job. Will wait for next now!");
 	}
 }
@@ -1540,7 +1540,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 	size_t N =   BASE::nominalTimeTrajectoriesStock_[i].size();
 
 	// initialize subsystem i dynamics derivatives
-	for(size_t j = 0; j< mp_options_.nThreads_+1; j++)
+	for(size_t j = 0; j< BASE::options_.nThreads_+1; j++)
 	{
 		assert( BASE::nominalTimeTrajectoriesStock_[i].size() == BASE::nominalStateTrajectoriesStock_[i].size());
 		linearizedSystems_[j][i]->initializeModel(BASE::switchingTimes_, BASE::nominalStateTrajectoriesStock_[i].front(), i, "GSLPQ");
@@ -1575,7 +1575,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 	kCompleted_approx_[i]= 0;
 	KMax_subsystem_approx_[i] = N;
 
-	if(mp_options_.debugPrintMP_)
+	if(BASE::options_.debugPrintMP_)
 		printString("[MP]: Waking up workers to do linearisation for subsystem " + std::to_string(i));
 
 	workerTask_ = APPROXIMATE_LQ;
@@ -1583,7 +1583,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 	workerWakeUpCondition_.notify_all();
 	lock.unlock();
 
-	if(mp_options_.debugPrintMP_)
+	if(BASE::options_.debugPrintMP_)
 		printString("[MP]: Will wait now until workers have linearized dynamics of subsystem " + std::to_string(i));
 
 	std::unique_lock<std::mutex> waitLock(kCompletedMutex_);
@@ -1597,15 +1597,15 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 
 	if (i==NUM_SUBSYSTEMS-1) // if last subsystem, set terminal cost
 	{
-		if(mp_options_.debugPrintMP_)
+		if(BASE::options_.debugPrintMP_)
 			printString("[MP]: Approximating terminal cost with single thread, subsystem  " + std::to_string(i));
 
-		costFunctions_[mp_options_.nThreads_][i]->setCurrentStateAndControl(BASE::nominalTimeTrajectoriesStock_[i].back(),
+		costFunctions_[BASE::options_.nThreads_][i]->setCurrentStateAndControl(BASE::nominalTimeTrajectoriesStock_[i].back(),
 				BASE::nominalOutputTrajectoriesStock_[i].back(), BASE::nominalInputTrajectoriesStock_[i].back());
 
-		costFunctions_[mp_options_.nThreads_][i]->terminalCost(BASE::qFinalStock_[i](0));
-		costFunctions_[mp_options_.nThreads_][i]->terminalCostStateDerivative(BASE::QvFinalStock_[i]);
-		costFunctions_[mp_options_.nThreads_][i]->terminalCostStateSecondDerivative(BASE::QmFinalStock_[i]);
+		costFunctions_[BASE::options_.nThreads_][i]->terminalCost(BASE::qFinalStock_[i](0));
+		costFunctions_[BASE::options_.nThreads_][i]->terminalCostStateDerivative(BASE::QvFinalStock_[i]);
+		costFunctions_[BASE::options_.nThreads_][i]->terminalCostStateSecondDerivative(BASE::QmFinalStock_[i]);
 
 		// making sure that Qm remains PSD
 		makePSD(BASE::QmFinalStock_[i]);
@@ -1620,13 +1620,13 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSubsy
 	if (BASE::nc2FinalStock_[i] > 0) {
 		size_t nc2 = BASE::nc2FinalStock_[i];
 
-		linearizedSystems_[mp_options_.nThreads_][i]->setCurrentStateAndControl(
+		linearizedSystems_[BASE::options_.nThreads_][i]->setCurrentStateAndControl(
 				BASE::nominalTimeTrajectoriesStock_[i].back(),
 				BASE::nominalStateTrajectoriesStock_[i].back(),
 				BASE::nominalInputTrajectoriesStock_[i].back(),
 				BASE::nominalOutputTrajectoriesStock_[i].back());
 
-		linearizedSystems_[mp_options_.nThreads_][i]->getFinalConstraint2DerivativesState(BASE::FmFinalStock_[i]);
+		linearizedSystems_[BASE::options_.nThreads_][i]->getFinalConstraint2DerivativesState(BASE::FmFinalStock_[i]);
 
 		double stateConstraintPenalty = BASE::options_.stateConstraintPenaltyCoeff_ * pow(BASE::options_.stateConstraintPenaltyBase_, BASE::iteration_);
 
@@ -1651,7 +1651,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControl
 		KMax_subsystem_ctrl_[i]  = BASE::SsTimeTrajectoryStock_[i].size(); // number of elements in the trajectory of this subsystem
 
 		// initialize interpolators
-		for(size_t n = 0; n< mp_options_.nThreads_+1; n++)
+		for(size_t n = 0; n< BASE::options_.nThreads_+1; n++)
 		{
 			// functions for controller and lagrange-multiplier
 			nominalOutputFunc_[n].setTimeStamp( &(BASE::nominalTimeTrajectoriesStock_[i]) );
@@ -1694,10 +1694,10 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControl
 			}
 		}
 
-		controllers_[mp_options_.nThreads_][i].time_ = BASE::SsTimeTrajectoryStock_[i];
-		controllers_[mp_options_.nThreads_][i].k_.resize(KMax_subsystem_ctrl_[i]);
-		controllers_[mp_options_.nThreads_][i].uff_.resize(KMax_subsystem_ctrl_[i]);
-		controllers_[mp_options_.nThreads_][i].deltaUff_.resize(KMax_subsystem_ctrl_[i]);
+		controllers_[BASE::options_.nThreads_][i].time_ = BASE::SsTimeTrajectoryStock_[i];
+		controllers_[BASE::options_.nThreads_][i].k_.resize(KMax_subsystem_ctrl_[i]);
+		controllers_[BASE::options_.nThreads_][i].uff_.resize(KMax_subsystem_ctrl_[i]);
+		controllers_[BASE::options_.nThreads_][i].deltaUff_.resize(KMax_subsystem_ctrl_[i]);
 
 		feedForwardConstraintInputStock_[i].resize(KMax_subsystem_ctrl_[i]);
 
@@ -1707,7 +1707,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControl
 		BASE::lagrangeControllerStock_[i].deltaUff_.resize(KMax_subsystem_ctrl_[i]);
 
 
-		if(mp_options_.debugPrintMP_)
+		if(BASE::options_.debugPrintMP_)
 			printString("[MP]: Waking up workers to calc. controller for subsystem " + std::to_string(i));
 
 		workerTask_ = CALCULATE_CONTROLLER_AND_LAGRANGIAN;
@@ -1715,7 +1715,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControl
 		workerWakeUpCondition_.notify_all();
 		lock.unlock();
 
-		if(mp_options_.debugPrintMP_)
+		if(BASE::options_.debugPrintMP_)
 			printString("[MP]: Will wait now controllers have been calculated for subsystem " + std::to_string(i));
 
 
@@ -1728,7 +1728,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateControl
 		waitLock.unlock();
 		workerTask_ = IDLE;
 
-		if(mp_options_.debugPrintMP_)
+		if(BASE::options_.debugPrintMP_)
 			printString("[MP]: Back to main thread, workers should now have designed controllers for subsystem " + std::to_string(i));
 
 	}  // end of i loop
@@ -1748,7 +1748,7 @@ size_t SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSub
 
 		if(k < KMax_subsystem_approx_[subsystemProcessed]){
 
-			if(mp_options_.debugPrintMP_){
+			if(BASE::options_.debugPrintMP_){
 				if (k%10 == 0) {
 					printString("[Thread " + std::to_string(threadId) + "], subsystem " + std::to_string(subsystemProcessed)
 					+ ":Start approximating system LQ on index k = " + std::to_string(k) + " out of " + std::to_string(KMax_subsystem_approx_[subsystemProcessed]-1));
@@ -1763,7 +1763,7 @@ size_t SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSub
 		{
 			if(kCompleted_local >=KMax_subsystem_approx_[subsystemProcessed])
 			{
-				if(mp_options_.debugPrintMP_){
+				if(BASE::options_.debugPrintMP_){
 					printString("[Thread " + std::to_string(threadId) + "], subsystem "
 							+ std::to_string(subsystemProcessed) + ", k " + std::to_string(k)
 					+ ", kCompleted_local " + std::to_string(kCompleted_local)
@@ -1775,7 +1775,7 @@ size_t SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateSub
 				lock.unlock();
 			}
 			else{
-				if(mp_options_.debugPrintMP_){
+				if(BASE::options_.debugPrintMP_){
 					printString("[Thread " + std::to_string(threadId) + "], subsystem "
 							+ std::to_string(subsystemProcessed) + ", k " + std::to_string(k) + ", kCompleted_local " + std::to_string(kCompleted_local)
 					+ ", KMax_subsystem_approx_ " + std::to_string(KMax_subsystem_approx_[subsystemProcessed])
@@ -1804,7 +1804,7 @@ size_t SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateContr
 
 		if(k < KMax_subsystem_ctrl_[subsystemProcessed]){
 
-			if(mp_options_.debugPrintMP_){
+			if(BASE::options_.debugPrintMP_){
 				if (k%10 == 0) {
 					printString("[Thread " + std::to_string(threadId) + "]: Start calculating controller on index k = " + std::to_string(k) +
 							" out of " + std::to_string(KMax_subsystem_ctrl_[subsystemProcessed]-1));
@@ -1820,7 +1820,7 @@ size_t SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateContr
 		{
 			if(kCompleted_local>=KMax_subsystem_ctrl_[subsystemProcessed])
 			{
-				if(mp_options_.debugPrintMP_)
+				if(BASE::options_.debugPrintMP_)
 					printString("[Thread " + std::to_string(threadId) + "], subsystem " + std::to_string(subsystemProcessed) + ": leaving calculateControllerAndLagrangianWorker() AND NOTIFYING ");
 
 				std::unique_lock<std::mutex> lock (kCompletedMutex_);
@@ -1828,7 +1828,7 @@ size_t SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::calculateContr
 				lock.unlock();
 			}else
 			{
-				if(mp_options_.debugPrintMP_)
+				if(BASE::options_.debugPrintMP_)
 					printString("[Thread " + std::to_string(threadId) + "], subsystem " + std::to_string(subsystemProcessed) + ": leaving calculateControllerAndLagrangianWorker() but NOT notifying ");				}
 
 			return subsystemProcessed;
@@ -1977,23 +1977,23 @@ size_t SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeCalcula
 	control_vector_t   Lve = RmInverse * (Bm.transpose()*BASE::SveTrajectoryStock_[i][k]);
 
 	control_matrix_t DmNullProjection = control_matrix_t::Identity()-DmProjected;
-	controllers_[mp_options_.nThreads_][i].k_[k]   = -DmNullProjection*Lm - CmProjected;
-	controllers_[mp_options_.nThreads_][i].uff_[k] = nominalInput - controllers_[mp_options_.nThreads_][i].k_[k]*nominalOutput;
-	controllers_[mp_options_.nThreads_][i].deltaUff_[k]      = -DmNullProjection*Lv;
+	controllers_[BASE::options_.nThreads_][i].k_[k]   = -DmNullProjection*Lm - CmProjected;
+	controllers_[BASE::options_.nThreads_][i].uff_[k] = nominalInput - controllers_[BASE::options_.nThreads_][i].k_[k]*nominalOutput;
+	controllers_[BASE::options_.nThreads_][i].deltaUff_[k]      = -DmNullProjection*Lv;
 	feedForwardConstraintInputStock_[i][k] = -DmNullProjection*Lve - EvProjected;
 
 
 	// checking the numerical stability of the controller parameters
 	try {
-		if (controllers_[mp_options_.nThreads_][i].k_[k] != controllers_[mp_options_.nThreads_][i].k_[k])
+		if (controllers_[BASE::options_.nThreads_][i].k_[k] != controllers_[BASE::options_.nThreads_][i].k_[k])
 			throw std::runtime_error("Feedback gains are unstable.");
-		if (controllers_[mp_options_.nThreads_][i].deltaUff_[k] != controllers_[mp_options_.nThreads_][i].deltaUff_[k])
+		if (controllers_[BASE::options_.nThreads_][i].deltaUff_[k] != controllers_[BASE::options_.nThreads_][i].deltaUff_[k])
 			throw std::runtime_error("feedForwardControl is unstable.");
 		if (feedForwardConstraintInputStock_[i][k] != feedForwardConstraintInputStock_[i][k])
 			throw std::runtime_error("feedForwardConstraintInput is unstable.");
 	}
 	catch(const std::exception& error)  {
-		std::cerr << "what(): " << error.what() << " at time " << controllers_[mp_options_.nThreads_][i].time_[k] << " [sec]." << std::endl;
+		std::cerr << "what(): " << error.what() << " at time " << controllers_[BASE::options_.nThreads_][i].time_[k] << " [sec]." << std::endl;
 	}
 
 
@@ -2043,7 +2043,7 @@ size_t SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeCalcula
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker(size_t threadId)
 {
-	if(mp_options_.debugPrintMP_)
+	if(BASE::options_.debugPrintMP_)
 		printString("[Thread " + std::to_string(threadId) + "]: Starting lineSearchWorker. ");
 
 	// local search forward simulation's variables
@@ -2074,7 +2074,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 
 		if (learningRate < BASE::options_.minLearningRateGSLQP_ || alphaBestFound_.load() == true)
 		{
-			if(mp_options_.debugPrintMP_)
+			if(BASE::options_.debugPrintMP_)
 			{
 				if (alphaBestFound_.load() == true)
 					printString("[Thread " + std::to_string(threadId) + "]: Leaving lineSearchWorker because best alpha is found OR no improvement for any alpha");
@@ -2085,7 +2085,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 			break;
 		}
 
-		if(mp_options_.debugPrintMP_)
+		if(BASE::options_.debugPrintMP_)
 			printString("[Thread " + std::to_string(threadId) + "]: Trying learningRate " + std::to_string(learningRate));
 
 
@@ -2117,7 +2117,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 		// make sure we do not alter an existing result
 		if (alphaBestFound_.load() == true)
 		{
-			if(mp_options_.debugPrintMP_)
+			if(BASE::options_.debugPrintMP_)
 				printString("[Thread " + std::to_string(threadId) + "]: Leaving lineSearchWorker because best alpha already found by another thread.");
 
 			break;
@@ -2127,19 +2127,19 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 		lineSearchResultMutex_.lock();
 
 		bool updatePolicy = false;
-		if(mp_options_.lsStepsizeGreedy_ == true)
+		if(BASE::options_.lsStepsizeGreedy_ == true)
 		{
 			// act stepsize greedy, merit should be better than in last iteration but learning rate should be as high as possible
 			if(lsTotalMerit <  (BASE::nominalTotalMerit_ * (1-1e-3*learningRate)) && learningRate > learningRateStar_)
 			{
 				updatePolicy = true;
-				if(mp_options_.debugPrintMP_){
+				if(BASE::options_.debugPrintMP_){
 					printString("[LS, Thread " + std::to_string(threadId) + "]: stepsize-greedy mode : better stepsize and merit found: " + std::to_string(lsTotalMerit)
 					+ " at learningRate: " + std::to_string(learningRate));
 				}
 			}
 			else{
-				if(mp_options_.debugPrintMP_){
+				if(BASE::options_.debugPrintMP_){
 					printString("[LS, Thread " + std::to_string(threadId) + "]: stepsize-greedy mode : no better combination found, merit " + std::to_string(lsTotalMerit)
 					+ " at learningRate: " + std::to_string(learningRate));
 				}
@@ -2150,13 +2150,13 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 			if(lsTotalMerit <  (lowestTotalMerit_ * (1-1e-3*learningRate)))
 			{
 				updatePolicy = true;
-				if(mp_options_.debugPrintMP_){
+				if(BASE::options_.debugPrintMP_){
 					printString("[LS, Thread " + std::to_string(threadId) + "]: merit-greedy mode : better merit found: " + std::to_string(lsTotalMerit)
 					+ " at learningRate: " + std::to_string(learningRate));
 				}
 			}
 			else{
-				if(mp_options_.debugPrintMP_){
+				if(BASE::options_.debugPrintMP_){
 					printString("[LS, Thread " + std::to_string(threadId) + "]: merit-greedy mode : no better merit found, merit " + std::to_string(lsTotalMerit)
 					+ " at learningRate: " + std::to_string(learningRate) + ". Best merit was " + std::to_string(lowestTotalMerit_));
 				}
@@ -2174,7 +2174,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 
 			for (size_t i = 0; i<NUM_SUBSYSTEMS; i++)	// swapping where possible for improved efficiency
 			{
-				controllers_[mp_options_.nThreads_][i].swap(lsControllersStock[i]);
+				controllers_[BASE::options_.nThreads_][i].swap(lsControllersStock[i]);
 				BASE::nominalTimeTrajectoriesStock_[i].swap(lsTimeTrajectoriesStock[i]);
 				BASE::nominalStateTrajectoriesStock_[i].swap(lsStateTrajectoriesStock[i]);
 				BASE::nominalInputTrajectoriesStock_[i].swap(lsInputTrajectoriesStock[i]);
@@ -2217,16 +2217,16 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearchWorker
 
 	lsWorkerCompleted_++;
 
-	if(mp_options_.debugPrintMP_)
+	if(BASE::options_.debugPrintMP_)
 		printString("[Thread " + std::to_string(threadId) + "]: Leaving lineSearchWorker ");
 
-	if (lsWorkerCompleted_.load() >= mp_options_.nThreads_)
+	if (lsWorkerCompleted_.load() >= BASE::options_.nThreads_)
 	{
 		std::unique_lock<std::mutex> lock (alphaBestFoundMutex_);
 		alphaBestFoundCondition_.notify_all();
 		lock.unlock();
 
-		if(mp_options_.debugPrintMP_)
+		if(BASE::options_.debugPrintMP_)
 			printString("NOTIFYING by LS WORKER since all workers are now done ");
 	}
 }
@@ -2304,7 +2304,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeLineSearc
 	}
 	catch(const std::exception& error)
 	{
-		if(mp_options_.debugPrintMP_)
+		if(BASE::options_.debugPrintMP_)
 			std::cout << error.what() << std::endl;
 
 		lsTotalMerit = std::numeric_limits<scalar_t>::max();
@@ -2317,7 +2317,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::executeLineSearc
 template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS>
 void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::setNewCostReferenceState(const output_vector_t& newReference){	// todo: move to implementation
 	// for all threads + 1
-	for (size_t i=0; i<mp_options_.nThreads_+1; i++)
+	for (size_t i=0; i<BASE::options_.nThreads_+1; i++)
 	{
 		// .. initialize all subsystems, etc.
 		for(size_t j = 0; j<NUM_SUBSYSTEMS; j++)

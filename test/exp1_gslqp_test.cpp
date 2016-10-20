@@ -79,12 +79,11 @@ TEST(Exp1_gslqp_test, Exp1_gslqp_test)
 	// GSLQ MP version
 	GSLQP<2,1,2,3>::Options_t gslqpOptions_mp = gslqpOptions;
 	gslqpOptions_mp.useMultiThreading_ = true;
-	GSLQP<2,1,2,3>::MP_Options_t mpOptions;
-	mpOptions.nThreads_ = 4;
-	mpOptions.debugPrintMP_ = 0;
-	mpOptions.lsStepsizeGreedy_ = 1;
+	gslqpOptions_mp.nThreads_ = 4;
+	gslqpOptions_mp.debugPrintMP_ = 0;
+	gslqpOptions_mp.lsStepsizeGreedy_ = 1;
 	GSLQP<2,1,2,3> gslqp_mp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
-			controllersStock_mp, systemStockIndex, gslqpOptions_mp, mpOptions);
+			controllersStock_mp, systemStockIndex, gslqpOptions_mp);
 
 	// run both the mp and the single core version
 	gslqp.run(initState, switchingTimes);

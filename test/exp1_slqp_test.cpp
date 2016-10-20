@@ -83,15 +83,13 @@ TEST(Exp1_slqp_test, Exp1_slqp_test)
 
 	SLQP_MP<stateDim, controlDim, outputDim, nSys>::Options_t slqpOptions_mp;
 	slqpOptions_mp.dispayGSLQP_ = 0;
-	slqpOptions.lineSearchByMeritFuntion_ = false;
-
-	SLQP_MP<stateDim, controlDim, outputDim, nSys>::MP_Options_t mpOptions;
-	mpOptions.nThreads_ = 4;
-	mpOptions.debugPrintMP_ = false;
+	slqpOptions_mp.lineSearchByMeritFuntion_ = false;
+	slqpOptions_mp.nThreads_ = 4;
+	slqpOptions_mp.debugPrintMP_ = false;
 
 	// SLQP
 	SLQP	<stateDim,controlDim, outputDim, nSys> slqp		(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, 	systemStockIndex, slqpOptions);
-	SLQP_MP <stateDim,controlDim, outputDim, nSys> slqp_mp	(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock_mp, systemStockIndex, slqpOptions_mp, mpOptions);
+	SLQP_MP <stateDim,controlDim, outputDim, nSys> slqp_mp	(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock_mp, systemStockIndex, slqpOptions_mp);
 
 	std::cout << "Starting SLQP_MP" << std::endl;
 	slqp_mp.run(initState, switchingTimes);

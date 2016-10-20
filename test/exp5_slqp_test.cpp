@@ -81,16 +81,15 @@ TEST(Exp5_gslqp_test, Exp5_gslqp_test)
 
 	GSLQP<4,2,4,1>::Options_t gslqpOptions_mp = gslqpOptions;
 	gslqpOptions_mp.useMultiThreading_ = true;
-	GSLQP<4,2,4,1>::MP_Options_t mpOptions;
-	mpOptions.nThreads_ = 4;
-	mpOptions.debugPrintMP_ = 0;
-	mpOptions.lsStepsizeGreedy_ = 1;
+	gslqpOptions_mp.nThreads_ = 4;
+	gslqpOptions_mp.debugPrintMP_ = 0;
+	gslqpOptions_mp.lsStepsizeGreedy_ = 1;
 
 	// slqp single core
 	SLQP<4,2,4,1> slqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);
 
 	// slqp multi core
-	SLQP_MP<4,2,4,1> slqp_mp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions, mpOptions);
+	SLQP_MP<4,2,4,1> slqp_mp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions_mp);
 
 
 	// run both the mp and the single core versions of slqp

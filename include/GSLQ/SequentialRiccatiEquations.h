@@ -69,7 +69,9 @@ public:
 		__dsdt(eigen_scalar_t::Zero()),
 		__dsdz(eigen_scalar_t::Zero()),
 		__Lm(control_feedback_t::Zero()),
-		__Lv(control_vector_t::Zero())
+		__Lv(control_vector_t::Zero()),
+		__AtransposeSm(state_matrix_t::Zero()),
+		__LmtransposeRm(control_gain_matrix_t::Zero())
 		{}
 
 	~SequentialRiccatiEquations() {}
@@ -192,8 +194,10 @@ public:
 		/*note: according to some discussions on stackoverflow, it does not buy computation time if multiplications
 		 * with symmetric matrices are executed using selfadjointView(). Doing the full multiplication seems to be faster
 		 * because of vectorization */
-		__dSmdt = __Qm	+ __Am.transpose()*__Sm + __Sm*__Am - __Lm.transpose()*__Rm*__Lm;
-		__dSvdt = __Qv  + __Am.transpose()*__Sv - __Lm.transpose()*__Rm*__Lv;
+		__AtransposeSm = __Am.transpose()*__Sm;
+		__LmtransposeRm = __Lm.transpose()*__Rm;
+		__dSmdt = __Qm	+ __AtransposeSm + __AtransposeSm.transpose() - __LmtransposeRm*__Lm;
+		__dSvdt = __Qv  + __Am.transpose()*__Sv - __LmtransposeRm*__Lv;
 		__dsdt  = __q   - 0.5*alpha_*(2.0-alpha_)*__Lv.transpose()*__Rm*__Lv;
 
 		// Riccati equations for the equivalent system
@@ -278,6 +282,8 @@ private:
 	eigen_scalar_t __dsdz;
 	control_feedback_t __Lm;
 	control_vector_t __Lv;
+	state_matrix_t __AtransposeSm;
+	control_gain_matrix_t __LmtransposeRm;
 };
 
 }

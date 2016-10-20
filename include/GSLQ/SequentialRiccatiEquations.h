@@ -172,8 +172,8 @@ public:
 		convert2Matrix(allSs, __Sm, __Sv, __s);
 
 		// numerical consideration
-		bool hasNegativeEigenValue = makePSD(__Sm);
-		//		__Sm += state_matrix_t::Identity()*(1e-2);
+//		bool hasNegativeEigenValue = makePSD(__Sm);
+		__Sm += state_matrix_t::Identity()*(1e-5);
 
 		AmFunc_.interpolate(t, __Am);
 		size_t greatestLessTimeStampIndex = AmFunc_.getGreatestLessTimeStampIndex();

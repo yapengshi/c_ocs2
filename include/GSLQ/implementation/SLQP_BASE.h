@@ -44,28 +44,17 @@ void SLQP_BASE<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::solveSequentia
 		switch(options_.RiccatiIntegratorType_){
 
 		case DIMENSIONS::RICCATI_INTEGRATOR_TYPE::ODE45 : {
-
 			ODE45<RiccatiEquations_t::S_DIM_> riccati_integrator (riccatiEquationsPtr);
 			riccati_integrator.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory, 1e-5, options_.AbsTolODE_, options_.RelTolODE_, maxNumSteps);
 			break;
 		}
-/*note: this case is not yet working. It would most likely work if we had an adaptive time adams-bashforth integrator */
-//		case DIMENSIONS::RICCATI_INTEGRATOR_TYPE::ADAMS_BASHFORTH : {
-//			const size_t order = 4;
-//			//			IntegratorAdamsBashforth<RiccatiEquations_t::S_DIM_,order> riccati_integrator (riccatiEquationsPtr);
-//			//			IntegratorModifiedMidpoint<RiccatiEquations_t::S_DIM_> riccati_integrator (riccatiEquationsPtr);
-//			ODE45<RiccatiEquations_t::S_DIM_> riccati_integrator (riccatiEquationsPtr);
-//
-//			typename RiccatiEquations_t::s_vector_t start = allSsFinal;
-//
-//			riccati_integrator.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory, 1e-2, options_.AbsTolODE_, options_.RelTolODE_, maxNumSteps);
-//
-//			start = allSsFinal;
-//
-//			riccati_integrator.integrate(start, i,	i+1, options_.adams_integrator_dt_, allSsTrajectory2, normalizedTimeTrajectory2); // fixed time step
-//
-//			break;
-//		}
+		/*note: this case is not yet working. It would most likely work if we had an adaptive time adams-bashforth integrator */
+		case DIMENSIONS::RICCATI_INTEGRATOR_TYPE::ADAMS_BASHFORTH : {
+			const size_t order = 4;
+			IntegratorAdamsBashforth<RiccatiEquations_t::S_DIM_,order> riccati_integrator (riccatiEquationsPtr);
+			riccati_integrator.integrate(allSsFinal, i,	i+1, options_.adams_integrator_dt_, allSsTrajectory, normalizedTimeTrajectory); // fixed time step
+			break;
+		}
 		case DIMENSIONS::RICCATI_INTEGRATOR_TYPE::BULIRSCH_STOER : {
 			IntegratorBulirschStoer<RiccatiEquations_t::S_DIM_> riccati_integrator (riccatiEquationsPtr);
 			riccati_integrator.integrate(allSsFinal, i, i+1, allSsTrajectory, normalizedTimeTrajectory, 1e-5, options_.AbsTolODE_, options_.RelTolODE_, maxNumSteps);

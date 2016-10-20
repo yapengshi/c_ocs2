@@ -5,9 +5,9 @@ project(c_ocs2)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS cmake_modules cereal c_gradient_descent) 
-find_package(Eigen3 REQUIRED)
+find_package(Eigen REQUIRED)
 #find_package(Ceres REQUIRED)
-find_package(Boost REQUIRED system filesystem)
+find_package(Boost REQUIRED)
 
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -fopenmp -std=c++11 -Wfatal-errors -Wl,--no-as-needed")

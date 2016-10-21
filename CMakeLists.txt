@@ -72,7 +72,7 @@ include_directories(
 #add_executable(exp4_gslqp_test src/test/EXP4GSLQPTest.cpp)
 #
 # Declare a cpp executable
-#add_executable(exp5_slqp_test src/test/EXP5SLQPTest.cpp)
+add_executable(exp5_slqp_test src/test/EXP5SLQPTest.cpp)
 #
 # Declare a cpp executable
 add_executable(exp1_test src/test/EXP1Test.cpp)
@@ -123,11 +123,11 @@ add_executable(exp1_test src/test/EXP1Test.cpp)
 #)
 #
 ## Specify libraries to link a library or executable target against
-#target_link_libraries(exp5_slqp_test
-#  ${catkin_LIBRARIES}  
-#  ${Boost_LIBRARIES}
-#)
-#
+target_link_libraries(exp5_slqp_test
+  ${catkin_LIBRARIES}  
+  ${Boost_LIBRARIES}
+)
+
 # Specify libraries to link a library or executable target against
 target_link_libraries(exp1_test
   ${catkin_LIBRARIES}

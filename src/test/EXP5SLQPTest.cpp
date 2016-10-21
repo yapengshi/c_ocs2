@@ -26,41 +26,43 @@ using namespace ocs2;
 int main (int argc, char* argv[])
 {
 	// subsystem dynamics
-	std::vector<std::shared_ptr<ControlledSystemBase<4,2> > > subsystemDynamicsPtr {std::make_shared<EXP5_Sys1>()};
+	std::vector<std::shared_ptr<ControlledSystemBase<4,2> > > subsystemDynamicsPtr {std::make_shared<EXP5_Sys1>(), std::make_shared<EXP5_Sys1>()};
 
 	// subsystem derivatives
-	std::vector<std::shared_ptr<DerivativesBase<4,2> > > subsystemDerivativesPtr {std::make_shared<EXP5_SysDerivative1>()};
+	std::vector<std::shared_ptr<DerivativesBase<4,2> > > subsystemDerivativesPtr {std::make_shared<EXP5_SysDerivative1>(), std::make_shared<EXP5_SysDerivative1>()};
 
 	// subsystem cost functions
-	std::vector<std::shared_ptr<CostFunctionBaseOCS2<4,2> > > subsystemCostFunctionsPtr {std::make_shared<EXP5_CostFunction1>()};
+	std::vector<std::shared_ptr<CostFunctionBaseOCS2<4,2> > > subsystemCostFunctionsPtr {std::make_shared<EXP5_CostFunction1>(), std::make_shared<EXP5_CostFunction1>()};
 
 
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	/******************************************************************************************************/
-	GSLQP<4,2,4,1>::state_vector_array_t   stateOperatingPoints(1, GSLQP<4,2,4,1>::state_vector_t::Zero());
-	GSLQP<4,2,4,1>::control_vector_array_t inputOperatingPoints(1, GSLQP<4,2,4,1>::control_vector_t::Zero());
-	std::vector<size_t> systemStockIndex {0};
+	std::vector<size_t> systemStockIndex {0, 0};
+	const size_t nSubSys = 2;
+
+	GSLQP<4,2,4,nSubSys>::state_vector_array_t   stateOperatingPoints(2, GSLQP<4,2,4,nSubSys>::state_vector_t::Zero());
+	GSLQP<4,2,4,nSubSys>::control_vector_array_t inputOperatingPoints(2, GSLQP<4,2,4,nSubSys>::control_vector_t::Zero());
 
 	Eigen::Matrix<double, 4 ,1 > initState;
 	initState << 0.0, 0.0, 0.1, 0.0;
 
-	std::vector<double> switchingTimes {0, 3};
-	std::vector<double> switchingTimes_mp {0, 3};
+	std::vector<double> switchingTimes {0, 1.5, 3};
+	std::vector<double> switchingTimes_mp {0, 1.5, 3};
 
 
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	// GLQP
-	GLQP<4,2,4,1> glqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
+	GLQP<4,2,4,nSubSys> glqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr,
 			stateOperatingPoints, inputOperatingPoints, systemStockIndex);
 
 	glqp.run(switchingTimes);
 
 	// get controller
-	std::vector<GLQP<4,2,4,1>::controller_t> controllersStock(1);
-	std::vector<GLQP<4,2,4,1>::controller_t> controllersStock_mp(1);
+	std::vector<GLQP<4,2,4,nSubSys>::controller_t> controllersStock(nSubSys);
+	std::vector<GLQP<4,2,4,nSubSys>::controller_t> controllersStock_mp(nSubSys);
 
 	glqp.getController(controllersStock);
 	glqp.getController(controllersStock_mp);
@@ -69,7 +71,7 @@ int main (int argc, char* argv[])
 	/******************************************************************************************************/
 	/******************************************************************************************************/
 	/******************************************************************************************************/
-	GSLQP<4,2,4,1>::Options_t gslqpOptions;
+	GSLQP<4,2,4,nSubSys>::Options_t gslqpOptions;
 	gslqpOptions.dispayGSLQP_ = 1;
 	gslqpOptions.useMultiThreading_ = false;
 	gslqpOptions.minLearningRateGSLQP_ = 0.01;
@@ -80,18 +82,17 @@ int main (int argc, char* argv[])
 	gslqpOptions.maxIterationGSLQP_ = 1;
 
 
-	GSLQP<4,2,4,1>::Options_t gslqpOptions_mp = gslqpOptions;
+	GSLQP<4,2,4,nSubSys>::Options_t gslqpOptions_mp = gslqpOptions;
 	gslqpOptions_mp.useMultiThreading_ = true;
-	GSLQP<4,2,4,1>::MP_Options_t mpOptions;
-	mpOptions.nThreads_ = 4;
-	mpOptions.debugPrintMP_ = 0;
-	mpOptions.lsStepsizeGreedy_ = 1;
+	gslqpOptions_mp.nThreads_ = 4;
+	gslqpOptions_mp.debugPrintMP_ = 0;
+	gslqpOptions_mp.lsStepsizeGreedy_ = 1;
 
 	// slqp single core
-	SLQP<4,2,4,1> slqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);
+	SLQP<4,2,4,nSubSys> slqp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);
 
 	// slqp multi core
-	SLQP_MP<4,2,4,1> slqp_mp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions, mpOptions);
+	SLQP_MP<4,2,4,nSubSys> slqp_mp(subsystemDynamicsPtr, subsystemDerivativesPtr, subsystemCostFunctionsPtr, controllersStock, systemStockIndex, gslqpOptions);
 
 
 	// run both the mp and the single core versions of slqp
@@ -103,9 +104,9 @@ int main (int argc, char* argv[])
 	slqp_mp.getController(controllersStock_mp);
 
 	// rollout both versions
-	std::vector<GSLQP<4,2,4,1>::scalar_array_t> timeTrajectoriesStock, timeTrajectoriesStock_mp;
-	std::vector<GSLQP<4,2,4,1>::state_vector_array_t> stateTrajectoriesStock, stateTrajectoriesStock_mp;
-	std::vector<GSLQP<4,2,4,1>::control_vector_array_t> controlTrajectoriesStock, controlTrajectoriesStock_mp;
+	std::vector<GSLQP<4,2,4,nSubSys>::scalar_array_t> timeTrajectoriesStock, timeTrajectoriesStock_mp;
+	std::vector<GSLQP<4,2,4,nSubSys>::state_vector_array_t> stateTrajectoriesStock, stateTrajectoriesStock_mp;
+	std::vector<GSLQP<4,2,4,nSubSys>::control_vector_array_t> controlTrajectoriesStock, controlTrajectoriesStock_mp;
 	slqp.rollout(initState, controllersStock, timeTrajectoriesStock, stateTrajectoriesStock, controlTrajectoriesStock);
 	slqp_mp.rollout(initState, controllersStock_mp, timeTrajectoriesStock_mp, stateTrajectoriesStock_mp, controlTrajectoriesStock_mp);
 

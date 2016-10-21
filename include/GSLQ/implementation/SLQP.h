@@ -1122,6 +1122,9 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 		BASE::nominalConstraint1ISE_ = lsConstraint1ISE;
 		learningRateStar = learningRate;
 
+		BASE::nc2FinalStock_.swap(lsNc2FinalStock);
+		BASE::HvFinalStock_.swap(lsHvFinalStock);
+
 		for (size_t i = 0; i<NUM_SUBSYSTEMS; i++)	// swapping where possible for efficiency
 		{
 			nominalControllersStock_[i].swap(lsControllersStock[i]);
@@ -1133,8 +1136,6 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch(
 			BASE::EvTrajectoryStock_[i].swap(lsEvTrajectoryStock[i]);
 			BASE::nc2TrajectoriesStock_[i].swap(lsNc2TrajectoriesStock[i]);
 			BASE::HvTrajectoryStock_[i].swap(lsHvTrajectoryStock[i]);
-			BASE::nc2FinalStock_[i] = lsNc2FinalStock[i];
-			BASE::HvFinalStock_[i].swap(lsHvFinalStock[i]);
 			BASE::lagrangeControllerStock_[i].swap(lsLagrangeControllersStock[i]);;
 			BASE::nominalLagrangeTrajectoriesStock_[i].swap(lsLagrangeTrajectoriesStock[i]);
 		}

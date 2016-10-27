@@ -913,6 +913,12 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::lineSearch() {
 	// reset integrator events
 	killIntegrationEventHandler_->resetEvent();	// reset all integrations
 
+	if (BASE::options_.dispayGSLQP_)
+		if(BASE::options_.lsStepsizeGreedy_ == true)
+			printString("Finished step-size greedy linesearch.");
+		else
+			printString("Finished cost greedy linesearch.");
+
 	// display
 	if (BASE::options_.dispayGSLQP_)
 		printString("The chosen learningRate is: " + std::to_string(learningRateStar_));
@@ -1323,7 +1329,11 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 		// solve Riccati equations
 		auto start2 = std::chrono::high_resolution_clock::now();
 
+		Eigen::setNbThreads(1); // disable Eigen multi-threading	// todo: fixme -- remove if no effect
+
 		this->solveSequentialRiccatiEquations(1.0 /*nominal learningRate*/);
+
+		Eigen::setNbThreads(0); // restore default Eigen thread number
 
 		auto end2 = std::chrono::high_resolution_clock::now();
 		if(BASE::options_.debugPrintMP_){

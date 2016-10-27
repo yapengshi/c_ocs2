@@ -30,7 +30,7 @@ class SLQP_MP : public SLQP_BASE<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEM
 {
 public:
 
-	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 	typedef SLQP_BASE<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS> BASE;
 
@@ -103,7 +103,7 @@ public:
 		kTaken_ctrl_(NUM_SUBSYSTEMS),
 		kCompleted_ctrl_(NUM_SUBSYSTEMS)
 	{
-		Eigen::initParallel();
+//		Eigen::initParallel();
 		std::cout << "initialized Eigen Parallel with " << Eigen::nbThreads( ) << " threads. " << std::endl;
 
 		// resize instances to correct number of threads + 1

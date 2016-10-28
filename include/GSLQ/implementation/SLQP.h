@@ -548,7 +548,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimalC
 			subsystemCostFunctionsPtrStock_[i]->terminalCostStateDerivative(BASE::QvFinalStock_[i]);
 			subsystemCostFunctionsPtrStock_[i]->terminalCostStateSecondDerivative(BASE::QmFinalStock_[i]);
 			// making sure that Qm remains PSD
-			makePSD(BASE::QmFinalStock_[i]);
+			this->makePSD(BASE::QmFinalStock_[i]);
 		}
 		else {
 			BASE::qFinalStock_[i].setZero();
@@ -649,7 +649,7 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::approximateOptimalC
 			}
 
 			// making sure that constrained Qm is PSD
-			makePSD(BASE::QmConstrainedTrajectoryStock_[i][k]);
+			this->makePSD(BASE::QmConstrainedTrajectoryStock_[i][k]);
 
 		}  // end of k loop
 	}  // end of i loop
@@ -1416,37 +1416,6 @@ void SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::getNominalTrajector
 //
 //	}  // end of i loop
 //}
-
-
-/******************************************************************************************************/
-/******************************************************************************************************/
-/******************************************************************************************************/
-/*
- * make the given square matrix psd
- */
-template <size_t STATE_DIM, size_t INPUT_DIM, size_t OUTPUT_DIM, size_t NUM_SUBSYSTEMS> // TODO: move it to Base
-template <typename Derived>
-bool SLQP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::makePSD(Eigen::MatrixBase<Derived>& squareMatrix) {
-
-	if (squareMatrix.rows() != squareMatrix.cols())  throw std::runtime_error("Not a square matrix: makePSD() method is for square matrix.");
-
-	Eigen::SelfAdjointEigenSolver<Derived> eig(squareMatrix, Eigen::EigenvaluesOnly);
-	Eigen::VectorXd lambda = eig.eigenvalues();
-
-	bool hasNegativeEigenValue = false;
-	for (size_t j=0; j<lambda.size() ; j++)
-		if (lambda(j) < 0.0) {
-			hasNegativeEigenValue = true;
-			lambda(j) = 1e-6;
-		}
-
-	if (hasNegativeEigenValue) {
-		eig.compute(squareMatrix, Eigen::ComputeEigenvectors);
-		squareMatrix = eig.eigenvectors() * lambda.asDiagonal() * eig.eigenvectors().inverse();
-	} else {
-		squareMatrix = 0.5*(squareMatrix+squareMatrix.transpose()).eval();
-	}
-}
 
 
 /******************************************************************************************************/

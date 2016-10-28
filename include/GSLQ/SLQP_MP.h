@@ -335,10 +335,6 @@ protected:
 
 	void lineSearch();
 
-	template <typename Derived>
-	bool makePSD(Eigen::MatrixBase<Derived>& squareMatrix);
-
-
 private:
 
 	void launchWorkerThreads();

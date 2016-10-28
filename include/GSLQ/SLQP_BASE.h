@@ -226,6 +226,9 @@ protected:
 
 	void solveSequentialRiccatiEquations(const scalar_t& learningRate);
 
+	template <typename Derived>
+	bool makePSD(Eigen::MatrixBase<Derived>& squareMatrix);
+
 	scalar_t nominalTotalCost_;
 	scalar_t nominalTotalMerit_;
 	scalar_t nominalConstraint1ISE_;

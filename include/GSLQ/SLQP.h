@@ -212,9 +212,6 @@ protected:
 			scalar_t& learningRateStar,
 			scalar_t maxLearningRateStar=1.0);
 
-	template <typename Derived>
-	bool makePSD(Eigen::MatrixBase<Derived>& squareMatrix);
-
 
 private:
 	std::vector<std::shared_ptr<ControlledSystemBase<STATE_DIM, INPUT_DIM, OUTPUT_DIM>>> subsystemDynamicsPtrStock_;

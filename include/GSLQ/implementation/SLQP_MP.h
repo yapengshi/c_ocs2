@@ -1211,22 +1211,22 @@ bool SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::makePSD(Eigen::M
 	if (squareMatrix.rows() != squareMatrix.cols())
 		throw std::runtime_error("Not a square matrix: makePSD() method is for square matrix.");
 
-	Eigen::SelfAdjointEigenSolver<Derived> eig(squareMatrix);
+	Eigen::SelfAdjointEigenSolver<Derived> eig(squareMatrix, Eigen::EigenvaluesOnly);
 	Eigen::VectorXd lambda = eig.eigenvalues();
 
 	bool hasNegativeEigenValue = false;
 	for (size_t j=0; j<lambda.size() ; j++)
 		if (lambda(j) < 0.0) {
 			hasNegativeEigenValue = true;
-			lambda(j) = 0.0;
+			lambda(j) = 1e-6;
 		}
 
-	if (hasNegativeEigenValue)
+	if (hasNegativeEigenValue) {
+		eig.compute(squareMatrix, Eigen::ComputeEigenvectors);
 		squareMatrix = eig.eigenvectors() * lambda.asDiagonal() * eig.eigenvectors().inverse();
-	//	else
-	//		squareMatrix = 0.5*(squareMatrix+squareMatrix.transpose()).eval();
-
-	return hasNegativeEigenValue;
+	} else {
+		squareMatrix = 0.5*(squareMatrix+squareMatrix.transpose()).eval();
+	}
 }
 
 

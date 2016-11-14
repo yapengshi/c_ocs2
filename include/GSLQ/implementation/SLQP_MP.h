@@ -1298,11 +1298,7 @@ void SLQP_MP<STATE_DIM, INPUT_DIM, OUTPUT_DIM, NUM_SUBSYSTEMS>::run(const state_
 		// solve Riccati equations
 		auto start2 = std::chrono::high_resolution_clock::now();
 
-		Eigen::setNbThreads(1); // disable Eigen multi-threading	// todo: fixme -- remove if no effect
-
 		this->solveSequentialRiccatiEquations(1.0 /*nominal learningRate*/);
-
-		Eigen::setNbThreads(0); // restore default Eigen thread number
 
 		auto end2 = std::chrono::high_resolution_clock::now();
 		if(BASE::options_.debugPrintMP_){

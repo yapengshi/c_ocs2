@@ -103,8 +103,8 @@ public:
 		kTaken_ctrl_(NUM_SUBSYSTEMS),
 		kCompleted_ctrl_(NUM_SUBSYSTEMS)
 	{
-//		Eigen::initParallel();
-		std::cout << "initialized Eigen Parallel with " << Eigen::nbThreads( ) << " threads. " << std::endl;
+		Eigen::initParallel();
+//		std::cout << "initialized Eigen Parallel with " << Eigen::nbThreads( ) << " threads. " << std::endl;
 
 		// resize instances to correct number of threads + 1
 		dynamics_.resize(options.nThreads_+1);

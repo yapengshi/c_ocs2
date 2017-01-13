@@ -32,5 +32,5 @@ The optimal control for switched system (OCS2) algorithm is an efficient optimal
 
 
 ### Contact 
-Farbod Farshidian (farbodf@ethz.ch)
-Markus Giftthaler (mgiftthaler@ethz.ch)
+* Farbod Farshidian (farbodf@ethz.ch)
+* Markus Giftthaler (mgiftthaler@ethz.ch)

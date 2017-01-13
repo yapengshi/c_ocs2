@@ -37,6 +37,8 @@ The optimal control for switched system (OCS2) algorithm is an efficient optimal
 
 ### Publications 
 
+* [Sequential Linear Quadratic Optimal Control for Nonlinear Switched Systems](https://arxiv.org/abs/1609.02198)
+* [An Efficient Optimal Planning and Control Framework For Quadrupedal Locomotion](https://arxiv.org/abs/1609.09861)
 
 
 ### Contact 

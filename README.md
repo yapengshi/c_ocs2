@@ -1,13 +1,3 @@
-# README #
-
-This README would normally document whatever steps are necessary to get your application up and running.
-
-### What is this repository for? ###
-
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
-
 # OCS2 Algorithm
 
 The optimal control for switched system (OCS2) algorithm is an efficient optimal control framework for an constrained nonlinear switched system with an arbitrary cost function.

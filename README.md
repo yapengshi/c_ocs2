@@ -17,9 +17,9 @@ The optimal control for switched system (OCS2) algorithm is an efficient optimal
 
         $ git clone git@bitbucket.org:adrlab/c_gradient_descent.git
 
-- cereal - A C++11 library for serialization
+- cereal (a C++11 library for serialization)
 	
-	$ git clone git@bitbucket.org:adrlab/r_cereal.git
+        $ git clone git@bitbucket.org:adrlab/r_cereal.git
 
 - (Optional) Google unit test framework
 
@@ -33,3 +33,4 @@ The optimal control for switched system (OCS2) algorithm is an efficient optimal
 
 ### Contact 
 Farbod Farshidian (farbodf@ethz.ch)
+Giftthaler Markus (mgiftthaler@ethz.ch)

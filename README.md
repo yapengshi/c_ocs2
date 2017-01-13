@@ -1,6 +1,6 @@
 # OCS2 Algorithm
 
-The optimal control for switched system (OCS2) algorithm is an efficient optimal control framework for an constrained nonlinear switched system with an arbitrary cost function.
+The optimal control for switched system (OCS2) algorithm is an efficient optimal control framework for a constrained nonlinear switched system with an arbitrary cost function.
 
 ------------------------------------------------------------------------------------
 ### Dependencies 
